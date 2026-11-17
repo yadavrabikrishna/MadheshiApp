@@ -1,10 +1,111 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Madheshi App
 
-# Getting Started
+Madheshi App is a mobile application project focused on delivering useful information and practical tools for the Madheshi community.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+The application is being developed using React Native CLI and TypeScript, with a separate Python FastAPI backend architecture.
 
-## Step 1: Start Metro
+## Project Status
+
+<badge color="info">Active development</badge>
+
+The project is currently under development. Features, architecture decisions, and implementation details may evolve through the owner's review process.
+
+The `develop` branch contains the latest integrated development work. The `main` branch is reserved for stable releases.
+
+## Technology Stack
+
+### Mobile application
+
+| Technology | Purpose |
+|---|---|
+| React Native CLI | Mobile application framework |
+| TypeScript | Application programming language |
+| React Native StyleSheet | Component styling |
+| React Navigation | Navigation |
+| Redux Toolkit | State management |
+| RTK Query | API communication and caching |
+| npm | Package management |
+
+### Backend architecture
+
+| Technology | Purpose |
+|---|---|
+| Python | Backend programming language |
+| FastAPI | API framework |
+| Pydantic | Data validation |
+| SQLAlchemy | ORM |
+| Alembic | Database migrations |
+| PostgreSQL | Backend database |
+| OpenAPI / Swagger | API documentation |
+
+### Local database
+
+SQLite is being evaluated for local mobile storage. The final driver/library selection is not yet documented as an approved decision.
+
+## Current Development Scope
+
+The planned V1 application includes:
+
+- News
+- Simple interest calculator
+- Compound interest calculator
+- Age calculator
+- Land calculator
+
+Refer to the current feature and architecture documentation for the approved specifications and implementation status.
+
+## Project Requirements
+
+Before starting, install and configure:
+
+- Node.js
+- npm
+- Git
+- Android Studio
+- Android SDK
+- Android emulator or a physical Android device
+- JDK compatible with the installed React Native version
+
+Use the versions and configuration documented for the current development environment.
+
+## Local Development Setup
+
+### 1. Clone the repository
+
+```powershell
+git clone <REPOSITORY_URL>
+cd MadheshiApp
+```
+
+### 2. Read project documentation
+
+Read these files before making changes:
+
+1. `AGENTS.md`
+2. `CONTRIBUTING.md`
+3. `README.md`
+
+Also read relevant feature and architecture documentation.
+
+### 3. Install dependencies
+
+```powershell
+npm install
+```
+
+### 4. Start the Android emulator
+
+Example using the configured local Android SDK:
+
+```powershell
+& "D:\Dev\SDK\Android\emulator\emulator.exe" -avd Pixel_10a
+```
+
+The SDK path and AVD name above are examples from the original development machine. Other developers must use their own Android SDK and emulator paths.
+
+### 5. Run the application
+
+#### Step 1: Start Metro
 
 First, you will need to run **Metro**, the JavaScript build tool for React Native.
 
@@ -16,16 +117,12 @@ npm start
 
 # Using npx
 npx react-native start --reset-cache
-
-# OR using Yarn
-yarn start
 ```
-
-## Step 2: Build and run your app
+#### Step 2: Build and run your app
 
 With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
 
-### Android
+##### Android
 
 ```sh
 # Using npm
@@ -40,7 +137,7 @@ npm run android -- --no-packager --active-arch-only
 yarn android
 ```
 
-### iOS
+##### iOS
 
 For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
 
@@ -70,36 +167,55 @@ If everything is set up correctly, you should see your new app running in the An
 
 This is one way to run your app — you can also build it directly from Android Studio or Xcode.
 
-## Step 3: Modify your app
 
-Now that you have successfully run the app, let's make changes!
+For other available commands, inspect `package.json`.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## Git Branch Strategy
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+The repository uses two permanent branches:
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+- `main`: stable releases only.
+- `develop`: development integration branch.
 
-## Congratulations! :tada:
+Temporary task branches must be created from `develop`.
 
-You've successfully run and modified your React Native App. :partying_face:
+Approved branch prefixes:
 
-### Now what?
+- `chore/` — setup, tooling and maintenance.
+- `feature/` — new functionality.
+- `fix/` — bug fixes.
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+Example:
 
-# Troubleshooting
+```powershell
+git switch develop
+git switch -c feature/news-screen
+```
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Contributors must not merge their work into `develop` or `main`. Completed changes are submitted for owner review. The project owner performs the merge manually.
 
-# Learn More
+Read `CONTRIBUTING.md` for the complete workflow.
 
-To learn more about React Native, take a look at the following resources:
+## AI Coding Agent Instructions
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+AI coding agents must read `AGENTS.md` before doing any work.
+
+They must follow the approved architecture, inspect existing code before changing it, create task-specific branches from `develop`, test their changes, and leave completed work for owner review.
+
+AI agents must never merge their work into `develop` or `main.
+
+## Project Documentation
+
+Project architecture, feature specifications, implementation decisions, and development checklists should be maintained in the project's documentation.
+
+Keep documentation consistent with the actual implementation. Do not mark proposed or unverified decisions as finalized.
+
+## Contribution
+
+Contributions are welcome through the repository's review process.
+
+Read `CONTRIBUTING.md` before creating branches or submitting changes.
+
+## License
+
+The project's license will be specified by the project owner.
