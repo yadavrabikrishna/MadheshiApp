@@ -32,6 +32,7 @@ The project is being developed incrementally. Preserve the established architect
 - RTK Query for API data fetching and caching
 - npm for JavaScript package management
 - `@react-native-vector-icons/ionicons` (Ionicons) for icons
+- `@react-navigation/bottom-tabs` and `@react-navigation/native-stack` (with `@react-navigation/elements`)
 - `decimal.js` for exact decimal arithmetic in calculators (interest rounding must be exact round-half-up; never use binary floating point for money)
 - Jest and React Native Testing Library for testing, where configured
 
@@ -68,6 +69,7 @@ Both are pinned to exact versions in `package.json` (no `^`). Do not loosen, upg
 ### Language and theme
 
 - Supported app languages are `en` and `np`. `np` is the approved internal code for Nepali; the label shown to users is "नेपाली".
+- For locale-aware formatting, map internal `np` to the standard Nepali locale `ne-NP`.
 - Theme: the system color scheme (`useColorScheme`) is only the default when the user has not chosen. The saved choice (SQLite) always overrides it. If saved preferences cannot be loaded, use the system theme and English and show the warning in Settings.
 - Strings live in `src/i18n/resources` (`en.ts` defines the keys, `np.ts` must match).
 
