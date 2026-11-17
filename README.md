@@ -14,6 +14,9 @@ To start the Metro dev server, run the following command from the root of your R
 # Using npm
 npm start
 
+# Using npx
+npx react-native start --reset-cache
+
 # OR using Yarn
 yarn start
 ```
@@ -27,6 +30,11 @@ With Metro running, open a new terminal window/pane from the root of your React 
 ```sh
 # Using npm
 npm run android
+
+# Using npx
+npx react-native run-android --no-packager
+
+npm run android -- --no-packager --active-arch-only
 
 # OR using Yarn
 yarn android
