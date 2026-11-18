@@ -16,8 +16,8 @@ src/
     header/                    Top-right header controls (theme, language)
   features/                  One folder per feature: Redux slice, selectors, tests
     preferences/               Theme + language state and persistence thunks
-  i18n/                      Centralized translations (en, ne) and useTranslation
-    resources/                 en.ts defines the keys; ne.ts must match
+  i18n/                      Centralized translations (en, np) and useTranslation
+    resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
   screens/                   One folder per screen (Home, News, Calculator, Settings)
   storage/                   SQLite: connection, versioned migrations, repositories
@@ -33,13 +33,15 @@ src/
   dispatch thunks. They never call SQLite. A change updates Redux immediately,
   then is written to SQLite asynchronously. A failed write sets an error flag in
   Redux (shown in Settings) instead of being ignored.
+- **Preference writes are ordered.** The repository runs writes one after another in
+  the order requested, so a slow older write can never overwrite a newer selection.
 - **Storage is behind repositories** (`src/storage`). The native driver is
   imported in exactly one file (`database.ts`). Schema changes are new entries in
   `migrations.ts`; never edit a released migration.
 - **Colors come from theme tokens** (`useAppTheme`, `useThemedStyles`), never
   hard-coded hex values in components.
 - **Strings come from `src/i18n/resources`.** Add every new key to `en.ts` and
-  `ne.ts`; the compiler fails if Nepali is missing one.
+  `np.ts`; the compiler fails if Nepali is missing one.
 - **Icons go through `components/common/Icon`.**
 - **Dependencies are injected** into the store (`createAppStore`) so tests can use
   a fake or a Node SQLite database instead of the device driver.
