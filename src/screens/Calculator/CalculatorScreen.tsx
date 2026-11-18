@@ -4,9 +4,9 @@ import { View } from 'react-native';
 import { TopTabs, type TopTabOption } from '../../components';
 import { useTranslation, type TranslationKey } from '../../i18n';
 import { useThemedStyles, type AppTheme } from '../../theme';
-import { AgeCalculatorView } from './views/AgeCalculatorView';
-import { InterestCalculatorView } from './views/InterestCalculatorView';
-import { LandCalculatorView } from './views/LandCalculatorView';
+import { AgeCalculatorView } from './AgeCalculator/AgeCalculatorView';
+import { InterestCalculatorView } from './InterestCalculator/InterestCalculatorView';
+import { LandCalculatorView } from './LandCalculator/LandCalculatorView';
 
 type CalculatorTab = 'interest' | 'age' | 'land';
 
