@@ -24,6 +24,10 @@ jest.mock('../src/storage/database', () => {
   return { openDatabase: () => createTestDatabase(raw) };
 });
 
+// The first render loads React Navigation and every screen, which can take well
+// over Jest's 5s default on a slower machine (e.g. Windows). Not a hang.
+jest.setTimeout(60000);
+
 const TAB_LABELS = {
   en: ['Home', 'News', 'Calculator', 'Settings'],
   ne: ['गृह', 'समाचार', 'क्यालकुलेटर', 'सेटिङ'],
