@@ -6,7 +6,7 @@ The application is being developed using React Native CLI and TypeScript, with a
 
 ## Project Status
 
-<badge color="info">Active development</badge>
+**Active development**
 
 The project is currently under development. Features, architecture decisions, and implementation details may evolve through the owner's review process.
 
@@ -21,9 +21,11 @@ The `develop` branch contains the latest integrated development work. The `main`
 | React Native CLI | Mobile application framework |
 | TypeScript | Application programming language |
 | React Native StyleSheet | Component styling |
-| React Navigation | Navigation |
+| React Navigation (bottom tabs, native stack) | Navigation |
 | Redux Toolkit | State management |
 | RTK Query | API communication and caching |
+| Ionicons (`@react-native-vector-icons/ionicons`) | Icons |
+| `decimal.js` | Exact decimal arithmetic for calculators |
 | npm | Package management |
 
 ### Backend architecture
@@ -40,7 +42,16 @@ The `develop` branch contains the latest integrated development work. The `main`
 
 ### Local database
 
-SQLite is being evaluated for local mobile storage. The final driver/library selection is not yet documented as an approved decision.
+SQLite stores user preferences (and, in later tasks, the news cache and bookmarks) through the approved driver, pinned to exact versions:
+
+- `react-native-nitro-sqlite` 10.3.0
+- `react-native-nitro-modules` 0.37.2
+
+See `AGENTS.md` for the storage rules and `docs/PROJECT_STRUCTURE.md` for the folder layout.
+
+### Languages
+
+The app supports English (`en`) and Nepali (`np`, shown as "नेपाली").
 
 ## Current Development Scope
 
@@ -133,8 +144,6 @@ npx react-native run-android --no-packager
 
 npm run android -- --no-packager --active-arch-only
 
-# OR using Yarn
-yarn android
 ```
 
 ##### iOS
@@ -159,8 +168,6 @@ For more information, please visit [CocoaPods Getting Started guide](https://gui
 # Using npm
 npm run ios
 
-# OR using Yarn
-yarn ios
 ```
 
 If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
@@ -202,7 +209,7 @@ AI coding agents must read `AGENTS.md` before doing any work.
 
 They must follow the approved architecture, inspect existing code before changing it, create task-specific branches from `develop`, test their changes, and leave completed work for owner review.
 
-AI agents must never merge their work into `develop` or `main.
+AI agents must never merge their work into `develop` or `main`.
 
 ## Project Documentation
 

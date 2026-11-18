@@ -1,25 +1,23 @@
-import {
-  DefaultTheme,
-  type Theme,
-} from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, type Theme } from '@react-navigation/native';
 
-import { appColors } from './colors';
+import type { AppTheme } from './themes';
 
-const light = appColors.light;
+/** Map the app's semantic tokens onto React Navigation's theme. */
+export function getNavigationTheme(theme: AppTheme): Theme {
+  const base = theme.isDark ? DarkTheme : DefaultTheme;
+  const { colors } = theme;
 
-export const navigationTheme: Theme = {
-  ...DefaultTheme,
-
-  dark: false,
-
-  colors: {
-    ...DefaultTheme.colors,
-
-    primary: light.primary,
-    background: light.background,
-    card: light.surface,
-    text: light.text,
-    border: light.border,
-    notification: light.primary,
-  },
-};
+  return {
+    ...base,
+    dark: theme.isDark,
+    colors: {
+      ...base.colors,
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.primary,
+    },
+  };
+}
