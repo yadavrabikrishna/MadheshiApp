@@ -109,8 +109,8 @@ describe('preferences repository', () => {
   it('saves and overwrites theme and language', async () => {
     const { repository } = await setup();
     await repository.saveTheme('dark');
-    await repository.saveLanguage('ne');
-    expect(await repository.load()).toEqual({ theme: 'dark', language: 'ne' });
+    await repository.saveLanguage('np');
+    expect(await repository.load()).toEqual({ theme: 'dark', language: 'np' });
 
     await repository.saveTheme('light');
     await repository.saveLanguage('en');
@@ -130,12 +130,65 @@ describe('preferences repository', () => {
     expect(rows.rows._array).toEqual([{ key: 'theme', updated_at: 1234 }]);
   });
 
-  it('ignores unknown stored values, including the invalid code "np"', async () => {
+  it('ignores unknown stored values, including the retired code "ne"', async () => {
     const { db, repository } = await setup();
     await db.executeAsync(
-      "INSERT INTO preferences (key, value, updated_at) VALUES ('language', 'np', 0), ('theme', 'sepia', 0)",
+      "INSERT INTO preferences (key, value, updated_at) VALUES ('language', 'ne', 0), ('theme', 'sepia', 0)",
     );
     expect(await repository.load()).toEqual({ theme: null, language: null });
+  });
+
+  it('applies writes in the order they were requested, even if an older one is slow', async () => {
+    const real = createTestDatabase();
+    await runMigrations(real);
+
+    // Hold back the FIRST write so it would finish after the newer one.
+    let releaseFirst: () => void = () => {};
+    const firstStarted = new Promise<void>(resolve => {
+      releaseFirst = resolve;
+    });
+    let writes = 0;
+    const slowFirstWrite: SqlDatabase = {
+      ...real,
+      executeAsync: async (query, params) => {
+        if (query.includes('INSERT INTO preferences') && writes++ === 0) {
+          await firstStarted;
+        }
+        return real.executeAsync(query, params);
+      },
+    };
+    const repository = createPreferencesRepository(slowFirstWrite);
+
+    const older = repository.saveTheme('dark');
+    const newer = repository.saveTheme('light'); // selected last: must win
+    releaseFirst();
+    await Promise.all([older, newer]);
+
+    expect(await createPreferencesRepository(real).load()).toEqual({
+      theme: 'light',
+      language: null,
+    });
+  });
+
+  it('keeps writing after a failed write', async () => {
+    const real = createTestDatabase();
+    await runMigrations(real);
+    let failNext = true;
+    const flaky: SqlDatabase = {
+      ...real,
+      executeAsync: async (query, params) => {
+        if (query.includes('INSERT INTO preferences') && failNext) {
+          failNext = false;
+          throw new Error('disk full');
+        }
+        return real.executeAsync(query, params);
+      },
+    };
+    const repository = createPreferencesRepository(flaky);
+
+    await expect(repository.saveTheme('dark')).rejects.toThrow('disk full');
+    await repository.saveTheme('light');
+    expect((await repository.load()).theme).toBe('light');
   });
 
   it('survives an app restart (same database file, new connection)', async () => {
@@ -143,14 +196,14 @@ describe('preferences repository', () => {
 
     const firstRun = createTestDatabase(file);
     await runMigrations(firstRun);
-    await createPreferencesRepository(firstRun).saveLanguage('ne');
+    await createPreferencesRepository(firstRun).saveLanguage('np');
     await createPreferencesRepository(firstRun).saveTheme('dark');
 
     const secondRun = createTestDatabase(file);
     await runMigrations(secondRun);
     expect(await createPreferencesRepository(secondRun).load()).toEqual({
       theme: 'dark',
-      language: 'ne',
+      language: 'np',
     });
   });
 });

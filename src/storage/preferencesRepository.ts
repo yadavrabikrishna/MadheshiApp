@@ -25,14 +25,24 @@ export function createPreferencesRepository(
   db: SqlExecutor,
   now: () => number = Date.now,
 ): PreferencesRepository {
-  async function save(key: PreferenceKey, value: string): Promise<void> {
-    await db.executeAsync(
-      `INSERT INTO preferences (key, value, updated_at) VALUES (?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET
-         value = excluded.value,
-         updated_at = excluded.updated_at`,
-      [key, value, now()],
+  // Writes run strictly one after another, in the order they were requested.
+  // Without this, a slow older write could finish after a newer one and
+  // overwrite it, leaving a stale value in SQLite.
+  let writeQueue: Promise<unknown> = Promise.resolve();
+
+  function save(key: PreferenceKey, value: string): Promise<void> {
+    const write = writeQueue.then(() =>
+      db.executeAsync(
+        `INSERT INTO preferences (key, value, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET
+           value = excluded.value,
+           updated_at = excluded.updated_at`,
+        [key, value, now()],
+      ),
     );
+    // A failed write must not block the ones after it; its caller still sees the error.
+    writeQueue = write.catch(() => undefined);
+    return write.then(() => undefined);
   }
 
   return {

@@ -1,5 +1,5 @@
 import { createAppStore } from '../../../store';
-import type { PreferencesRepository } from '../../../storage';
+import type { PreferencesRepository, SqlDatabase } from '../../../storage';
 import { createPreferencesRepository } from '../../../storage/preferencesRepository';
 import { runMigrations } from '../../../storage/migrations';
 import {
@@ -49,14 +49,14 @@ describe('hydration', () => {
   it('uses the saved theme and language', async () => {
     const store = setup(
       fakeRepository({
-        load: jest.fn().mockResolvedValue({ theme: 'dark', language: 'ne' }),
+        load: jest.fn().mockResolvedValue({ theme: 'dark', language: 'np' }),
       }),
     );
     await store.dispatch(hydratePreferences());
 
     const state = store.getState();
     expect(selectThemeMode(state)).toBe('dark');
-    expect(selectLanguage(state)).toBe('ne');
+    expect(selectLanguage(state)).toBe('np');
     expect(selectPreferencesHydrated(state)).toBe(true);
   });
 
@@ -79,16 +79,28 @@ describe('hydration', () => {
     expect(selectThemeMode(store.getState())).toBe('light');
   });
 
-  it('still starts with defaults, and reports the problem, if loading fails', async () => {
-    const store = setup(
-      fakeRepository({ load: jest.fn().mockRejectedValue(new Error('disk')) }),
-    );
-    await store.dispatch(hydratePreferences());
+  it('uses the system theme and English, and reports the problem, if loading fails', async () => {
+    for (const systemTheme of ['light', 'dark'] as const) {
+      const store = setup(
+        fakeRepository({
+          load: jest.fn().mockRejectedValue(new Error('disk')),
+        }),
+        systemTheme,
+      );
+      await store.dispatch(hydratePreferences());
 
-    const state = store.getState();
-    expect(selectPreferencesHydrated(state)).toBe(true);
-    expect(selectPreferencesLoadError(state)).toBe('disk');
-    expect(selectLanguage(state)).toBe('en');
+      const state = store.getState();
+      expect(selectPreferencesHydrated(state)).toBe(true);
+      expect(selectPreferencesLoadError(state)).toBe('disk');
+      expect(selectThemeMode(state)).toBe(systemTheme);
+      expect(selectLanguage(state)).toBe('en');
+    }
+  });
+
+  it('reports no load error after a normal load', async () => {
+    const store = setup(fakeRepository());
+    await store.dispatch(hydratePreferences());
+    expect(selectPreferencesLoadError(store.getState())).toBeNull();
   });
 });
 
@@ -114,11 +126,11 @@ describe('changing preferences', () => {
     const store = setup(repository);
 
     await store.dispatch(setTheme('dark'));
-    await store.dispatch(setLanguage('ne'));
+    await store.dispatch(setLanguage('np'));
 
     expect(repository.saveTheme).toHaveBeenCalledWith('dark');
-    expect(repository.saveLanguage).toHaveBeenCalledWith('ne');
-    expect(selectLanguage(store.getState())).toBe('ne');
+    expect(repository.saveLanguage).toHaveBeenCalledWith('np');
+    expect(selectLanguage(store.getState())).toBe('np');
     expect(selectHasUnsavedPreferences(store.getState())).toBe(false);
   });
 
@@ -183,10 +195,44 @@ describe('with a real SQLite database', () => {
     const firstRun = await launch();
     expect(selectLanguage(firstRun.getState())).toBe('en');
     await firstRun.dispatch(setTheme('dark'));
-    await firstRun.dispatch(setLanguage('ne'));
+    await firstRun.dispatch(setLanguage('np'));
 
     const secondRun = await launch();
     expect(selectThemeMode(secondRun.getState())).toBe('dark');
-    expect(selectLanguage(secondRun.getState())).toBe('ne');
+    expect(selectLanguage(secondRun.getState())).toBe('np');
+  });
+  it('persists the latest selection when an older write finishes late', async () => {
+    const file = createRawTestDatabase();
+    const real = createTestDatabase(file);
+    await runMigrations(real);
+
+    let releaseFirst: () => void = () => {};
+    const gate = new Promise<void>(resolve => {
+      releaseFirst = resolve;
+    });
+    let writes = 0;
+    const slowFirstWrite: SqlDatabase = {
+      ...real,
+      executeAsync: async (query, params) => {
+        if (query.includes('INSERT INTO preferences') && writes++ === 0) {
+          await gate; // the first write (np) is slow
+        }
+        return real.executeAsync(query, params);
+      },
+    };
+    const store = setup(createPreferencesRepository(slowFirstWrite));
+
+    const older = store.dispatch(setLanguage('np'));
+    const newer = store.dispatch(setLanguage('en'));
+    expect(selectLanguage(store.getState())).toBe('en'); // Redux is immediate
+    releaseFirst();
+    await Promise.all([older, newer]);
+
+    expect(selectLanguage(store.getState())).toBe('en');
+    expect(selectHasUnsavedPreferences(store.getState())).toBe(false);
+    // What a restart would load: the LATEST selection, not the older one.
+    expect((await createPreferencesRepository(real).load()).language).toBe(
+      'en',
+    );
   });
 });

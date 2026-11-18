@@ -36,17 +36,31 @@ function messageOf(error: { message?: string }): string {
   return error.message ?? 'Unknown storage error';
 }
 
-/** Load saved preferences. Missing values fall back to the system theme / English. */
+/**
+ * Load saved preferences. Missing values fall back to the system theme / English.
+ * If SQLite cannot be read at all, the same defaults are used and the failure is
+ * reported through `loadError` (shown in Settings) instead of blocking startup.
+ */
 export const hydratePreferences = createAsyncThunk<
-  { theme: ThemeMode; language: Language },
+  { theme: ThemeMode; language: Language; loadError: string | null },
   void,
   ThunkConfig
 >('preferences/hydrate', async (_, { extra }) => {
-  const stored = await extra.preferencesRepository.load();
-  return {
-    theme: stored.theme ?? extra.getSystemTheme(),
-    language: stored.language ?? DEFAULT_LANGUAGE,
-  };
+  try {
+    const stored = await extra.preferencesRepository.load();
+    return {
+      theme: stored.theme ?? extra.getSystemTheme(),
+      language: stored.language ?? DEFAULT_LANGUAGE,
+      loadError: null,
+    };
+  } catch (error) {
+    return {
+      theme: extra.getSystemTheme(),
+      language: DEFAULT_LANGUAGE,
+      loadError:
+        error instanceof Error ? error.message : 'Unknown storage error',
+    };
+  }
 });
 
 /**
@@ -84,11 +98,7 @@ const preferencesSlice = createSlice({
       .addCase(hydratePreferences.fulfilled, (state, action) => {
         state.theme = action.payload.theme;
         state.language = action.payload.language;
-        state.hydrated = true;
-      })
-      .addCase(hydratePreferences.rejected, (state, action) => {
-        // Run with defaults rather than blocking the app; surface the problem.
-        state.loadError = messageOf(action.error);
+        state.loadError = action.payload.loadError;
         state.hydrated = true;
       })
 

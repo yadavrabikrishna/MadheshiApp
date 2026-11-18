@@ -1,5 +1,5 @@
-/** Supported app languages. `ne` is the ISO 639-1 code for Nepali (never `np`). */
-export const LANGUAGES = ['en', 'ne'] as const;
+/** Supported app languages. `np` is this project's approved internal code for Nepali. */
+export const LANGUAGES = ['en', 'np'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const THEME_MODES = ['light', 'dark'] as const;
@@ -8,7 +8,7 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 /** Names shown to the user, each in its own language. */
 export const LANGUAGE_LABELS: Record<Language, string> = {
   en: 'English',
-  ne: 'नेपाली',
+  np: 'नेपाली',
 };
 
 export const DEFAULT_LANGUAGE: Language = 'en';

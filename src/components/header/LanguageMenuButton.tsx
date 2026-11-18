@@ -12,7 +12,7 @@ import {
 } from '../../types/preferences';
 import { Icon } from '../common/Icon';
 
-const SHORT_CODE: Record<Language, string> = { en: 'EN', ne: 'ने' };
+const SHORT_CODE: Record<Language, string> = { en: 'EN', np: 'ने' };
 
 interface MenuAnchor {
   top: number;

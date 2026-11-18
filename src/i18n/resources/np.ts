@@ -1,7 +1,7 @@
 import type { Translations } from './en';
 
 /** Nepali strings. Typed against the English keys: a missing key fails to compile. */
-export const ne: Translations = {
+export const np: Translations = {
   'tabs.home': 'गृह',
   'tabs.news': 'समाचार',
   'tabs.calculator': 'क्यालकुलेटर',
