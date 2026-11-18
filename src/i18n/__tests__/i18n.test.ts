@@ -58,4 +58,19 @@ describe('translations', () => {
       'साहु ब्याज',
     ]);
   });
+
+  it('translates the age date system labels as specified in the issue', () => {
+    const keys = [
+      'calculator.age.system.ad',
+      'calculator.age.system.bs',
+    ] as const;
+    expect(keys.map(key => translate('en', key))).toEqual([
+      'AD (Gregorian)',
+      'BS (Bikram Sambat)',
+    ]);
+    expect(keys.map(key => translate('np', key))).toEqual([
+      'इस्वी संवत',
+      'विक्रम संवत',
+    ]);
+  });
 });

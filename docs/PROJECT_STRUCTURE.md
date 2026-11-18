@@ -22,7 +22,7 @@ src/
   screens/                   One folder per screen (Home, News, Calculator, Settings)
     Calculator/                CalculatorScreen (top tabs) + one folder per calculator
       InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
-      AgeCalculator/             AgeCalculatorView
+      AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks

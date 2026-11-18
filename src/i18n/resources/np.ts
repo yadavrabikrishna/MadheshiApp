@@ -22,7 +22,13 @@ export const np: Translations = {
     'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.interest.compound.description':
     'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-  'calculator.age.description': 'उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.age.system.label': 'मिति प्रणाली',
+  'calculator.age.system.ad': 'इस्वी संवत',
+  'calculator.age.system.bs': 'विक्रम संवत',
+  'calculator.age.ad.description':
+    'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.age.bs.description':
+    'विक्रम संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.land.description': 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 
   'settings.appearance': 'देखावट',
