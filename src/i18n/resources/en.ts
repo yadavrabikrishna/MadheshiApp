@@ -14,8 +14,13 @@ export const en = {
   'calculator.tabs.interest': 'Interest',
   'calculator.tabs.age': 'Age',
   'calculator.tabs.land': 'Land',
-  'calculator.interest.description':
-    'The interest calculator will be implemented in a later task.',
+  'calculator.interest.type.label': 'Interest type',
+  'calculator.interest.type.simple': 'Simple Interest',
+  'calculator.interest.type.compound': 'Compound Interest',
+  'calculator.interest.simple.description':
+    'The simple interest calculator will be implemented in a later task.',
+  'calculator.interest.compound.description':
+    'The compound interest calculator will be implemented in a later task.',
   'calculator.age.description':
     'The age calculator will be implemented in a later task.',
   'calculator.land.description':
