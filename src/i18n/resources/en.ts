@@ -9,8 +9,17 @@ export const en = {
     'Your Madheshi App home screen will be implemented in a later task.',
   'screens.news.description':
     'News content will be implemented in a later task.',
-  'screens.calculator.description':
-    'Calculator tools will be implemented in a later task.',
+
+  'calculator.tabs.label': 'Calculator type',
+  'calculator.tabs.interest': 'Interest',
+  'calculator.tabs.age': 'Age',
+  'calculator.tabs.land': 'Land',
+  'calculator.interest.description':
+    'The interest calculator will be implemented in a later task.',
+  'calculator.age.description':
+    'The age calculator will be implemented in a later task.',
+  'calculator.land.description':
+    'The land calculator will be implemented in a later task.',
 
   'settings.appearance': 'Appearance',
   'settings.theme': 'Theme',

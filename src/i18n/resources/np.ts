@@ -10,8 +10,15 @@ export const np: Translations = {
   'screens.home.description':
     'तपाईंको मधेशी एपको गृहपृष्ठ पछिको कार्यमा तयार गरिनेछ।',
   'screens.news.description': 'समाचार सामग्री पछिको कार्यमा तयार गरिनेछ।',
-  'screens.calculator.description':
-    'क्यालकुलेटर उपकरणहरू पछिको कार्यमा तयार गरिनेछन्।',
+
+  'calculator.tabs.label': 'क्यालकुलेटरको प्रकार',
+  'calculator.tabs.interest': 'ब्याज',
+  'calculator.tabs.age': 'उमेर',
+  'calculator.tabs.land': 'जमिन',
+  'calculator.interest.description':
+    'ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.age.description': 'उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.land.description': 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 
   'settings.appearance': 'देखावट',
   'settings.theme': 'थिम',
