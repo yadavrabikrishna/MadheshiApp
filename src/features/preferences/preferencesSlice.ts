@@ -3,17 +3,25 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { PreferencesRepository } from '../../storage';
 import {
   DEFAULT_LANGUAGE,
+  DEFAULT_SHORTCUT_VISIBLE,
   type Language,
   type ThemeMode,
 } from '../../types/preferences';
 
-export type PreferenceKey = 'theme' | 'language';
+export type PreferenceKey =
+  | 'theme'
+  | 'language'
+  | 'showThemeShortcut'
+  | 'showLanguageShortcut';
 
 export interface PreferencesState {
   /** False until saved preferences are loaded; the app UI waits for this. */
   hydrated: boolean;
   theme: ThemeMode;
   language: Language;
+  /** Whether the theme / language buttons appear in the top-right header. */
+  showThemeShortcut: boolean;
+  showLanguageShortcut: boolean;
   /**
    * Set when the latest value of a preference could not be written to SQLite.
    * The new value still applies for this session, but it is NOT durable.
@@ -42,7 +50,13 @@ function messageOf(error: { message?: string }): string {
  * reported through `loadError` (shown in Settings) instead of blocking startup.
  */
 export const hydratePreferences = createAsyncThunk<
-  { theme: ThemeMode; language: Language; loadError: string | null },
+  {
+    theme: ThemeMode;
+    language: Language;
+    showThemeShortcut: boolean;
+    showLanguageShortcut: boolean;
+    loadError: string | null;
+  },
   void,
   ThunkConfig
 >('preferences/hydrate', async (_, { extra }) => {
@@ -51,12 +65,17 @@ export const hydratePreferences = createAsyncThunk<
     return {
       theme: stored.theme ?? extra.getSystemTheme(),
       language: stored.language ?? DEFAULT_LANGUAGE,
+      showThemeShortcut: stored.showThemeShortcut ?? DEFAULT_SHORTCUT_VISIBLE,
+      showLanguageShortcut:
+        stored.showLanguageShortcut ?? DEFAULT_SHORTCUT_VISIBLE,
       loadError: null,
     };
   } catch (error) {
     return {
       theme: extra.getSystemTheme(),
       language: DEFAULT_LANGUAGE,
+      showThemeShortcut: DEFAULT_SHORTCUT_VISIBLE,
+      showLanguageShortcut: DEFAULT_SHORTCUT_VISIBLE,
       loadError:
         error instanceof Error ? error.message : 'Unknown storage error',
     };
@@ -81,11 +100,34 @@ export const setLanguage = createAsyncThunk<void, Language, ThunkConfig>(
   },
 );
 
+export const setThemeShortcutVisible = createAsyncThunk<
+  void,
+  boolean,
+  ThunkConfig
+>('preferences/setThemeShortcutVisible', async (visible, { extra }) => {
+  await extra.preferencesRepository.saveShowThemeShortcut(visible);
+});
+
+export const setLanguageShortcutVisible = createAsyncThunk<
+  void,
+  boolean,
+  ThunkConfig
+>('preferences/setLanguageShortcutVisible', async (visible, { extra }) => {
+  await extra.preferencesRepository.saveShowLanguageShortcut(visible);
+});
+
 const initialState: PreferencesState = {
   hydrated: false,
   theme: 'light',
   language: DEFAULT_LANGUAGE,
-  saveErrors: { theme: null, language: null },
+  showThemeShortcut: DEFAULT_SHORTCUT_VISIBLE,
+  showLanguageShortcut: DEFAULT_SHORTCUT_VISIBLE,
+  saveErrors: {
+    theme: null,
+    language: null,
+    showThemeShortcut: null,
+    showLanguageShortcut: null,
+  },
   loadError: null,
 };
 
@@ -98,6 +140,8 @@ const preferencesSlice = createSlice({
       .addCase(hydratePreferences.fulfilled, (state, action) => {
         state.theme = action.payload.theme;
         state.language = action.payload.language;
+        state.showThemeShortcut = action.payload.showThemeShortcut;
+        state.showLanguageShortcut = action.payload.showLanguageShortcut;
         state.loadError = action.payload.loadError;
         state.hydrated = true;
       })
@@ -129,6 +173,34 @@ const preferencesSlice = createSlice({
       .addCase(setLanguage.rejected, (state, action) => {
         if (state.language === action.meta.arg) {
           state.saveErrors.language = messageOf(action.error);
+        }
+      })
+
+      .addCase(setThemeShortcutVisible.pending, (state, action) => {
+        state.showThemeShortcut = action.meta.arg;
+      })
+      .addCase(setThemeShortcutVisible.fulfilled, (state, action) => {
+        if (state.showThemeShortcut === action.meta.arg) {
+          state.saveErrors.showThemeShortcut = null;
+        }
+      })
+      .addCase(setThemeShortcutVisible.rejected, (state, action) => {
+        if (state.showThemeShortcut === action.meta.arg) {
+          state.saveErrors.showThemeShortcut = messageOf(action.error);
+        }
+      })
+
+      .addCase(setLanguageShortcutVisible.pending, (state, action) => {
+        state.showLanguageShortcut = action.meta.arg;
+      })
+      .addCase(setLanguageShortcutVisible.fulfilled, (state, action) => {
+        if (state.showLanguageShortcut === action.meta.arg) {
+          state.saveErrors.showLanguageShortcut = null;
+        }
+      })
+      .addCase(setLanguageShortcutVisible.rejected, (state, action) => {
+        if (state.showLanguageShortcut === action.meta.arg) {
+          state.saveErrors.showLanguageShortcut = messageOf(action.error);
         }
       });
   },

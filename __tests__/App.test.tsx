@@ -8,6 +8,7 @@
 import { Appearance } from 'react-native';
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -82,6 +83,15 @@ function expectTabLabels(language: 'en' | 'np') {
     expect(tab(label)).toBeOnTheScreen();
   }
 }
+
+const themeButton = () =>
+  screen.queryByRole('button', { name: /^Switch to (dark|light) theme$/ });
+const languageButton = () =>
+  screen.queryByRole('button', { name: 'Change language' });
+const showThemeSwitch = () =>
+  screen.getByRole('switch', { name: 'Show theme button in header' });
+const showLanguageSwitch = () =>
+  screen.getByRole('switch', { name: 'Show language button in header' });
 
 const darkToggle = () =>
   screen.getByRole('button', { name: 'Switch to dark theme' });
@@ -206,6 +216,98 @@ describe('restart', () => {
   });
 });
 
+describe('header shortcut visibility', () => {
+  it('both header shortcuts are shown by default, and Settings shows both switches on', async () => {
+    const user = await launch(newDevice().initializeStorage);
+    expect(themeButton()).toBeOnTheScreen();
+    expect(languageButton()).toBeOnTheScreen();
+
+    await user.press(tab('Settings'));
+    expect(showThemeSwitch().props.value).toBe(true);
+    expect(showLanguageSwitch().props.value).toBe(true);
+  });
+
+  it('hides and shows each header button immediately', async () => {
+    const user = await launch(newDevice().initializeStorage);
+    await user.press(tab('Settings'));
+
+    await fireEvent(showThemeSwitch(), 'valueChange', false);
+    expect(themeButton()).toBeNull();
+    expect(languageButton()).toBeOnTheScreen(); // independent
+
+    await fireEvent(showLanguageSwitch(), 'valueChange', false);
+    expect(languageButton()).toBeNull();
+
+    await fireEvent(showThemeSwitch(), 'valueChange', true);
+    expect(themeButton()).toBeOnTheScreen();
+    expect(languageButton()).toBeNull();
+
+    await fireEvent(showLanguageSwitch(), 'valueChange', true);
+    expect(languageButton()).toBeOnTheScreen();
+  });
+
+  it('theme and language stay changeable in Settings while both header buttons are hidden', async () => {
+    jest.spyOn(Appearance, 'getColorScheme').mockReturnValue('light');
+    const user = await launch(newDevice().initializeStorage);
+    await user.press(tab('Settings'));
+    await fireEvent(showThemeSwitch(), 'valueChange', false);
+    await fireEvent(showLanguageSwitch(), 'valueChange', false);
+    expect(themeButton()).toBeNull();
+    expect(languageButton()).toBeNull();
+
+    await user.press(screen.getByRole('radio', { name: 'Dark' }));
+    expect(
+      screen.getByRole('radio', { name: 'Dark', selected: true }),
+    ).toBeOnTheScreen();
+
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+    expectTabLabels('np');
+  });
+
+  it('applies to every tab, not just Settings', async () => {
+    const user = await launch(newDevice().initializeStorage);
+    await user.press(tab('Settings'));
+    await fireEvent(showThemeSwitch(), 'valueChange', false);
+
+    await user.press(tab('News'));
+    expect(themeButton()).toBeNull();
+    expect(languageButton()).toBeOnTheScreen();
+  });
+
+  it('labels the switches in Nepali', async () => {
+    const user = await launch(newDevice().initializeStorage);
+    await user.press(screen.getByRole('button', { name: 'Change language' }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+    await user.press(tab('सेटिङ'));
+
+    expect(screen.getByText('हेडर सर्टकट')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('switch', { name: 'हेडरमा थिम बटन देखाउनुहोस्' }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole('switch', { name: 'हेडरमा भाषा बटन देखाउनुहोस्' }),
+    ).toBeOnTheScreen();
+  });
+
+  it('restores hidden shortcuts after a restart', async () => {
+    const device = newDevice();
+    const user = await launch(device.initializeStorage);
+    await user.press(tab('Settings'));
+    await fireEvent(showThemeSwitch(), 'valueChange', false);
+    await cleanup();
+
+    await launch(device.initializeStorage);
+    expect(themeButton()).toBeNull();
+    expect(languageButton()).toBeOnTheScreen();
+  });
+
+  it('shows both shortcuts when saved settings cannot be loaded', async () => {
+    await launch(() => Promise.reject(new Error('db broken')));
+    expect(themeButton()).toBeOnTheScreen();
+    expect(languageButton()).toBeOnTheScreen();
+  });
+});
+
 describe('storage problems', () => {
   it('start-up failure: runs on the system theme and English, and Settings shows the load warning', async () => {
     jest.spyOn(Appearance, 'getColorScheme').mockReturnValue('dark');
@@ -225,9 +327,16 @@ describe('storage problems', () => {
   it('a failed save keeps the new value but Settings warns that it is not saved', async () => {
     jest.spyOn(Appearance, 'getColorScheme').mockReturnValue('light');
     const user = await launch(async () => ({
-      load: async () => ({ theme: null, language: null }),
+      load: async () => ({
+        theme: null,
+        language: null,
+        showThemeShortcut: null,
+        showLanguageShortcut: null,
+      }),
       saveTheme: () => Promise.reject(new Error('disk full')),
       saveLanguage: async () => {},
+      saveShowThemeShortcut: async () => {},
+      saveShowLanguageShortcut: async () => {},
     }));
 
     await user.press(darkToggle());

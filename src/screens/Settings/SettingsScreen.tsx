@@ -1,13 +1,18 @@
 import { ScrollView, Text, View } from 'react-native';
 
 import { SegmentedControl } from '../../components/common/SegmentedControl';
+import { SwitchRow } from '../../components/common/SwitchRow';
 import {
   selectHasUnsavedPreferences,
   selectLanguage,
   selectPreferencesLoadError,
+  selectShowLanguageShortcut,
+  selectShowThemeShortcut,
   selectThemeMode,
   setLanguage,
+  setLanguageShortcutVisible,
   setTheme,
+  setThemeShortcutVisible,
 } from '../../features/preferences';
 import { useTranslation } from '../../i18n';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -24,6 +29,8 @@ export function SettingsScreen() {
   const language = useAppSelector(selectLanguage);
   const hasUnsaved = useAppSelector(selectHasUnsavedPreferences);
   const loadError = useAppSelector(selectPreferencesLoadError);
+  const showThemeShortcut = useAppSelector(selectShowThemeShortcut);
+  const showLanguageShortcut = useAppSelector(selectShowLanguageShortcut);
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
 
@@ -75,6 +82,24 @@ export function SettingsScreen() {
           value={language}
           onChange={code => dispatch(setLanguage(code))}
           accessibilityLabel={t('settings.language')}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {t('settings.headerShortcuts')}
+        </Text>
+        <SwitchRow
+          label={t('settings.showThemeShortcut')}
+          value={showThemeShortcut}
+          onValueChange={visible => dispatch(setThemeShortcutVisible(visible))}
+        />
+        <SwitchRow
+          label={t('settings.showLanguageShortcut')}
+          value={showLanguageShortcut}
+          onValueChange={visible =>
+            dispatch(setLanguageShortcutVisible(visible))
+          }
         />
       </View>
     </ScrollView>

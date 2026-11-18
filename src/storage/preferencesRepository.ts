@@ -10,6 +10,9 @@ export interface StoredPreferences {
   /** `null` when nothing valid is saved yet. */
   theme: ThemeMode | null;
   language: Language | null;
+  /** Header shortcut visibility; `null` when never saved (default: shown). */
+  showThemeShortcut: boolean | null;
+  showLanguageShortcut: boolean | null;
 }
 
 /** Durable preference storage. Redux owns the live values; this only persists them. */
@@ -17,9 +20,22 @@ export interface PreferencesRepository {
   load(): Promise<StoredPreferences>;
   saveTheme(theme: ThemeMode): Promise<void>;
   saveLanguage(language: Language): Promise<void>;
+  saveShowThemeShortcut(visible: boolean): Promise<void>;
+  saveShowLanguageShortcut(visible: boolean): Promise<void>;
 }
 
-type PreferenceKey = 'theme' | 'language';
+type PreferenceKey =
+  | 'theme'
+  | 'language'
+  | 'showThemeShortcut'
+  | 'showLanguageShortcut';
+
+function parseBoolean(value: string | undefined): boolean | null {
+  if (value === 'true') {
+    return true;
+  }
+  return value === 'false' ? false : null;
+}
 
 export function createPreferencesRepository(
   db: SqlExecutor,
@@ -57,9 +73,15 @@ export function createPreferencesRepository(
       return {
         theme: isThemeMode(theme) ? theme : null,
         language: isLanguage(language) ? language : null,
+        showThemeShortcut: parseBoolean(values.get('showThemeShortcut')),
+        showLanguageShortcut: parseBoolean(values.get('showLanguageShortcut')),
       };
     },
     saveTheme: theme => save('theme', theme),
     saveLanguage: language => save('language', language),
+    saveShowThemeShortcut: visible =>
+      save('showThemeShortcut', String(visible)),
+    saveShowLanguageShortcut: visible =>
+      save('showLanguageShortcut', String(visible)),
   };
 }

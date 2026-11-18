@@ -13,6 +13,9 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
 
 export const DEFAULT_LANGUAGE: Language = 'en';
 
+/** Header shortcuts are shown until the user hides them. */
+export const DEFAULT_SHORTCUT_VISIBLE = true;
+
 export function isLanguage(value: unknown): value is Language {
   return LANGUAGES.some(language => language === value);
 }

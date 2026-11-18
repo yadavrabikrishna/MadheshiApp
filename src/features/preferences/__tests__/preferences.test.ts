@@ -13,18 +13,31 @@ import {
   selectLanguage,
   selectPreferencesHydrated,
   selectPreferencesLoadError,
+  selectShowLanguageShortcut,
+  selectShowThemeShortcut,
   selectThemeMode,
   setLanguage,
+  setLanguageShortcutVisible,
   setTheme,
+  setThemeShortcutVisible,
 } from '..';
+
+const NOTHING_SAVED = {
+  theme: null,
+  language: null,
+  showThemeShortcut: null,
+  showLanguageShortcut: null,
+};
 
 function fakeRepository(
   overrides: Partial<PreferencesRepository> = {},
 ): PreferencesRepository {
   return {
-    load: jest.fn().mockResolvedValue({ theme: null, language: null }),
+    load: jest.fn().mockResolvedValue(NOTHING_SAVED),
     saveTheme: jest.fn().mockResolvedValue(undefined),
     saveLanguage: jest.fn().mockResolvedValue(undefined),
+    saveShowThemeShortcut: jest.fn().mockResolvedValue(undefined),
+    saveShowLanguageShortcut: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -49,7 +62,11 @@ describe('hydration', () => {
   it('uses the saved theme and language', async () => {
     const store = setup(
       fakeRepository({
-        load: jest.fn().mockResolvedValue({ theme: 'dark', language: 'np' }),
+        load: jest.fn().mockResolvedValue({
+          ...NOTHING_SAVED,
+          theme: 'dark',
+          language: 'np',
+        }),
       }),
     );
     await store.dispatch(hydratePreferences());
@@ -71,7 +88,7 @@ describe('hydration', () => {
   it('a saved theme wins over the system theme', async () => {
     const store = setup(
       fakeRepository({
-        load: jest.fn().mockResolvedValue({ theme: 'light', language: null }),
+        load: jest.fn().mockResolvedValue({ ...NOTHING_SAVED, theme: 'light' }),
       }),
       'dark',
     );
@@ -177,6 +194,109 @@ describe('changing preferences', () => {
 
     expect(selectThemeMode(store.getState())).toBe('light');
     expect(selectHasUnsavedPreferences(store.getState())).toBe(false);
+  });
+});
+
+describe('header shortcut visibility', () => {
+  const shortcuts = (store: ReturnType<typeof setup>) => [
+    selectShowThemeShortcut(store.getState()),
+    selectShowLanguageShortcut(store.getState()),
+  ];
+
+  it('both shortcuts are shown by default', async () => {
+    const store = setup(fakeRepository());
+    await store.dispatch(hydratePreferences());
+    expect(shortcuts(store)).toEqual([true, true]);
+  });
+
+  it('restores saved visibility, including hidden', async () => {
+    const store = setup(
+      fakeRepository({
+        load: jest.fn().mockResolvedValue({
+          ...NOTHING_SAVED,
+          showThemeShortcut: false,
+          showLanguageShortcut: true,
+        }),
+      }),
+    );
+    await store.dispatch(hydratePreferences());
+    expect(shortcuts(store)).toEqual([false, true]);
+  });
+
+  it('are shown when saved preferences cannot be loaded', async () => {
+    const store = setup(
+      fakeRepository({ load: jest.fn().mockRejectedValue(new Error('disk')) }),
+    );
+    await store.dispatch(hydratePreferences());
+    expect(shortcuts(store)).toEqual([true, true]);
+  });
+
+  it('hides and shows each shortcut immediately, independently, and persists it', async () => {
+    const repository = fakeRepository();
+    const store = setup(repository);
+    await store.dispatch(hydratePreferences());
+
+    const pending = store.dispatch(setThemeShortcutVisible(false));
+    expect(shortcuts(store)).toEqual([false, true]); // before the write finishes
+    await pending;
+    await store.dispatch(setLanguageShortcutVisible(false));
+    expect(shortcuts(store)).toEqual([false, false]);
+
+    await store.dispatch(setThemeShortcutVisible(true));
+    expect(shortcuts(store)).toEqual([true, false]);
+
+    expect(repository.saveShowThemeShortcut).toHaveBeenNthCalledWith(1, false);
+    expect(repository.saveShowThemeShortcut).toHaveBeenNthCalledWith(2, true);
+    expect(repository.saveShowLanguageShortcut).toHaveBeenCalledWith(false);
+    expect(selectHasUnsavedPreferences(store.getState())).toBe(false);
+  });
+
+  it('keeps the new visibility but flags it as unsaved when the write fails', async () => {
+    const store = setup(
+      fakeRepository({
+        saveShowLanguageShortcut: jest
+          .fn()
+          .mockRejectedValue(new Error('disk full')),
+      }),
+    );
+    await store.dispatch(setLanguageShortcutVisible(false));
+
+    expect(selectShowLanguageShortcut(store.getState())).toBe(false);
+    expect(selectHasUnsavedPreferences(store.getState())).toBe(true);
+    expect(store.getState().preferences.saveErrors.showLanguageShortcut).toBe(
+      'disk full',
+    );
+  });
+
+  it('persists the latest choice when an older write finishes late', async () => {
+    const real = createTestDatabase();
+    await runMigrations(real);
+
+    let releaseFirst: () => void = () => {};
+    const gate = new Promise<void>(resolve => {
+      releaseFirst = resolve;
+    });
+    let writes = 0;
+    const slowFirstWrite: SqlDatabase = {
+      ...real,
+      executeAsync: async (query, params) => {
+        if (query.includes('INSERT INTO preferences') && writes++ === 0) {
+          await gate;
+        }
+        return real.executeAsync(query, params);
+      },
+    };
+    const store = setup(createPreferencesRepository(slowFirstWrite));
+
+    const older = store.dispatch(setThemeShortcutVisible(false));
+    const newer = store.dispatch(setThemeShortcutVisible(true));
+    releaseFirst();
+    await Promise.all([older, newer]);
+
+    expect(selectShowThemeShortcut(store.getState())).toBe(true);
+    expect(
+      (await createPreferencesRepository(real).load()).showThemeShortcut,
+    ).toBe(true);
   });
 });
 
