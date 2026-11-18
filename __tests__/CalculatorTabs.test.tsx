@@ -231,11 +231,11 @@ describe('Interest type selector', () => {
 });
 
 describe('Age date system selector', () => {
-  it('shows AD and BS, with BS selected by default', async () => {
+  it('shows BS first and AD second, with BS selected by default', async () => {
     const user = await launchOnCalculator();
     await user.press(topTab('Age'));
 
-    expect(radioLabels()).toEqual(['AD (Gregorian)', 'BS (Bikram Sambat)']);
+    expect(radioLabels()).toEqual(['BS (Bikram Sambat)', 'AD (Gregorian)']);
     expect(dateSystemOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
     expect(dateSystemOption('AD (Gregorian)', false)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.ageBs)).toBeOnTheScreen();
@@ -262,10 +262,10 @@ describe('Age date system selector', () => {
     await user.press(topTab('Age'));
 
     await changeLanguage(user, 'नेपाली');
-    expect(radioLabels()).toEqual(['इस्वी संवत', 'विक्रम संवत']);
+    expect(radioLabels()).toEqual(['विक्रम संवत', 'इस्वी संवत']);
 
     await changeLanguage(user, 'English');
-    expect(radioLabels()).toEqual(['AD (Gregorian)', 'BS (Bikram Sambat)']);
+    expect(radioLabels()).toEqual(['BS (Bikram Sambat)', 'AD (Gregorian)']);
   });
 
   it('keeps the selected date system when the language changes, in both directions', async () => {
@@ -295,18 +295,46 @@ describe('Age date system selector', () => {
     expect(radioLabels()).toEqual([]);
 
     await user.press(topTab('Age'));
-    expect(radioLabels()).toEqual(['AD (Gregorian)', 'BS (Bikram Sambat)']);
+    expect(radioLabels()).toEqual(['BS (Bikram Sambat)', 'AD (Gregorian)']);
   });
 
-  it('resets to BS when returning to the Age tab, like the Interest selector', async () => {
+  it('keeps the selected date system when switching to another Calculator tab and back', async () => {
     const user = await launchOnCalculator();
 
     await user.press(topTab('Age'));
     await user.press(dateSystemOption('AD (Gregorian)'));
     await user.press(topTab('Land'));
+    await user.press(topTab('Interest'));
     await user.press(topTab('Age'));
 
-    expect(dateSystemOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
+    expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
+    expect(dateSystemOption('BS (Bikram Sambat)', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+  });
+
+  it('keeps the selected date system when navigating to another app tab and back', async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(topTab('Age'));
+    await user.press(dateSystemOption('AD (Gregorian)'));
+    await user.press(screen.getByRole('button', { name: /^Home, tab/ }));
+    await user.press(screen.getByRole('button', { name: /^Calculator, tab/ }));
+
+    expect(topTab('Age').props.accessibilityState.selected).toBe(true);
+    expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
+  });
+
+  it("keeps each calculator's own selection independently while switching tabs", async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(dateSystemOption('Simple Interest'));
+    await user.press(topTab('Age'));
+    await user.press(dateSystemOption('AD (Gregorian)'));
+
+    await user.press(topTab('Interest'));
+    expect(dateSystemOption('Simple Interest', true)).toBeOnTheScreen();
+    await user.press(topTab('Age'));
+    expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
   });
 
   it('leaves the Interest selector and the Interest and Land tabs working', async () => {
@@ -319,8 +347,11 @@ describe('Age date system selector', () => {
     await user.press(topTab('Land'));
     expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
 
+    // The Interest choice is kept, and Compound is still the default elsewhere.
     await user.press(topTab('Interest'));
-    expect(dateSystemOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(dateSystemOption('Simple Interest', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    await user.press(dateSystemOption('Compound Interest'));
     expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
   });
 });

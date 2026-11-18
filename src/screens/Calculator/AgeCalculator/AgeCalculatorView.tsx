@@ -16,11 +16,11 @@ const DATE_SYSTEMS: {
   labelKey: TranslationKey;
   View: () => React.JSX.Element;
 }[] = [
-  { value: 'ad', labelKey: 'calculator.age.system.ad', View: AdAgeView },
   { value: 'bs', labelKey: 'calculator.age.system.bs', View: BsAgeView },
+  { value: 'ad', labelKey: 'calculator.age.system.ad', View: AdAgeView },
 ];
 
-/** Age calculator: an AD / BS selector above the matching view. */
+/** Age calculator: a BS / AD selector above the matching view. */
 export function AgeCalculatorView() {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
