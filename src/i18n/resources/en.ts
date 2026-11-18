@@ -21,8 +21,13 @@ export const en = {
     'The simple interest calculator will be implemented in a later task.',
   'calculator.interest.compound.description':
     'The compound interest calculator will be implemented in a later task.',
-  'calculator.age.description':
-    'The age calculator will be implemented in a later task.',
+  'calculator.age.system.label': 'Date system',
+  'calculator.age.system.ad': 'AD (Gregorian)',
+  'calculator.age.system.bs': 'BS (Bikram Sambat)',
+  'calculator.age.ad.description':
+    'The AD age calculator will be implemented in a later task.',
+  'calculator.age.bs.description':
+    'The BS age calculator will be implemented in a later task.',
   'calculator.land.description':
     'The land calculator will be implemented in a later task.',
 

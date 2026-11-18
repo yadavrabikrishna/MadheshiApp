@@ -37,7 +37,6 @@ export function CalculatorScreen() {
     value: tab.value,
     label: t(tab.labelKey),
   }));
-  const ActiveView = CALCULATOR_TABS.find(tab => tab.value === activeTab)!.View;
 
   return (
     <View style={styles.container}>
@@ -47,11 +46,24 @@ export function CalculatorScreen() {
         onChange={setActiveTab}
         accessibilityLabel={t('calculator.tabs.label')}
       />
-      <ActiveView />
+      {/*
+        Every calculator stays mounted and only the active one is shown, so each
+        keeps its own state (e.g. the AD/BS choice) while the user switches tabs.
+      */}
+      {CALCULATOR_TABS.map(({ value, View: CalculatorView }) => (
+        <View
+          key={value}
+          style={value === activeTab ? styles.content : styles.hidden}
+        >
+          <CalculatorView />
+        </View>
+      ))}
     </View>
   );
 }
 
 const createStyles = (theme: AppTheme) => ({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { flex: 1 },
+  hidden: { display: 'none' as const },
 });
