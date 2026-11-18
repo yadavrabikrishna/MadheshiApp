@@ -1,147 +1,103 @@
-
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import { Ionicons } from '@react-native-vector-icons/ionicons/static';
-
-import type { RootTabParamList } from './navigation.types';
-
+import { HeaderActions, Icon, type IconName } from '../components';
+import { useTranslation, type TranslationKey } from '../i18n';
+import { CalculatorScreen } from '../screens/Calculator/CalculatorScreen';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { NewsScreen } from '../screens/News/NewsScreen';
-import { CalculatorScreen } from '../screens/Calculator/CalculatorScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
-
-import { appColors } from '../theme/colors';
+import { useAppTheme } from '../theme';
+import type { RootTabParamList } from './navigation.types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-type TabIconProps = {
+interface TabIconProps {
   focused: boolean;
   color: string;
   size: number;
-};
-
-// Home tab icon
-function HomeTabIcon({ focused, color, size }: TabIconProps) {
-  return (
-    <Ionicons
-      name={focused ? 'home' : 'home-outline'}
-      size={size}
-      color={color}
-    />
-  );
 }
 
-// News tab icon
-function NewsTabIcon({ focused, color, size }: TabIconProps) {
-  return (
-    <Ionicons
-      name={focused ? 'newspaper' : 'newspaper-outline'}
-      size={size}
-      color={color}
-    />
-  );
+/** One stable render function per tab (filled icon when focused, outline otherwise). */
+function createTabIcon(filled: IconName, outline: IconName) {
+  return function TabIcon({ focused, color, size }: TabIconProps) {
+    return <Icon name={focused ? filled : outline} size={size} color={color} />;
+  };
 }
 
-// Calculator tab icon
-function CalculatorTabIcon({ focused, color, size }: TabIconProps) {
-  return (
-    <Ionicons
-      name={focused ? 'calculator' : 'calculator-outline'}
-      size={size}
-      color={color}
-    />
-  );
-}
+const TABS: {
+  name: keyof RootTabParamList;
+  labelKey: TranslationKey;
+  component: () => React.JSX.Element;
+  icon: (props: TabIconProps) => React.JSX.Element;
+}[] = [
+  {
+    name: 'Home',
+    labelKey: 'tabs.home',
+    component: HomeScreen,
+    icon: createTabIcon('home', 'home-outline'),
+  },
+  {
+    name: 'News',
+    labelKey: 'tabs.news',
+    component: NewsScreen,
+    icon: createTabIcon('newspaper', 'newspaper-outline'),
+  },
+  {
+    name: 'Calculator',
+    labelKey: 'tabs.calculator',
+    component: CalculatorScreen,
+    icon: createTabIcon('calculator', 'calculator-outline'),
+  },
+  {
+    name: 'Settings',
+    labelKey: 'tabs.settings',
+    component: SettingsScreen,
+    icon: createTabIcon('settings', 'settings-outline'),
+  },
+];
 
-// Settings tab icon
-function SettingsTabIcon({ focused, color, size }: TabIconProps) {
-  return (
-    <Ionicons
-      name={focused ? 'settings' : 'settings-outline'}
-      size={size}
-      color={color}
-    />
-  );
-}
+// Module-level so the header does not remount its controls on every render.
+const renderHeaderActions = () => <HeaderActions />;
 
 export function AppNavigator() {
+  const theme = useAppTheme();
+  const { t } = useTranslation();
+  const { colors } = theme;
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={{
         headerShown: true,
-
         headerTitleAlign: 'left',
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontSize: 18, fontWeight: '600' },
+        headerRight: renderHeaderActions,
 
-        headerStyle: {
-          backgroundColor: appColors.light.surface,
-        },
-
-        headerTintColor: appColors.light.text,
-
-        headerTitleStyle: {
-          fontSize: 18,
-          fontWeight: '600',
-        },
-
-        tabBarActiveTintColor: appColors.light.primary,
-
-        tabBarInactiveTintColor: appColors.light.tabInactive,
-
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: {
-          backgroundColor: appColors.light.surface,
-          borderTopColor: appColors.light.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           paddingTop: 6,
         },
-
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-          marginBottom: 4,
-        },
-
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '500', marginBottom: 4 },
         tabBarHideOnKeyboard: true,
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          title: 'Home',
-          tabBarLabel: 'Home',
-          tabBarIcon: HomeTabIcon,
-        }}
-      />
-
-      <Tab.Screen
-        name="News"
-        component={NewsScreen}
-        options={{
-          title: 'News',
-          tabBarLabel: 'News',
-          tabBarIcon: NewsTabIcon,
-        }}
-      />
-
-      <Tab.Screen
-        name="Calculator"
-        component={CalculatorScreen}
-        options={{
-          title: 'Calculator',
-          tabBarLabel: 'Calculator',
-          tabBarIcon: CalculatorTabIcon,
-        }}
-      />
-
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: 'Settings',
-          tabBarLabel: 'Settings',
-          tabBarIcon: SettingsTabIcon,
-        }}
-      />
+      {TABS.map(tab => (
+        <Tab.Screen
+          key={tab.name}
+          name={tab.name}
+          component={tab.component}
+          options={{
+            title: t(tab.labelKey),
+            tabBarLabel: t(tab.labelKey),
+            tabBarIcon: tab.icon,
+          }}
+        />
+      ))}
     </Tab.Navigator>
   );
 }

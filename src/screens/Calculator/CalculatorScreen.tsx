@@ -1,10 +1,13 @@
-import { ScreenPlaceholder } from '../../components/ScreenPlaceholder';
+import { ScreenPlaceholder } from '../../components';
+import { useTranslation } from '../../i18n';
 
 export function CalculatorScreen() {
+  const { t } = useTranslation();
+
   return (
     <ScreenPlaceholder
-      title="Calculator"
-      description="Calculator tools will be implemented in a later task."
+      title={t('tabs.calculator')}
+      description={t('screens.calculator.description')}
       iconName="calculator-outline"
     />
   );

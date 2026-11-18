@@ -1,10 +1,13 @@
-import { ScreenPlaceholder } from '../../components/ScreenPlaceholder';
+import { ScreenPlaceholder } from '../../components';
+import { useTranslation } from '../../i18n';
 
 export function HomeScreen() {
+  const { t } = useTranslation();
+
   return (
     <ScreenPlaceholder
-      title="Home"
-      description="Your Madheshi App home screen will be implemented in a later task."
+      title={t('tabs.home')}
+      description={t('screens.home.description')}
       iconName="home-outline"
     />
   );

@@ -1,21 +1,12 @@
-import type { ComponentProps } from 'react';
+import { Text, View } from 'react-native';
 
-import { Ionicons } from '@react-native-vector-icons/ionicons/static';
-
-import {
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-
-import { appColors } from '../theme/colors';
-
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
+import { useThemedStyles, type AppTheme } from '../../theme';
+import { Icon, type IconName } from './Icon';
 
 interface ScreenPlaceholderProps {
   title: string;
   description: string;
-  iconName: IoniconName;
+  iconName: IconName;
 }
 
 export function ScreenPlaceholder({
@@ -23,45 +14,36 @@ export function ScreenPlaceholder({
   description,
   iconName,
 }: ScreenPlaceholderProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.container}>
-      <Ionicons
-        name={iconName}
-        size={52}
-        color={appColors.brand.crimson}
-      />
-
-      <Text style={styles.title}>
-        {title}
-      </Text>
-
-      <Text style={styles.description}>
-        {description}
-      </Text>
+      <Icon name={iconName} size={52} color={styles.icon.color} />
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   container: {
     flex: 1,
-    backgroundColor: appColors.light.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: 24,
   },
-
+  icon: { color: theme.colors.primary },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: appColors.light.text,
+    fontWeight: '700' as const,
+    color: theme.colors.text,
     marginTop: 16,
   },
-
   description: {
     fontSize: 14,
-    color: appColors.light.textSecondary,
-    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    textAlign: 'center' as const,
     marginTop: 8,
     lineHeight: 21,
   },
