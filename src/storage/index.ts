@@ -46,5 +46,11 @@ export function createUnavailablePreferencesRepository(
   const message =
     cause instanceof Error ? cause.message : 'Storage unavailable';
   const fail = () => Promise.reject(new Error(message));
-  return { load: fail, saveTheme: fail, saveLanguage: fail };
+  return {
+    load: fail,
+    saveTheme: fail,
+    saveLanguage: fail,
+    saveShowThemeShortcut: fail,
+    saveShowLanguageShortcut: fail,
+  };
 }

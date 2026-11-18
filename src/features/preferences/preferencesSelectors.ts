@@ -14,8 +14,13 @@ export const selectPreferencesHydrated = (state: WithPreferences) =>
 
 /** True when a chosen preference is applied but could not be saved. */
 export const selectHasUnsavedPreferences = (state: WithPreferences) =>
-  state.preferences.saveErrors.theme !== null ||
-  state.preferences.saveErrors.language !== null;
+  Object.values(state.preferences.saveErrors).some(error => error !== null);
+
+export const selectShowThemeShortcut = (state: WithPreferences) =>
+  state.preferences.showThemeShortcut;
+
+export const selectShowLanguageShortcut = (state: WithPreferences) =>
+  state.preferences.showLanguageShortcut;
 
 export const selectPreferencesLoadError = (state: WithPreferences) =>
   state.preferences.loadError;

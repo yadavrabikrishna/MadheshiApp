@@ -12,6 +12,13 @@ import {
 import { createPreferencesRepository } from '../preferencesRepository';
 import type { SqlDatabase } from '../types';
 
+const NOTHING_SAVED = {
+  theme: null,
+  language: null,
+  showThemeShortcut: null,
+  showLanguageShortcut: null,
+};
+
 async function tableNames(db: SqlDatabase): Promise<string[]> {
   const result = await db.executeAsync<{ name: string }>(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -103,18 +110,26 @@ describe('preferences repository', () => {
 
   it('returns nulls before anything is saved', async () => {
     const { repository } = await setup();
-    expect(await repository.load()).toEqual({ theme: null, language: null });
+    expect(await repository.load()).toEqual(NOTHING_SAVED);
   });
 
   it('saves and overwrites theme and language', async () => {
     const { repository } = await setup();
     await repository.saveTheme('dark');
     await repository.saveLanguage('np');
-    expect(await repository.load()).toEqual({ theme: 'dark', language: 'np' });
+    expect(await repository.load()).toEqual({
+      ...NOTHING_SAVED,
+      theme: 'dark',
+      language: 'np',
+    });
 
     await repository.saveTheme('light');
     await repository.saveLanguage('en');
-    expect(await repository.load()).toEqual({ theme: 'light', language: 'en' });
+    expect(await repository.load()).toEqual({
+      ...NOTHING_SAVED,
+      theme: 'light',
+      language: 'en',
+    });
   });
 
   it('keeps a single row per preference and records the save time', async () => {
@@ -135,7 +150,7 @@ describe('preferences repository', () => {
     await db.executeAsync(
       "INSERT INTO preferences (key, value, updated_at) VALUES ('language', 'ne', 0), ('theme', 'sepia', 0)",
     );
-    expect(await repository.load()).toEqual({ theme: null, language: null });
+    expect(await repository.load()).toEqual(NOTHING_SAVED);
   });
 
   it('applies writes in the order they were requested, even if an older one is slow', async () => {
@@ -165,8 +180,8 @@ describe('preferences repository', () => {
     await Promise.all([older, newer]);
 
     expect(await createPreferencesRepository(real).load()).toEqual({
+      ...NOTHING_SAVED,
       theme: 'light',
-      language: null,
     });
   });
 
@@ -191,6 +206,48 @@ describe('preferences repository', () => {
     expect((await repository.load()).theme).toBe('light');
   });
 
+  it('saves header shortcut visibility, including hidden (false)', async () => {
+    const { repository } = await setup();
+    await repository.saveShowThemeShortcut(false);
+    await repository.saveShowLanguageShortcut(true);
+    expect(await repository.load()).toEqual({
+      ...NOTHING_SAVED,
+      showThemeShortcut: false,
+      showLanguageShortcut: true,
+    });
+
+    await repository.saveShowThemeShortcut(true);
+    await repository.saveShowLanguageShortcut(false);
+    expect(await repository.load()).toMatchObject({
+      showThemeShortcut: true,
+      showLanguageShortcut: false,
+    });
+  });
+
+  it('ignores a stored shortcut value that is not "true" or "false"', async () => {
+    const { db, repository } = await setup();
+    await db.executeAsync(
+      "INSERT INTO preferences (key, value, updated_at) VALUES ('showThemeShortcut', 'maybe', 0), ('showLanguageShortcut', '1', 0)",
+    );
+    expect(await repository.load()).toEqual(NOTHING_SAVED);
+  });
+
+  it('restores hidden shortcuts after an app restart', async () => {
+    const file = createRawTestDatabase();
+    const firstRun = createTestDatabase(file);
+    await runMigrations(firstRun);
+    const repository = createPreferencesRepository(firstRun);
+    await repository.saveShowThemeShortcut(false);
+    await repository.saveShowLanguageShortcut(false);
+
+    const secondRun = createTestDatabase(file);
+    await runMigrations(secondRun);
+    expect(await createPreferencesRepository(secondRun).load()).toMatchObject({
+      showThemeShortcut: false,
+      showLanguageShortcut: false,
+    });
+  });
+
   it('survives an app restart (same database file, new connection)', async () => {
     const file = createRawTestDatabase();
 
@@ -202,6 +259,7 @@ describe('preferences repository', () => {
     const secondRun = createTestDatabase(file);
     await runMigrations(secondRun);
     expect(await createPreferencesRepository(secondRun).load()).toEqual({
+      ...NOTHING_SAVED,
       theme: 'dark',
       language: 'np',
     });

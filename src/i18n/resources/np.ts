@@ -18,6 +18,9 @@ export const np: Translations = {
   'settings.theme.light': 'उज्यालो',
   'settings.theme.dark': 'अँध्यारो',
   'settings.language': 'भाषा',
+  'settings.headerShortcuts': 'हेडर सर्टकट',
+  'settings.showThemeShortcut': 'हेडरमा थिम बटन देखाउनुहोस्',
+  'settings.showLanguageShortcut': 'हेडरमा भाषा बटन देखाउनुहोस्',
   'settings.saveError':
     'यो सेटिङ यो उपकरणमा सुरक्षित गर्न सकिएन। एप बन्द गर्दा यो रिसेट हुन सक्छ।',
   'settings.loadError':

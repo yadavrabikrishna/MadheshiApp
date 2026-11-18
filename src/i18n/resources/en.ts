@@ -17,6 +17,9 @@ export const en = {
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',
   'settings.language': 'Language',
+  'settings.headerShortcuts': 'Header shortcuts',
+  'settings.showThemeShortcut': 'Show theme button in header',
+  'settings.showLanguageShortcut': 'Show language button in header',
   'settings.saveError':
     'This setting could not be saved on this device. It may reset when you close the app.',
   'settings.loadError':
