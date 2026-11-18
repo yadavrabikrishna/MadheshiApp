@@ -13,9 +13,11 @@ export const lightColors = {
 
   text: '#1F2937',
   textSecondary: '#6B7280',
+  onPrimary: brandColors.white,
 
   border: '#E5E7EB',
   tabInactive: '#6B7280',
+  overlay: 'rgba(17, 24, 39, 0.4)',
 } as const;
 
 export const darkColors = {
@@ -27,9 +29,11 @@ export const darkColors = {
 
   text: '#F9FAFB',
   textSecondary: '#9CA3AF',
+  onPrimary: brandColors.white,
 
   border: '#374151',
   tabInactive: '#9CA3AF',
+  overlay: 'rgba(0, 0, 0, 0.6)',
 } as const;
 
 export const appColors = {
@@ -37,5 +41,3 @@ export const appColors = {
   light: lightColors,
   dark: darkColors,
 } as const;
-
-export type AppThemeMode = 'light' | 'dark';
