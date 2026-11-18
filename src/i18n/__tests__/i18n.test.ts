@@ -25,4 +25,22 @@ describe('translations', () => {
       ),
     ).toEqual(['गृह', 'समाचार', 'क्यालकुलेटर', 'सेटिङ']);
   });
+
+  it('translates the calculator tab labels as specified in the issue', () => {
+    const keys = [
+      'calculator.tabs.interest',
+      'calculator.tabs.age',
+      'calculator.tabs.land',
+    ] as const;
+    expect(keys.map(key => translate('en', key))).toEqual([
+      'Interest',
+      'Age',
+      'Land',
+    ]);
+    expect(keys.map(key => translate('np', key))).toEqual([
+      'ब्याज',
+      'उमेर',
+      'जमिन',
+    ]);
+  });
 });
