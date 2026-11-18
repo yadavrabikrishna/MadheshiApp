@@ -12,6 +12,7 @@ import { hydratePreferences } from '../features/preferences';
 import {
   createUnavailablePreferencesRepository,
   initializePreferencesStorage,
+  type PreferencesRepository,
 } from '../storage';
 import { createAppStore, type AppStore } from '../store';
 import { themes } from '../theme';
@@ -25,7 +26,16 @@ const getSystemTheme = (): ThemeMode =>
  * renders `children`. Until that finishes it shows a blank screen in the system
  * color, so the app never paints the wrong theme or language first.
  */
-export function AppBootstrap({ children }: { children: ReactNode }) {
+interface AppBootstrapProps {
+  children: ReactNode;
+  /** Opens storage. Defaults to the real SQLite database; tests inject their own. */
+  initializeStorage?: () => Promise<PreferencesRepository>;
+}
+
+export function AppBootstrap({
+  children,
+  initializeStorage = initializePreferencesStorage,
+}: AppBootstrapProps) {
   const [store, setStore] = useState<AppStore | null>(null);
   const systemMode = useColorScheme() === 'dark' ? 'dark' : 'light';
 
@@ -35,7 +45,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
     async function start() {
       let preferencesRepository;
       try {
-        preferencesRepository = await initializePreferencesStorage();
+        preferencesRepository = await initializeStorage();
       } catch (error) {
         preferencesRepository = createUnavailablePreferencesRepository(error);
       }
@@ -53,7 +63,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initializeStorage]);
 
   if (store === null) {
     const waiting = themes[systemMode];
