@@ -29,12 +29,16 @@ jest.setTimeout(60000);
 
 const DESCRIPTIONS = {
   en: {
-    interest: 'The interest calculator will be implemented in a later task.',
+    simple:
+      'The simple interest calculator will be implemented in a later task.',
+    compound:
+      'The compound interest calculator will be implemented in a later task.',
     age: 'The age calculator will be implemented in a later task.',
     land: 'The land calculator will be implemented in a later task.',
   },
   np: {
-    interest: 'ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    simple: 'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     age: 'उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     land: 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },
@@ -62,6 +66,8 @@ async function launchOnCalculator() {
 }
 
 const topTab = (name: string) => screen.getByRole('tab', { name });
+const interestOption = (name: string, selected?: boolean) =>
+  screen.getByRole('radio', { name, selected });
 const tabLabels = () =>
   screen.getAllByRole('tab').map(node => node.props.accessibilityLabel);
 
@@ -86,7 +92,7 @@ describe('Calculator top tabs', () => {
     expect(topTab('Interest').props.accessibilityState.selected).toBe(true);
     expect(topTab('Age').props.accessibilityState.selected).toBe(false);
     expect(topTab('Land').props.accessibilityState.selected).toBe(false);
-    expect(screen.getByText(DESCRIPTIONS.en.interest)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
   });
 
   it('shows the matching view for each tab, one at a time', async () => {
@@ -96,14 +102,14 @@ describe('Calculator top tabs', () => {
     expect(topTab('Age').props.accessibilityState.selected).toBe(true);
     expect(topTab('Interest').props.accessibilityState.selected).toBe(false);
     expect(screen.getByText(DESCRIPTIONS.en.age)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.interest)).toBeNull();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
 
     await user.press(topTab('Land'));
     expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.age)).toBeNull();
 
     await user.press(topTab('Interest'));
-    expect(screen.getByText(DESCRIPTIONS.en.interest)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.land)).toBeNull();
   });
 
@@ -122,7 +128,7 @@ describe('Calculator top tabs', () => {
     await changeLanguage(user, 'नेपाली');
 
     expect(tabLabels()).toEqual(['ब्याज', 'उमेर', 'जमिन']);
-    expect(screen.getByText(DESCRIPTIONS.np.interest)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.compound)).toBeOnTheScreen();
   });
 
   it('keeps the selected tab when the language changes, in both directions', async () => {
@@ -138,5 +144,83 @@ describe('Calculator top tabs', () => {
     await changeLanguage(user, 'English');
     expect(topTab('Age').props.accessibilityState.selected).toBe(true);
     expect(screen.getByText(DESCRIPTIONS.en.age)).toBeOnTheScreen();
+  });
+});
+
+describe('Interest type selector', () => {
+  it('shows Simple Interest and Compound Interest, with Compound selected by default', async () => {
+    await launchOnCalculator();
+
+    expect(
+      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
+    ).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(interestOption('Simple Interest', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
+  });
+
+  it('shows the matching view for each interest type', async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(interestOption('Simple Interest'));
+    expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
+
+    await user.press(interestOption('Compound Interest'));
+    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
+  });
+
+  it('updates both labels immediately when the language changes', async () => {
+    const user = await launchOnCalculator();
+
+    await changeLanguage(user, 'नेपाली');
+    expect(
+      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
+    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज']);
+
+    await changeLanguage(user, 'English');
+    expect(
+      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
+    ).toEqual(['Simple Interest', 'Compound Interest']);
+  });
+
+  it('keeps the selected interest type when the language changes, in both directions', async () => {
+    const user = await launchOnCalculator();
+
+    // Default (Compound) survives a language change.
+    await changeLanguage(user, 'नेपाली');
+    expect(interestOption('साहु ब्याज', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.compound)).toBeOnTheScreen();
+
+    // So does an explicit Simple selection.
+    await user.press(interestOption('घरेलु ब्याज'));
+    await changeLanguage(user, 'English');
+    expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
+    expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+  });
+
+  it('is shown only on the Interest tab, and the other Calculator tabs still work', async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(topTab('Age'));
+    expect(screen.queryAllByRole('radio', { name: /Interest/ })).toHaveLength(
+      0,
+    );
+    expect(screen.getByText(DESCRIPTIONS.en.age)).toBeOnTheScreen();
+
+    await user.press(topTab('Land'));
+    expect(screen.queryAllByRole('radio', { name: /Interest/ })).toHaveLength(
+      0,
+    );
+    expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
+
+    await user.press(topTab('Interest'));
+    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 });

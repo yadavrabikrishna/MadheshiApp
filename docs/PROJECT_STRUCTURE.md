@@ -20,6 +20,10 @@ src/
     resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
   screens/                   One folder per screen (Home, News, Calculator, Settings)
+    Calculator/                CalculatorScreen (top tabs) + one folder per calculator
+      InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
+      AgeCalculator/             AgeCalculatorView
+      LandCalculator/            LandCalculatorView
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks
   test-utils/                Jest helpers (real SQLite via node:sqlite); not shipped

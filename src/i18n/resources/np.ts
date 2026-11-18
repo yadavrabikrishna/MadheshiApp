@@ -15,8 +15,13 @@ export const np: Translations = {
   'calculator.tabs.interest': 'ब्याज',
   'calculator.tabs.age': 'उमेर',
   'calculator.tabs.land': 'जमिन',
-  'calculator.interest.description':
-    'ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.interest.type.label': 'ब्याजको प्रकार',
+  'calculator.interest.type.simple': 'घरेलु ब्याज',
+  'calculator.interest.type.compound': 'साहु ब्याज',
+  'calculator.interest.simple.description':
+    'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.interest.compound.description':
+    'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.age.description': 'उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.land.description': 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 

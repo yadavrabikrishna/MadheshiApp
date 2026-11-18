@@ -43,4 +43,19 @@ describe('translations', () => {
       'जमिन',
     ]);
   });
+
+  it('translates the interest type labels as specified in the issue', () => {
+    const keys = [
+      'calculator.interest.type.simple',
+      'calculator.interest.type.compound',
+    ] as const;
+    expect(keys.map(key => translate('en', key))).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+    ]);
+    expect(keys.map(key => translate('np', key))).toEqual([
+      'घरेलु ब्याज',
+      'साहु ब्याज',
+    ]);
+  });
 });
