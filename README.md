@@ -51,7 +51,7 @@ See `AGENTS.md` for the storage rules and `docs/PROJECT_STRUCTURE.md` for the fo
 
 ### Languages
 
-The app supports English (`en`) and Nepali (`np`, shown as "नेपाली").
+The app supports English (`en`) and Nepali (`np`, shown as "नेपाली"). The internal `np` code maps to the standard `ne-NP` locale for locale-aware formatting.
 
 ## Current Development Scope
 
