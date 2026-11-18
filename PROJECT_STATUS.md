@@ -15,7 +15,7 @@
 - Age date-system selector: BS / AD integrated; recent commit history places BS first.
 - Land selector: open issue #14, Terai / Hill-Mountain options; Terai default. Issue covers selector/placeholders only, not conversion calculations.
 - Open issue: #14 — Add Terai and Hill/Mountain selector to Land calculator.
-- No open PRs found during the audit.
+- Documentation sync PR #16 is open as a draft: https://github.com/yadavrabikrishna/MadheshiApp/pull/16 (branch `chore/notion-docs-sync`).
 
 ## Documentation audit findings
 - README, AGENTS.md and CONTRIBUTING.md contain outdated separate FastAPI/PostgreSQL backend references; approved V1 Notion specs explicitly prohibit this backend.
