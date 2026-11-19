@@ -2,7 +2,7 @@
 
 Madheshi App is a mobile application project focused on delivering useful information and practical tools for the Madheshi community.
 
-The application is being developed using React Native CLI and TypeScript, with a separate Python FastAPI backend architecture.
+The application is being developed using React Native CLI and TypeScript. V1 uses the existing Madheshi.com WordPress REST API for news, SQLite for local persistence, and on-device calculations; it does not include a separate application backend.
 
 ## Project Status
 
@@ -28,17 +28,9 @@ The `develop` branch contains the latest integrated development work. The `main`
 | `decimal.js` | Exact decimal arithmetic for calculators |
 | npm | Package management |
 
-### Backend architecture
+### V1 server boundary
 
-| Technology | Purpose |
-|---|---|
-| Python | Backend programming language |
-| FastAPI | API framework |
-| Pydantic | Data validation |
-| SQLAlchemy | ORM |
-| Alembic | Database migrations |
-| PostgreSQL | Backend database |
-| OpenAPI / Swagger | API documentation |
+V1 does not use a separate Python/FastAPI backend or PostgreSQL database. The app reads public editorial content from the existing Madheshi.com WordPress REST API. Calculator operations run locally on the device. SQLite is used for structured local persistence.
 
 ### Local database
 

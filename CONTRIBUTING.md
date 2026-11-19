@@ -213,8 +213,8 @@ Important project conventions:
 - React Navigation.
 - Redux Toolkit and RTK Query.
 - npm.
-- FastAPI-based backend architecture.
-- PostgreSQL backend database.
+- V1 uses the existing Madheshi.com WordPress REST API for public news.
+- V1 has no separate FastAPI backend or PostgreSQL database; calculations run locally and SQLite provides local persistence.
 
 Do not introduce unapproved alternatives or change architectural decisions without owner approval.
 
