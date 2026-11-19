@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, SwitchRow } from '../../components';
 import {
@@ -48,6 +49,7 @@ export function CalculatorSettingsScreen() {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
+  const insets = useSafeAreaInsets();
   const saved = useAppSelector(selectEnabledCalculators);
   const saveFailed = useAppSelector(selectCalculatorsSaveError);
 
@@ -138,7 +140,7 @@ export function CalculatorSettingsScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button
           label={t('calculatorSettings.cancel')}
           onPress={() => navigation.goBack()}
