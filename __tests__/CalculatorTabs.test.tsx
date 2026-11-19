@@ -35,14 +35,17 @@ const DESCRIPTIONS = {
       'The compound interest calculator will be implemented in a later task.',
     ageAd: 'The AD age calculator will be implemented in a later task.',
     ageBs: 'The BS age calculator will be implemented in a later task.',
-    land: 'The land calculator will be implemented in a later task.',
+    landTerai: 'The Terai land calculator will be implemented in a later task.',
+    landHill:
+      'The Hill / Mountain land calculator will be implemented in a later task.',
   },
   np: {
     simple: 'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageAd: 'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageBs: 'विक्रम संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-    land: 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    landTerai: 'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },
 };
 
@@ -110,12 +113,12 @@ describe('Calculator top tabs', () => {
     expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
 
     await user.press(topTab('Land'));
-    expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.ageBs)).toBeNull();
 
     await user.press(topTab('Interest'));
     expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.land)).toBeNull();
+    expect(screen.queryByText(DESCRIPTIONS.en.landTerai)).toBeNull();
   });
 
   it('does not add the three tabs to the bottom navigation', async () => {
@@ -143,7 +146,7 @@ describe('Calculator top tabs', () => {
     await changeLanguage(user, 'नेपाली');
     expect(topTab('जमिन').props.accessibilityState.selected).toBe(true);
     expect(topTab('ब्याज').props.accessibilityState.selected).toBe(false);
-    expect(screen.getByText(DESCRIPTIONS.np.land)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.landTerai)).toBeOnTheScreen();
 
     await user.press(topTab('उमेर'));
     await changeLanguage(user, 'English');
@@ -222,7 +225,7 @@ describe('Interest type selector', () => {
     expect(screen.queryAllByRole('radio', { name: /Interest/ })).toHaveLength(
       0,
     );
-    expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
 
     await user.press(topTab('Interest'));
     expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
@@ -285,14 +288,14 @@ describe('Age date system selector', () => {
     expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
   });
 
-  it('appears only inside the Age calculator', async () => {
+  it('appears only inside the Age calculator, not the Interest or Land selectors', async () => {
     const user = await launchOnCalculator();
 
     // Interest tab: only the Interest selector.
     expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
 
     await user.press(topTab('Land'));
-    expect(radioLabels()).toEqual([]);
+    expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);
 
     await user.press(topTab('Age'));
     expect(radioLabels()).toEqual(['BS (Bikram Sambat)', 'AD (Gregorian)']);
@@ -345,7 +348,7 @@ describe('Age date system selector', () => {
 
     await user.press(topTab('Age'));
     await user.press(topTab('Land'));
-    expect(screen.getByText(DESCRIPTIONS.en.land)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
 
     // The Interest choice is kept, and Compound is still the default elsewhere.
     await user.press(topTab('Interest'));
@@ -353,5 +356,109 @@ describe('Age date system selector', () => {
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
     await user.press(dateSystemOption('Compound Interest'));
     expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+  });
+});
+
+describe('Land type selector', () => {
+  const landOption = interestOption; // same shared SegmentedControl (radio) pattern
+
+  it('shows Terai first and Hill / Mountain second, with Terai selected by default', async () => {
+    const user = await launchOnCalculator();
+    await user.press(topTab('Land'));
+
+    expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);
+    expect(landOption('Terai', true)).toBeOnTheScreen();
+    expect(landOption('Hill / Mountain', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
+  });
+
+  it('shows the matching placeholder for each land type', async () => {
+    const user = await launchOnCalculator();
+    await user.press(topTab('Land'));
+
+    await user.press(landOption('Hill / Mountain'));
+    expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.landTerai)).toBeNull();
+
+    await user.press(landOption('Terai'));
+    expect(landOption('Terai', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
+  });
+
+  it('updates both labels immediately when the language changes', async () => {
+    const user = await launchOnCalculator();
+    await user.press(topTab('Land'));
+
+    await changeLanguage(user, 'नेपाली');
+    expect(radioLabels()).toEqual(['तराई', 'पहाड / हिमाल']);
+
+    await changeLanguage(user, 'English');
+    expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);
+  });
+
+  it('keeps the selected land type when the language changes, in both directions', async () => {
+    const user = await launchOnCalculator();
+    await user.press(topTab('Land'));
+
+    // Default (Terai) survives a language change.
+    await changeLanguage(user, 'नेपाली');
+    expect(landOption('तराई', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.landTerai)).toBeOnTheScreen();
+
+    // So does an explicit Hill / Mountain selection.
+    await user.press(landOption('पहाड / हिमाल'));
+    await changeLanguage(user, 'English');
+    expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
+    expect(landOption('Terai', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+  });
+
+  it('appears only inside the Land calculator', async () => {
+    const user = await launchOnCalculator();
+
+    expect(radioLabels()).not.toContain('Terai');
+    await user.press(topTab('Age'));
+    expect(radioLabels()).not.toContain('Terai');
+    await user.press(topTab('Land'));
+    expect(radioLabels()).toContain('Terai');
+  });
+
+  it('keeps the selected land type when switching Calculator tabs and back', async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(topTab('Land'));
+    await user.press(landOption('Hill / Mountain'));
+    await user.press(topTab('Age'));
+    await user.press(topTab('Interest'));
+    await user.press(topTab('Land'));
+
+    expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+  });
+
+  it('leaves the Interest and Age selectors and tabs unchanged', async () => {
+    const user = await launchOnCalculator();
+
+    // Interest: Compound default, then Simple.
+    expect(landOption('Compound Interest', true)).toBeOnTheScreen();
+    await user.press(landOption('Simple Interest'));
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+
+    // Age: BS default, then AD.
+    await user.press(topTab('Age'));
+    expect(landOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
+    await user.press(landOption('AD (Gregorian)'));
+    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+
+    // Each keeps its own choice, independent of the Land selector.
+    await user.press(topTab('Land'));
+    await user.press(landOption('Hill / Mountain'));
+    await user.press(topTab('Interest'));
+    expect(landOption('Simple Interest', true)).toBeOnTheScreen();
+    await user.press(topTab('Age'));
+    expect(landOption('AD (Gregorian)', true)).toBeOnTheScreen();
   });
 });

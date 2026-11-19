@@ -23,7 +23,7 @@ src/
     Calculator/                CalculatorScreen (top tabs) + one folder per calculator
       InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
-      LandCalculator/            LandCalculatorView
+      LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks
   test-utils/                Jest helpers (real SQLite via node:sqlite); not shipped
