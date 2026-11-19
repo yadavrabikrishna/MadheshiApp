@@ -14,21 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout develop
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: develop
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Test Notion Markdown exporter
+        run: python -m unittest discover -s .github/scripts -p "test_*.py"
       - name: Sync Notion pages
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TOKEN: \${{ secrets.NOTION_TOKEN }}
         run: python .github/scripts/sync_notion_docs.py
       - name: Create or update sync PR
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: \${{ secrets.GITHUB_TOKEN }}
           branch: docs-sync/notion
           base: develop
           delete-branch: false
