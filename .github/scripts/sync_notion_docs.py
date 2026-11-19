@@ -7,6 +7,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -130,10 +131,11 @@ def render(blocks, depth=0):
         text = ""
 
         if block_type not in SUPPORTED_TYPES:
-            print(
-                f"Warning: unsupported Notion block type '{block_type}' "
+            warnings.warn(
+                f"Unsupported Notion block type '{block_type}' "
                 f"(block id: {block.get('id', 'unknown')}); content was not rendered.",
-                file=sys.stderr,
+                RuntimeWarning,
+                stacklevel=2,
             )
 
         if block_type in (
