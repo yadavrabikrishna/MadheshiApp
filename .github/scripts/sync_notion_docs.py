@@ -21,14 +21,8 @@ SOURCES = [
 
 LIST_ITEM_TYPES = ("bulleted_list_item", "numbered_list_item", "to_do")
 KNOWN_NON_RENDERED_TYPES = {
-    "breadcrumb",
-    "column",
-    "column_list",
-    "link_preview",
-    "synced_block",
-    "table_of_contents",
-    "template",
-    "unsupported",
+    "breadcrumb", "column", "column_list", "link_preview",
+    "synced_block", "table_of_contents", "template", "unsupported",
 }
 SUPPORTED_TYPES = {
     "paragraph", "heading_1", "heading_2", "heading_3",
@@ -64,7 +58,7 @@ def rt(items):
         value = item.get("plain_text", "")
         annotations = item.get("annotations", {}) or {}
         if annotations.get("code"):
-            value = "`" + value + "`"
+            value = chr(96) + value + chr(96)
         if annotations.get("bold"):
             value = "**" + value + "**"
         if annotations.get("italic"):
@@ -115,12 +109,12 @@ def table_md(block):
 
     def format_row(row):
         cells = [
-            cell.replace("|", "\\|").replace("\\n", " ")
+            cell.replace("|", "\\|").replace("\n", " ")
             for cell in row
         ]
         return "| " + " | ".join(cells) + " |"
 
-    return "\\n".join(
+    return "\n".join(
         [format_row(data[0]), format_row(["---"] * column_count)]
         + [format_row(row) for row in data[1:]]
     )
@@ -135,6 +129,13 @@ def render(blocks, depth=0):
         data = block.get(block_type, {}) or {}
         text = ""
 
+        if block_type not in SUPPORTED_TYPES:
+            print(
+                f"Warning: unsupported Notion block type '{block_type}' "
+                f"(block id: {block.get('id', 'unknown')}); content was not rendered.",
+                file=sys.stderr,
+            )
+
         if block_type in (
             "paragraph", "heading_1", "heading_2", "heading_3",
             "bulleted_list_item", "numbered_list_item", "quote",
@@ -147,8 +148,8 @@ def render(blocks, depth=0):
         elif block_type == "code":
             fence = chr(96) * 3
             text = (
-                fence + data.get("language", "") + "\\n"
-                + rt(data.get("rich_text", [])) + "\\n" + fence
+                fence + data.get("language", "") + "\n"
+                + rt(data.get("rich_text", [])) + "\n" + fence
             )
         elif block_type == "divider":
             text = "---"
@@ -169,12 +170,6 @@ def render(blocks, depth=0):
             text = "**Database:** " + data.get("title", "Database")
         elif block_type == "table":
             text = table_md(block)
-        elif block_type not in KNOWN_NON_RENDERED_TYPES:
-            print(
-                f"Warning: unsupported Notion block type '{block_type}' "
-                f"(block id: {block.get('id', 'unknown')}); content was not rendered.",
-                file=sys.stderr,
-            )
 
         if block_type == "heading_1":
             text = "# " + text
@@ -213,7 +208,7 @@ def render(blocks, depth=0):
             if nested:
                 output.append(nested)
 
-    return "\\n\\n".join(output)
+    return "\n\n".join(output)
 
 
 def export(filename, page_id):
@@ -226,17 +221,17 @@ def export(filename, page_id):
     body = render(children(page_id))
     synced = datetime.now(timezone.utc).isoformat(timespec="seconds")
     header = (
-        "<!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->\\n"
-        + "<!-- Source page ID: " + page_id + " -->\\n"
-        + "<!-- Notion last edited: " + edited + " -->\\n"
-        + "<!-- Synced at: " + synced + " -->\\n\\n# " + title + "\\n\\n"
-        + "**Source:** [" + title + "](" + url + ")  \\n"
-        + "**Notion last edited:** " + edited + "  \\n"
-        + "**Snapshot synced:** " + synced + "\\n\\n---\\n\\n"
+        "<!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->\n"
+        + "<!-- Source page ID: " + page_id + " -->\n"
+        + "<!-- Notion last edited: " + edited + " -->\n"
+        + "<!-- Synced at: " + synced + " -->\n\n# " + title + "\n\n"
+        + "**Source:** [" + title + "](" + url + ")  \n"
+        + "**Notion last edited:** " + edited + "  \n"
+        + "**Snapshot synced:** " + synced + "\n\n---\n\n"
     )
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / filename).write_text(
-        header + body.rstrip() + "\\n", encoding="utf-8"
+        header + body.rstrip() + "\n", encoding="utf-8"
     )
     print("Exported " + title + " to " + str(OUT / filename))
 
