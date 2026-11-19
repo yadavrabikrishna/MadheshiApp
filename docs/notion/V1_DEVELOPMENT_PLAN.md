@@ -1,13 +1,13 @@
 <!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->
 <!-- Source page ID: 4119628c857d81458e31cdcfd484d031 -->
-<!-- Notion last edited: 2026-11-19T07:29:00.000Z -->
-<!-- Synced at: 2026-11-19T08:10:56+00:00 -->
+<!-- Notion last edited: 2026-11-19T10:06:00.000Z -->
+<!-- Synced at: 2026-11-19T10:21:29+00:00 -->
 
 # V1. Madheshi App — Development Plan, Architecture Boundaries & Test Checklist
 
 **Source:** [V1. Madheshi App — Development Plan, Architecture Boundaries & Test Checklist](https://app.notion.com/p/V1-Madheshi-App-Development-Plan-Architecture-Boundaries-Test-Checklist-4119628c857d81458e31cdcfd484d031)  
-**Notion last edited:** 2026-11-19T07:29:00.000Z  
-**Snapshot synced:** 2026-11-19T08:10:56+00:00
+**Notion last edited:** 2026-11-19T10:06:00.000Z  
+**Snapshot synced:** 2026-11-19T10:21:29+00:00
 
 ---
 
@@ -47,7 +47,7 @@
 
 - Use SQLite through `react-native-nitro-sqlite` 10.3.0 with `react-native-nitro-modules` 0.37.2 as the approved V1 local database driver for structured offline data, including cached news, bookmarks and app preferences. Pin these versions. Nitro SQLite 10.3.0 is ESM-only, so configure Jest to transform this package. Rebuild the native app after installing or changing this native dependency. Redux Toolkit is not a persistence database. Do not add AsyncStorage by default; use SQLite for V1 persistence.
 
-- Use `decimal.js` 10.6.0 as the approved decimal arithmetic library for financial and land-conversion calculations. Pin the exact version in `package.json`/`package-lock.json`. Construct decimal values from validated input strings (not already-rounded JavaScript numbers), keep intermediate values unrounded, and explicitly apply the V1 rounding rules only at the required output boundary. Keep Decimal configuration isolated in a shared calculation utility (prefer a cloned Decimal constructor) rather than mutating global configuration.
+- Use `decimal.js` with the `^10.6.0` semver range as the approved decimal arithmetic library for financial and land-conversion calculations. This allows compatible minor and patch releases within major version 10. Commit `package-lock.json` so the resolved dependency version remains reproducible for installs. Do not require an exact version pin in `package.json`. Construct decimal values from validated input strings (not already-rounded JavaScript numbers), keep intermediate values unrounded, and explicitly apply the V1 rounding rules only at the required output boundary. Keep Decimal configuration isolated in a shared calculation utility (prefer a cloned Decimal constructor) rather than mutating global configuration.
 
 Keep the application feature-oriented:
 
@@ -113,7 +113,7 @@ Do not create backend services for calculations. Calculations and land conversio
 
 5. Implement and test pure calculation-domain functions independently of UI.
 
-6. Implement Interest Calculator using AD dates only, the approved month/day convention, annual compounding and final-only rounding.
+6. Implement Interest Calculator using neutral `YYYY/MM/DD` numeric date inputs, the fixed 30-day/12-month subtraction convention shared with Age, the approved interest/compounding rules, and final-only money rounding/formatting.
 
 7. Implement Age Calculator using the approved fixed 30/12 borrowing algorithm for AD and BS input.
 
@@ -187,11 +187,15 @@ This is a suggested sequence, not a requirement to rewrite working modules. Reus
 
 - Compound interest capitalizes only after a completed 12-month period.
 
-- AD-only date cases cover month boundaries, year boundaries, leap-year behavior and clamped month anniversaries.
+- Interest date inputs accept neutral `YYYY/MM/DD` values, auto-insert separators while typing eight digits on one numeric keyboard, and support one-digit Backspace deletion.
 
-- Start-exclusive/end-inclusive elapsed-date convention, partial-month proration (remaining days / 30), annual compounding anniversaries and final-only round-half-up currency rounding are tested and documented.
+- Neutral date validation enforces four-digit year, month 01–12 and day 01–32 without Gregorian/BS calendar validation or conversion.
 
-- BS interest-date input is not part of V1.
+- Interest duration uses the same fixed 30-day/12-month borrowing algorithm as Age; simple-interest fractional months use `years × 12 + months + days / 30`.
+
+- Compound interest uses completed 12-month periods from that fixed duration and simple interest for the remaining incomplete period.
+
+- Money display uses locale-appropriate grouping, final round-half-up to at most two decimal places, and trims trailing zeros (`20.00` → `20`, `20.20` → `20.2`, `20.02` → `20.02`).
 
 - Invalid and reversed date ranges are rejected.
 
@@ -269,7 +273,7 @@ This is a suggested sequence, not a requirement to rewrite working modules. Reus
 
 - [ ] Four main features implemented.
 
-- [ ] Interest AD date-counting, partial-period and rounding rules documented and tested.
+- [ ] Interest neutral-date fixed 30/12 duration, partial-period and money rounding/formatting rules documented and tested.
 
 - [ ] Age algorithm matches the fixed 30-day and 12-month rule.
 

@@ -1,13 +1,13 @@
 <!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->
 <!-- Source page ID: 4119628c857d814fb3ebd9946cab3701 -->
-<!-- Notion last edited: 2026-11-19T07:29:00.000Z -->
-<!-- Synced at: 2026-11-19T08:10:56+00:00 -->
+<!-- Notion last edited: 2026-11-19T10:06:00.000Z -->
+<!-- Synced at: 2026-11-19T10:21:28+00:00 -->
 
 # V1. Madheshi App — Functional Requirements & Calculation Rules
 
 **Source:** [V1. Madheshi App — Functional Requirements & Calculation Rules](https://app.notion.com/p/V1-Madheshi-App-Functional-Requirements-Calculation-Rules-4119628c857d814fb3ebd9946cab3701)  
-**Notion last edited:** 2026-11-19T07:29:00.000Z  
-**Snapshot synced:** 2026-11-19T08:10:56+00:00
+**Notion last edited:** 2026-11-19T10:06:00.000Z  
+**Snapshot synced:** 2026-11-19T10:21:28+00:00
 
 ---
 
@@ -141,11 +141,11 @@ Minimum inputs:
 
 - End date.
 
-- Date system: AD only (BS interest-date input is deferred for V1).
-
 - Interest mode: Simple or Compound.
 
-Validate required values, positive principal, non-negative rate, valid dates and end date not earlier than start date. Use appropriate numeric keyboards and currency formatting.
+**Neutral date input:** Interest dates are arithmetic date values, not AD/Gregorian or BS calendar dates. Do not show a date-system selector, calendar-system label, conversion, or Gregorian leap-year/month-length validation. Each date is entered in one numeric text field using `YYYY/MM/DD`. The user types the eight digits continuously (`YYYYMMDD`); the `/` separators are inserted automatically. Use one numeric keyboard, preserve normal cursor editing, and make Backspace remove the last entered digit one at a time. Validate a four-digit year, month 01–12, and day 01–32. Do not require the user to enter separators.
+
+Validate required values, positive principal, non-negative rate, valid neutral date fields and end date not earlier than start date. Use appropriate numeric keyboards and money formatting.
 
 ### 2.3 Rate convention
 
@@ -177,11 +177,11 @@ Percentage mode and rupees-per-100 mode must normalize to the same monthly rate.
 
 ### 2.5 Compound Interest — साहु ब्याज
 
-- Compound only after each completed 12-calendar-month anniversary from the start date.
+- Compound only after each completed 12-month period in the fixed 30-day/12-month elapsed-duration result.
 
-- At each completed anniversary, capitalize 12 months of interest at the agreed monthly rate: annual interest rate = monthly rate × 12. Apply the resulting annual factor to the current principal.
+- At each completed 12-month period, capitalize 12 months of interest at the agreed monthly rate: annual interest rate = monthly rate × 12. Apply the resulting annual factor to the current principal.
 
-- For the incomplete period after the last completed anniversary, accrue simple interest on the current balance; do not capitalize it until another full 12-month anniversary is reached.
+- For the incomplete period after the last completed 12-month period, accrue simple interest on the current balance; do not capitalize it until another full 12-month period is reached.
 
 - Do not offer monthly, quarterly, half-yearly or custom compounding intervals in V1.
 
@@ -189,37 +189,43 @@ Percentage mode and rupees-per-100 mode must normalize to the same monthly rate.
 
 ### 2.6 Date system and date counting
 
-- Interest Calculator V1 supports **AD (Gregorian) dates only**. BS interest-date entry and BS↔AD conversion are deferred, as previously decided.
+- Interest dates are **neutral arithmetic dates**, not Gregorian/AD or BS calendar dates. The same simplified subtraction convention is used regardless of the date values; no calendar conversion, leap-year logic, or real month-length lookup is performed.
 
-- The user enters a start date and end date in AD.
+- Enter both dates in one numeric field as `YYYY/MM/DD`. Users type eight digits continuously (`YYYYMMDD`); separators are inserted automatically. Use one numeric keyboard, allow cursor-based digit editing, and make Backspace remove the final entered digit one at a time.
 
-- Elapsed time is calculated as the calendar-date difference: the start date is excluded and the end date is included. Identical dates produce zero elapsed time.
+- Validate a four-digit year, month 01–12, and day 01–32. Do not validate a day against a real calendar month's length.
 
-- Count completed calendar months using anniversaries anchored to the original start date. If the original day does not exist in a target month, clamp that anniversary to the last day of that month (for example, 31 January → 28 February in a non-leap year; 29 February → 28 February in a non-leap year).
+- Reject an end date earlier than the start date. Identical dates produce zero duration. The start value is the subtraction baseline and the end value is the endpoint.
 
-- After the last completed month anniversary, count the remaining actual calendar days. A remaining partial month is prorated using remaining days / 30.
+- Calculate elapsed duration using exactly the Age Calculator's approved fixed borrowing algorithm: subtract start-day from end-day first; if negative, add 30 days and subtract 1 from the month result. Then subtract start-month from end-month, including the day borrow; if negative, add 12 months and subtract 1 from the year result. Finally subtract start-year from end-year.
 
-- For simple interest, time in months = completed calendar months + remaining days / 30. Interest = principal × monthly rate × time in months.
+- Convert the result to fractional months as `years × 12 + months + days / 30`.
 
-- For compound interest, each completed 12-calendar-month anniversary is one compounding event. For the final incomplete period, calculate simple interest using completed remaining calendar months plus remaining days / 30 on the current balance.
+- For simple interest, Interest = Principal × Monthly Rate × Time in Months. Always use the original principal.
 
-- Do not use a 360-day year to decide when annual compounding occurs; the 12-month anniversary is calendar-based.
+- For compound interest, each completed 12 months in the fixed 30/12 duration is one compounding period. Calculate any remaining months and days as simple interest on the current balance; do not capitalize the incomplete period.
+
+- This is a fixed arithmetic convention, not a claim about the actual duration of Gregorian or BS calendar months.
 
 ### 2.7 Currency precision and rounding
 
 - Keep full precision through all intermediate calculations. Do not round monthly interest, anniversary balances or partial-period interest during the calculation.
 
-- Implement decimal arithmetic with the approved `decimal.js` 10.6.0 library. Pin the exact dependency version. Construct Decimal values from validated input strings rather than JavaScript numbers that may already have lost precision.
+- Implement decimal arithmetic with `decimal.js` using the `^10.6.0` semver range. This allows compatible minor and patch releases within major version 10. Commit `package-lock.json` to keep the resolved dependency version reproducible. Do not require an exact version pin in `package.json`. Construct Decimal values from validated input strings rather than JavaScript numbers that may already have lost precision.
 
 - Keep full Decimal precision through all intermediate calculations. Do not round monthly interest, anniversary balances or partial-period interest during the calculation.
 
 - Round only final displayed currency amounts to 2 decimal places using decimal round-half-up (`Decimal.ROUND_HALF_UP` / explicit 2-decimal-place rounding).
 
-- Display principal, interest and total amount in Nepalese rupees with two decimal places.
+- Format final money values using locale-appropriate digit grouping (including the Nepal/Indian grouping pattern where applicable).
 
-- Calculate the final total from the unrounded principal plus unrounded interest, then round the displayed total independently.
+- Round final displayed money values to a maximum of two decimal places using decimal round-half-up, then trim unnecessary trailing decimal zeros and the decimal separator. Examples: `20.00` → `20`, `20.20` → `20.2`, `20.02` → `20.02`, and `1,00,000.00` → `1,00,000`.
 
-- Test exact anniversary dates, one day before/after an anniversary, month-end clamping, leap-year boundaries, partial-month proration, and values that land exactly on or just above a half-paisa rounding boundary.
+- Apply this Money formatting convention consistently to principal, interest, total amount, rate-derived money values, and future Simple/Compound Interest screens. Do not use ordinary ungrouped number formatting for monetary values.
+
+- Calculate the final total from the unrounded principal plus unrounded interest, then format the displayed total independently.
+
+- Test fixed 30-day/12-month borrowing boundaries, month/year borrowing, partial-day-month proration, and values that land exactly on or just above a half-paisa rounding boundary.
 
 Do not implement payment, partial-payment or loan-ledger behavior in V1.
 
@@ -341,7 +347,7 @@ Metric:
 
 - Keep conversion calculations at full precision; never convert using rounded display values.
 
-- Implement conversions using the approved `decimal.js` 10.6.0 library and exact square-foot base factors. Construct Decimal values from validated input strings; do not use rounded display values as inputs to later conversions.
+- Implement conversions using `decimal.js` with the `^10.6.0` semver range and exact square-foot base factors. Commit `package-lock.json` to keep the resolved dependency version reproducible. Construct Decimal values from validated input strings; do not use rounded display values as inputs to later conversions.
 
 - Display converted land areas to a maximum of 4 decimal places, using decimal round-half-up and trimming unnecessary trailing zeros.
 
@@ -377,7 +383,7 @@ This verifies the standard conversion baseline for the app. It is an information
 
 ## 5. Cross-feature requirements
 
-- Use `decimal.js` 10.6.0 for decimal-safe interest and land-conversion arithmetic; age subtraction remains integer date arithmetic and does not require Decimal.
+- Use `decimal.js` with the `^10.6.0` semver range for decimal-safe interest and land-conversion arithmetic; age subtraction remains integer date arithmetic and does not require Decimal. The lockfile records the resolved install version.
 
 - Use shared numeric/date formatting helpers where appropriate.
 
