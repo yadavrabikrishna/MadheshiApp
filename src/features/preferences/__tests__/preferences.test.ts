@@ -38,6 +38,11 @@ function fakeRepository(
     saveLanguage: jest.fn().mockResolvedValue(undefined),
     saveShowThemeShortcut: jest.fn().mockResolvedValue(undefined),
     saveShowLanguageShortcut: jest.fn().mockResolvedValue(undefined),
+    loadCalculators: jest
+      .fn()
+      .mockResolvedValue({ enabled: null, active: null }),
+    saveCalculatorSettings: jest.fn().mockResolvedValue(undefined),
+    saveActiveCalculator: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

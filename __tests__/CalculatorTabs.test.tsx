@@ -100,7 +100,7 @@ describe('Calculator top tabs', () => {
     expect(topTab('Interest').props.accessibilityState.selected).toBe(true);
     expect(topTab('Age').props.accessibilityState.selected).toBe(false);
     expect(topTab('Land').props.accessibilityState.selected).toBe(false);
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
   });
 
   it('shows the matching view for each tab, one at a time', async () => {
@@ -110,14 +110,14 @@ describe('Calculator top tabs', () => {
     expect(topTab('Age').props.accessibilityState.selected).toBe(true);
     expect(topTab('Interest').props.accessibilityState.selected).toBe(false);
     expect(screen.getByText(DESCRIPTIONS.en.ageBs)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
+    expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
 
     await user.press(topTab('Land'));
     expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.ageBs)).toBeNull();
 
     await user.press(topTab('Interest'));
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.landTerai)).toBeNull();
   });
 
@@ -136,7 +136,7 @@ describe('Calculator top tabs', () => {
     await changeLanguage(user, 'नेपाली');
 
     expect(tabLabels()).toEqual(['ब्याज', 'उमेर', 'जमिन']);
-    expect(screen.getByText(DESCRIPTIONS.np.compound)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.simple)).toBeOnTheScreen();
   });
 
   it('keeps the selected tab when the language changes, in both directions', async () => {
@@ -156,16 +156,16 @@ describe('Calculator top tabs', () => {
 });
 
 describe('Interest type selector', () => {
-  it('shows Simple Interest and Compound Interest, with Compound selected by default', async () => {
+  it('shows Simple Interest and Compound Interest, with Simple selected on the first launch', async () => {
     await launchOnCalculator();
 
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
     ).toEqual(['Simple Interest', 'Compound Interest']);
-    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
-    expect(interestOption('Simple Interest', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
+    expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
+    expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
   });
 
   it('shows the matching view for each interest type', async () => {
@@ -199,17 +199,17 @@ describe('Interest type selector', () => {
   it('keeps the selected interest type when the language changes, in both directions', async () => {
     const user = await launchOnCalculator();
 
-    // Default (Compound) survives a language change.
+    // The first-launch selection (Simple) survives a language change.
     await changeLanguage(user, 'नेपाली');
-    expect(interestOption('साहु ब्याज', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.np.compound)).toBeOnTheScreen();
+    expect(interestOption('घरेलु ब्याज', true)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.np.simple)).toBeOnTheScreen();
 
-    // So does an explicit Simple selection.
-    await user.press(interestOption('घरेलु ब्याज'));
+    // So does an explicit Compound selection.
+    await user.press(interestOption('साहु ब्याज'));
     await changeLanguage(user, 'English');
-    expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
-    expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(interestOption('Simple Interest', false)).toBeOnTheScreen();
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
   });
 
   it('is shown only on the Interest tab, and the other Calculator tabs still work', async () => {
@@ -228,7 +228,7 @@ describe('Interest type selector', () => {
     expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
 
     await user.press(topTab('Interest'));
-    expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
     expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 });
@@ -442,10 +442,10 @@ describe('Land type selector', () => {
   it('leaves the Interest and Age selectors and tabs unchanged', async () => {
     const user = await launchOnCalculator();
 
-    // Interest: Compound default, then Simple.
-    expect(landOption('Compound Interest', true)).toBeOnTheScreen();
-    await user.press(landOption('Simple Interest'));
-    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    // Interest: Simple on the first launch, then Compound.
+    expect(landOption('Simple Interest', true)).toBeOnTheScreen();
+    await user.press(landOption('Compound Interest'));
+    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
 
     // Age: BS default, then AD.
     await user.press(topTab('Age'));
@@ -457,7 +457,7 @@ describe('Land type selector', () => {
     await user.press(topTab('Land'));
     await user.press(landOption('Hill / Mountain'));
     await user.press(topTab('Interest'));
-    expect(landOption('Simple Interest', true)).toBeOnTheScreen();
+    expect(landOption('Compound Interest', true)).toBeOnTheScreen();
     await user.press(topTab('Age'));
     expect(landOption('AD (Gregorian)', true)).toBeOnTheScreen();
   });
@@ -512,9 +512,9 @@ describe('Calculator header title', () => {
     return titles;
   }
 
-  it('shows the Compound Interest title by default instead of "Calculator"', async () => {
+  it('shows the Simple Interest title on the first launch instead of "Calculator"', async () => {
     await launchOnCalculator();
-    expect(headerTitle()).toBe('Compound Interest');
+    expect(headerTitle()).toBe('Simple Interest');
   });
 
   it('shows the right title for all six calculators in English', async () => {
@@ -600,11 +600,11 @@ describe('Calculator header title', () => {
     const before = themeToggle().props.accessibilityLabel;
     await user.press(themeToggle());
     expect(themeToggle().props.accessibilityLabel).not.toBe(before);
-    expect(headerTitle()).toBe('Compound Interest');
+    expect(headerTitle()).toBe('Simple Interest');
 
     // The language menu still opens and switches the language.
     await changeLanguage(user, 'नेपाली');
-    expect(headerTitle()).toBe('साहु ब्याज');
+    expect(headerTitle()).toBe('घरेलु ब्याज');
   });
 
   it('leaves the bottom navigation unchanged', async () => {

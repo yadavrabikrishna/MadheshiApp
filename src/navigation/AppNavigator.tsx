@@ -1,15 +1,18 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { HeaderActions, Icon, type IconName } from '../components';
 import { useTranslation, type TranslationKey } from '../i18n';
 import { CalculatorScreen } from '../screens/Calculator/CalculatorScreen';
+import { CalculatorSettingsScreen } from '../screens/Settings/CalculatorSettingsScreen';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { NewsScreen } from '../screens/News/NewsScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
-import { useAppTheme } from '../theme';
-import type { RootTabParamList } from './navigation.types';
+import { useAppTheme, type AppTheme } from '../theme';
+import type { RootStackParamList, RootTabParamList } from './navigation.types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 interface TabIconProps {
   focused: boolean;
@@ -59,7 +62,20 @@ const TABS: {
 // Module-level so the header does not remount its controls on every render.
 const renderHeaderActions = () => <HeaderActions />;
 
-export function AppNavigator() {
+/** The header look shared by the tab screens and the screens above them. */
+function getHeaderOptions(colors: AppTheme['colors']) {
+  return {
+    headerShown: true,
+    headerTitleAlign: 'left' as const,
+    headerStyle: { backgroundColor: colors.surface },
+    headerTintColor: colors.text,
+    headerTitleStyle: { fontSize: 18, fontWeight: '600' as const },
+    headerRight: renderHeaderActions,
+  };
+}
+
+/** The four bottom tabs. Unchanged; they now sit inside the root stack. */
+function TabNavigator() {
   const theme = useAppTheme();
   const { t } = useTranslation();
   const { colors } = theme;
@@ -68,12 +84,7 @@ export function AppNavigator() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={{
-        headerShown: true,
-        headerTitleAlign: 'left',
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontSize: 18, fontWeight: '600' },
-        headerRight: renderHeaderActions,
+        ...getHeaderOptions(colors),
 
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.tabInactive,
@@ -99,5 +110,30 @@ export function AppNavigator() {
         />
       ))}
     </Tab.Navigator>
+  );
+}
+
+export function AppNavigator() {
+  const theme = useAppTheme();
+  const { t } = useTranslation();
+
+  return (
+    <Stack.Navigator initialRouteName="Tabs">
+      {/* The tabs draw their own headers. */}
+      <Stack.Screen
+        name="Tabs"
+        component={TabNavigator}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CalculatorSettings"
+        component={CalculatorSettingsScreen}
+        options={{
+          ...getHeaderOptions(theme.colors),
+          title: t('calculatorSettings.title'),
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      />
+    </Stack.Navigator>
   );
 }

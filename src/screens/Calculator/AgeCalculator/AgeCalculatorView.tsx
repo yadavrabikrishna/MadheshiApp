@@ -1,56 +1,42 @@
-import { View } from 'react-native';
-
-import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
-import { useThemedStyles, type AppTheme } from '../../../theme';
-import type { DateSystem } from '../calculatorSelection';
+import type { CalculatorId } from '../../../types/calculators';
+import { CalculatorGroupView } from '../CalculatorGroupView';
 import { AdAgeView } from './AdAgeView';
 import { BsAgeView } from './BsAgeView';
 
-const DATE_SYSTEMS: {
-  value: DateSystem;
+// BS is listed first, then AD.
+const AGE_CALCULATORS: {
+  id: CalculatorId;
   labelKey: TranslationKey;
   View: () => React.JSX.Element;
 }[] = [
-  { value: 'bs', labelKey: 'calculator.age.system.bs', View: BsAgeView },
-  { value: 'ad', labelKey: 'calculator.age.system.ad', View: AdAgeView },
+  { id: 'ageBs', labelKey: 'calculator.age.system.bs', View: BsAgeView },
+  { id: 'ageAd', labelKey: 'calculator.age.system.ad', View: AdAgeView },
 ];
 
 interface AgeCalculatorViewProps {
-  value: DateSystem;
-  onChange: (value: DateSystem) => void;
+  /** The enabled Age calculators. */
+  calculators: CalculatorId[];
+  value: CalculatorId;
+  onChange: (value: CalculatorId) => void;
 }
 
-/**
- * Age calculator: a BS / AD selector above the matching view.
- * The selection is owned by CalculatorScreen (it also drives the header title).
- */
-export function AgeCalculatorView({ value, onChange }: AgeCalculatorViewProps) {
+/** Age group: BS / AD selector (when both are enabled). */
+export function AgeCalculatorView({
+  calculators,
+  value,
+  onChange,
+}: AgeCalculatorViewProps) {
   const { t } = useTranslation();
-  const styles = useThemedStyles(createStyles);
-
-  const options: SegmentOption<DateSystem>[] = DATE_SYSTEMS.map(system => ({
-    value: system.value,
-    label: t(system.labelKey),
-  }));
-  const ActiveView = DATE_SYSTEMS.find(system => system.value === value)!.View;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.selector}>
-        <SegmentedControl
-          options={options}
-          value={value}
-          onChange={onChange}
-          accessibilityLabel={t('calculator.age.system.label')}
-        />
-      </View>
-      <ActiveView />
-    </View>
+    <CalculatorGroupView
+      options={AGE_CALCULATORS.filter(c => calculators.includes(c.id)).map(
+        c => ({ value: c.id, label: t(c.labelKey), View: c.View }),
+      )}
+      value={value}
+      onChange={onChange}
+      selectorLabel={t('calculator.age.system.label')}
+    />
   );
 }
-
-const createStyles = (theme: AppTheme) => ({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  selector: { paddingHorizontal: 16, paddingTop: 16 },
-});
