@@ -76,14 +76,12 @@ class RenderTests(unittest.TestCase):
     def test_unknown_block_type_emits_warning(self):
         unknown = {"id": "unknown-id", "type": "future_block", "future_block": {}}
 
-        with self.assertLogs(level="WARNING") as captured:
-            # The exporter reports unsupported Notion blocks to stderr.
-            with patch("sys.stderr"):
-                exporter.render([unknown])
+        with self.assertWarnsRegex(
+            RuntimeWarning, "Unsupported Notion block type 'future_block'"
+        ):
+            rendered = exporter.render([unknown])
 
-        # Rendering remains non-fatal; this test asserts the unknown type is
-        # deliberately handled by the warning path rather than crashing.
-        self.assertIsNotNone(captured)
+        self.assertEqual(rendered, "")
 
 
 if __name__ == "__main__":
