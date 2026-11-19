@@ -73,4 +73,19 @@ describe('translations', () => {
       'विक्रम संवत',
     ]);
   });
+
+  it('translates the land type labels as specified in the issue', () => {
+    const keys = [
+      'calculator.land.type.terai',
+      'calculator.land.type.hillMountain',
+    ] as const;
+    expect(keys.map(key => translate('en', key))).toEqual([
+      'Terai',
+      'Hill / Mountain',
+    ]);
+    expect(keys.map(key => translate('np', key))).toEqual([
+      'तराई',
+      'पहाड / हिमाल',
+    ]);
+  });
 });

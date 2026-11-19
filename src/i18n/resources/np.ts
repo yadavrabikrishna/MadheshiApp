@@ -29,7 +29,13 @@ export const np: Translations = {
     'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.age.bs.description':
     'विक्रम संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-  'calculator.land.description': 'जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.land.type.label': 'जमिनको प्रकार',
+  'calculator.land.type.terai': 'तराई',
+  'calculator.land.type.hillMountain': 'पहाड / हिमाल',
+  'calculator.land.terai.description':
+    'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+  'calculator.land.hillMountain.description':
+    'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 
   'settings.appearance': 'देखावट',
   'settings.theme': 'थिम',
