@@ -43,6 +43,28 @@ The project is being developed incrementally. Preserve the established architect
 - Interest, age and land calculations run locally on the device and require no server-side computation.
 - Do not introduce a separate backend, database or CMS for V1 without an explicit approved scope change.
 
+### Local database
+
+SQLite is the local persistence layer. The approved driver is:
+
+- `react-native-nitro-sqlite` **10.3.0**
+- `react-native-nitro-modules` **0.37.2**
+
+Both are pinned to exact versions in `package.json` (no `^`). Do not loosen, upgrade, or replace them without owner approval.
+
+- Do not add AsyncStorage or another persistence library or SQLite driver.
+- Redux Toolkit holds live state; SQLite holds durable data. Do not use SQLite as the UI subscription mechanism.
+- Use the async API only (`executeAsync`, `transaction`). The synchronous `execute` throws while the connection is busy.
+- Open the database once through the single shared connection in `src/storage/database.ts` (a second default `open` throws). That is the only file that imports the native module.
+- Schema changes are new versioned migrations (`PRAGMA user_version`); never edit an already-released migration.
+- Writes to a preference are applied in the order requested (see `createPreferencesRepository`); do not bypass that queue.
+
+### Language and theme
+
+- Supported app languages are `en` and `np`. `np` is the approved internal code for Nepali; the label shown to users is "नेपाली".
+- For locale-aware formatting, map internal `np` to the standard Nepali locale `ne-NP`.
+- Theme: the system color scheme (`useColorScheme`) is only the default when the user has not chosen. The saved choice (SQLite) always overrides it. If saved preferences cannot be loaded, use the system theme and English and show the warning in Settings.
+- Strings live in `src/i18n/resources` (`en.ts` defines the keys, `np.ts` must match).
 
 ## 4. Architectural Restrictions
 
