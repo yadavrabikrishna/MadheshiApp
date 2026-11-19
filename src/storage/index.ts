@@ -31,6 +31,7 @@ export function initializePreferencesStorage(): Promise<PreferencesRepository> {
 
 export type {
   PreferencesRepository,
+  StoredCalculators,
   StoredPreferences,
 } from './preferencesRepository';
 export type { SqlDatabase, SqlExecutor } from './types';
@@ -52,5 +53,8 @@ export function createUnavailablePreferencesRepository(
     saveLanguage: fail,
     saveShowThemeShortcut: fail,
     saveShowLanguageShortcut: fail,
+    loadCalculators: fail,
+    saveCalculatorSettings: fail,
+    saveActiveCalculator: fail,
   };
 }

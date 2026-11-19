@@ -337,6 +337,9 @@ describe('storage problems', () => {
       saveLanguage: async () => {},
       saveShowThemeShortcut: async () => {},
       saveShowLanguageShortcut: async () => {},
+      loadCalculators: async () => ({ enabled: null, active: null }),
+      saveCalculatorSettings: async () => {},
+      saveActiveCalculator: async () => {},
     }));
 
     await user.press(darkToggle());

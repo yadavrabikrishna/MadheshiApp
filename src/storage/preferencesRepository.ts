@@ -1,4 +1,10 @@
 import {
+  CALCULATOR_IDS,
+  isCalculatorId,
+  type CalculatorId,
+  type EnabledCalculators,
+} from '../types/calculators';
+import {
   isLanguage,
   isThemeMode,
   type Language,
@@ -15,6 +21,13 @@ export interface StoredPreferences {
   showLanguageShortcut: boolean | null;
 }
 
+/** What is saved for the Calculator; `null` / missing entries mean "never saved". */
+export interface StoredCalculators {
+  enabled: Partial<Record<CalculatorId, boolean>> | null;
+  /** The last selected calculator. */
+  active: CalculatorId | null;
+}
+
 /** Durable preference storage. Redux owns the live values; this only persists them. */
 export interface PreferencesRepository {
   load(): Promise<StoredPreferences>;
@@ -22,13 +35,50 @@ export interface PreferencesRepository {
   saveLanguage(language: Language): Promise<void>;
   saveShowThemeShortcut(visible: boolean): Promise<void>;
   saveShowLanguageShortcut(visible: boolean): Promise<void>;
+  loadCalculators(): Promise<StoredCalculators>;
+  /** Persist the complete enabled selection and the active calculator. */
+  saveCalculatorSettings(settings: {
+    enabled: EnabledCalculators;
+    active: CalculatorId;
+  }): Promise<void>;
+  saveActiveCalculator(active: CalculatorId): Promise<void>;
 }
 
 type PreferenceKey =
   | 'theme'
   | 'language'
   | 'showThemeShortcut'
-  | 'showLanguageShortcut';
+  | 'showLanguageShortcut'
+  | 'calculatorsEnabled'
+  | 'calculatorActive';
+
+/**
+ * The seven switches are one JSON value in one row, so the complete selection is
+ * written (and read back) as a unit and can never be saved half-way.
+ */
+function parseEnabledCalculators(
+  value: string | undefined,
+): StoredCalculators['enabled'] {
+  if (value === undefined) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return null;
+    }
+    const record = parsed as Record<string, unknown>;
+    const enabled: Partial<Record<CalculatorId, boolean>> = {};
+    for (const id of CALCULATOR_IDS) {
+      if (typeof record[id] === 'boolean') {
+        enabled[id] = record[id];
+      }
+    }
+    return Object.keys(enabled).length > 0 ? enabled : null;
+  } catch {
+    return null;
+  }
+}
 
 function parseBoolean(value: string | undefined): boolean | null {
   if (value === 'true') {
@@ -83,5 +133,24 @@ export function createPreferencesRepository(
       save('showThemeShortcut', String(visible)),
     saveShowLanguageShortcut: visible =>
       save('showLanguageShortcut', String(visible)),
+    async loadCalculators() {
+      const result = await db.executeAsync<{ key: string; value: string }>(
+        'SELECT key, value FROM preferences',
+      );
+      const values = new Map(result.rows._array.map(r => [r.key, r.value]));
+      const active = values.get('calculatorActive');
+      return {
+        enabled: parseEnabledCalculators(values.get('calculatorsEnabled')),
+        active: isCalculatorId(active) ? active : null,
+      };
+    },
+    async saveCalculatorSettings({ enabled, active }) {
+      // Queued in order: the selection first, then the active calculator.
+      await Promise.all([
+        save('calculatorsEnabled', JSON.stringify(enabled)),
+        save('calculatorActive', active),
+      ]);
+    },
+    saveActiveCalculator: active => save('calculatorActive', active),
   };
 }

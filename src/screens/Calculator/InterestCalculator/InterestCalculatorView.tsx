@@ -1,67 +1,49 @@
-import { useState } from 'react';
-import { View } from 'react-native';
-
-import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
-import { useThemedStyles, type AppTheme } from '../../../theme';
+import type { CalculatorId } from '../../../types/calculators';
+import { CalculatorGroupView } from '../CalculatorGroupView';
 import { CompoundInterestView } from './CompoundInterestView';
 import { SimpleInterestView } from './SimpleInterestView';
 
-type InterestType = 'simple' | 'compound';
-
-const DEFAULT_INTEREST_TYPE: InterestType = 'compound';
-
-const INTEREST_TYPES: {
-  value: InterestType;
+const INTEREST_CALCULATORS: {
+  id: CalculatorId;
   labelKey: TranslationKey;
   View: () => React.JSX.Element;
 }[] = [
   {
-    value: 'simple',
+    id: 'simpleInterest',
     labelKey: 'calculator.interest.type.simple',
     View: SimpleInterestView,
   },
   {
-    value: 'compound',
+    id: 'compoundInterest',
     labelKey: 'calculator.interest.type.compound',
     View: CompoundInterestView,
   },
 ];
 
-/** Interest calculator: a Simple / Compound selector above the matching view. */
-export function InterestCalculatorView() {
-  const { t } = useTranslation();
-  const styles = useThemedStyles(createStyles);
-  // Local to this view. The language lives in Redux, so changing it re-renders
-  // this view without resetting the selected interest type.
-  const [interestType, setInterestType] = useState<InterestType>(
-    DEFAULT_INTEREST_TYPE,
-  );
-
-  const options: SegmentOption<InterestType>[] = INTEREST_TYPES.map(type => ({
-    value: type.value,
-    label: t(type.labelKey),
-  }));
-  const ActiveView = INTEREST_TYPES.find(
-    type => type.value === interestType,
-  )!.View;
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.selector}>
-        <SegmentedControl
-          options={options}
-          value={interestType}
-          onChange={setInterestType}
-          accessibilityLabel={t('calculator.interest.type.label')}
-        />
-      </View>
-      <ActiveView />
-    </View>
-  );
+interface InterestCalculatorViewProps {
+  /** The enabled Interest calculators. */
+  calculators: CalculatorId[];
+  value: CalculatorId;
+  onChange: (value: CalculatorId) => void;
 }
 
-const createStyles = (theme: AppTheme) => ({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  selector: { paddingHorizontal: 16, paddingTop: 16 },
-});
+/** Interest group: Simple / Compound selector (when both are enabled). */
+export function InterestCalculatorView({
+  calculators,
+  value,
+  onChange,
+}: InterestCalculatorViewProps) {
+  const { t } = useTranslation();
+
+  return (
+    <CalculatorGroupView
+      options={INTEREST_CALCULATORS.filter(c => calculators.includes(c.id)).map(
+        c => ({ value: c.id, label: t(c.labelKey), View: c.View }),
+      )}
+      value={value}
+      onChange={onChange}
+      selectorLabel={t('calculator.interest.type.label')}
+    />
+  );
+}

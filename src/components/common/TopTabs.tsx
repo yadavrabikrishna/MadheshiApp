@@ -44,7 +44,10 @@ export function TopTabs<Value extends string>({
             accessibilityState={{ selected }}
             accessibilityLabel={tab.label}
           >
-            <Text style={[styles.label, selected && styles.labelSelected]}>
+            <Text
+              style={[styles.label, selected && styles.labelSelected]}
+              numberOfLines={2}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -72,6 +75,7 @@ const createStyles = (theme: AppTheme) => ({
   },
   tabSelected: { borderBottomColor: theme.colors.primary },
   label: {
+    textAlign: 'center' as const,
     fontSize: 15,
     fontWeight: '500' as const,
     color: theme.colors.textSecondary,
