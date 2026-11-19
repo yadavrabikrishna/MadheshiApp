@@ -68,12 +68,17 @@ export function fixedDayCount(date: NeutralDate): number {
 }
 
 /**
- * True when `end` is earlier than `start`, either as written (year, then
- * month, then day) or on the fixed 30-day / 12-month scale. Both readings are
- * checked so a reversed range is never accepted. For days 1-30 the two
- * readings always agree; they can differ only for days 31-32 (for example
- * `2025/01/01` to `2024/12/31` is a reversed range as written even though both
- * sit at the same fixed position).
+ * Component-wise comparison only: true when `end` is earlier than `start` as
+ * written, comparing the year, then the month, then the day. It does not use
+ * the fixed 30-day / 12-month scale, so it does not detect a range whose
+ * fixed-scale elapsed time is negative (for example `2020/01/32` to
+ * `2020/02/01`, which is later as written but earlier on the fixed scale).
+ * {@link calculateFixedDuration} performs that additional elapsed-time check
+ * and is the function that fully rejects reversed ranges.
+ *
+ * For days 1-30 the two readings always agree; they can differ only for days
+ * 31-32. For example `2025/01/01` to `2024/12/31` is reversed as written even
+ * though both sit at the same fixed position.
  */
 export function isEndBeforeStart(
   start: NeutralDate,
@@ -101,9 +106,11 @@ export function isEndBeforeStart(
  * 4. If months is negative, add 12 months and subtract 1 from the year result.
  * 5. years = end year - start year (including that adjustment).
  *
- * Returns `null` when `end` is earlier than `start` (see
- * {@link isEndBeforeStart}). Identical dates return zero years, months and
- * days.
+ * Returns `null` when the range is reversed, which is checked in two ways:
+ * `end` is earlier than `start` component-wise (see
+ * {@link isEndBeforeStart}), or the fixed-scale elapsed time (see
+ * {@link fixedDayCount}) is negative. This function performs the elapsed-time
+ * check itself. Identical dates return zero years, months and days.
  *
  * Day values of 31 and 32 are allowed, so a result may have `days` of 30 or
  * 31 (no normalisation into months is applied). The borrow steps preserve the
