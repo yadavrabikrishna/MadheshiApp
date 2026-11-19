@@ -1,0 +1,33 @@
+name: Notion Exporter Tests
+
+on:
+  push:
+    branches:
+      - fix/notion-exporter-and-actions
+    paths:
+      - ".github/scripts/**"
+      - ".github/workflows/notion-docs-sync.yml"
+      - ".github/workflows/notion-exporter-tests.yml"
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - ".github/scripts/**"
+      - ".github/workflows/notion-docs-sync.yml"
+      - ".github/workflows/notion-exporter-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Run exporter unit tests
+        run: python -m unittest discover -s .github/scripts -p "test_*.py"
