@@ -8,16 +8,6 @@ def rich_text(value):
     return [{"plain_text": value, "annotations": {}}]
 
 
-def block(block_type, value, **extra):
-    payload = {"rich_text": rich_text(value)}
-    payload.update(extra)
-    return {
-        "id": extra.pop("id", "block-id") if "id" in extra else "block-id",
-        "type": block_type,
-        block_type: payload,
-        "has_children": extra.get("has_children", False),
-    }
-
 
 class RenderTests(unittest.TestCase):
     def test_checked_and_unchecked_to_do_blocks_render_as_github_tasks(self):
