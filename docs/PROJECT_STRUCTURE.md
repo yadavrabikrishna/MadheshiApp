@@ -20,7 +20,9 @@ src/
     resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
   screens/                   One folder per screen (Home, News, Calculator, Settings)
-    Calculator/                CalculatorScreen (top tabs) + one folder per calculator
+    Calculator/                CalculatorScreen (top tabs, owns all selections, sets the header title),
+                               calculatorSelection.ts (selection types, defaults, header-title keys),
+                               + one folder per calculator
       InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
