@@ -12,18 +12,25 @@ src/
     AppBootstrap.tsx           Opens storage, hydrates Redux, then renders the app
     AppRoot.tsx                Themed NavigationContainer and StatusBar
   components/                Reusable UI, no business logic
-    common/                    Icon, ScreenPlaceholder, SegmentedControl, TopTabs
+    common/                    Button, Icon, ScreenPlaceholder, SegmentedControl, SwitchRow, TopTabs
     header/                    Top-right header controls (theme, language)
   features/                  One folder per feature: Redux slice, selectors, tests
     preferences/               Theme + language state and persistence thunks
+    calculators/               Which calculators are enabled + the active one (saved state),
+                               calculatorModel.ts = pure navigation/fallback rules
   i18n/                      Centralized translations (en, np) and useTranslation
     resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
   screens/                   One folder per screen (Home, News, Calculator, Settings)
-    Calculator/                CalculatorScreen (top tabs) + one folder per calculator
+    Calculator/                CalculatorScreen builds its navigation from the SAVED calculator
+                               settings in Redux and sets the header title (calculatorLabels.ts),
+                               CalculatorGroupView = a group's selector (only when 2+ are enabled),
+                               + one folder per calculator
       InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
-      LandCalculator/            LandCalculatorView
+      LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
+      BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)
+    Settings/                  SettingsScreen, CalculatorSettingsScreen (draft until Save)
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks
   test-utils/                Jest helpers (real SQLite via node:sqlite); not shipped
@@ -42,6 +49,12 @@ src/
 - **Storage is behind repositories** (`src/storage`). The native driver is
   imported in exactly one file (`database.ts`). Schema changes are new entries in
   `migrations.ts`; never edit a released migration.
+- **Calculator settings: draft vs saved.** Calculator Settings edits a local draft;
+  only Save writes it to Redux (`saveCalculatorSettings`) and then to SQLite, in the
+  existing `preferences` table under `calculatorsEnabled` (one JSON row, so the seven
+  switches are saved as a unit) and `calculatorActive` (last selected). No migration
+  was needed. The Calculator screen only ever reads the saved state, and an all-off
+  selection is never saved (Basic Calculator is turned on instead).
 - **Colors come from theme tokens** (`useAppTheme`, `useThemedStyles`), never
   hard-coded hex values in components.
 - **Strings come from `src/i18n/resources`.** Add every new key to `en.ts` and
