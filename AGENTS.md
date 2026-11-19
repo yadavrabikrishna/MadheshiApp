@@ -85,7 +85,27 @@ The following decisions must be respected:
 
 For icons, use `@react-native-vector-icons/ionicons` packages when appropriate. Follow the package's current official documentation and the existing project configuration.
 
-## 5. Development Workflow
+## 5. AI Session Continuity and Handoff
+
+The repository must remain the shared source of working context when the owner switches AI accounts, models, or coding agents.
+
+Before substantive work, every agent must:
+1. Read `PROJECT_STATUS.md`.
+2. Read `docs/notion/README.md` and the relevant generated V1 specification snapshots.
+3. Inspect the current branch, `git status`, recent commits, relevant GitHub issue/PR, and the implementation. Treat the handoff as a guide, not as proof of current state.
+4. If the status file is stale or contradicts the repository, verify the facts and correct the status before proceeding.
+
+At the end of substantive work, update `PROJECT_STATUS.md` with:
+- What was completed and what remains.
+- Current branch and relevant issue/PR.
+- Files changed.
+- Exact tests/checks run and their outcomes.
+- Known blockers or owner decisions.
+- One clear next action.
+
+Do not put secrets, access tokens, personal credentials, or private account data in repository handoff files. Do not rely on conversation history as the only record of a decision or task state.
+
+## 6. Development Workflow
 
 Follow the branch workflow in `CONTRIBUTING.md`.
 
@@ -106,7 +126,7 @@ The project owner is responsible for reviewing and manually merging completed wo
 
 If the required branch cannot be created or the working tree contains unexpected changes, stop and report the situation before proceeding.
 
-## 6. Inspect Before Changing
+## 7. Inspect Before Changing
 
 Before implementation:
 
@@ -121,7 +141,7 @@ Never overwrite existing files or configurations without first inspecting their 
 
 Do not discard, reset, or overwrite uncommitted user changes.
 
-## 7. Dependency Management
+## 8. Dependency Management
 
 - Use npm commands.
 - Update `package.json` and `package-lock.json` consistently.
@@ -133,7 +153,7 @@ Do not discard, reset, or overwrite uncommitted user changes.
 
 Do not modify Android Gradle configuration, native project files, or application permissions unless required by the task.
 
-## 8. Code Quality
+## 9. Code Quality
 
 - Use TypeScript types and interfaces appropriately.
 - Avoid `any` unless there is a documented reason.
@@ -145,7 +165,7 @@ Do not modify Android Gradle configuration, native project files, or application
 - Follow the existing naming and folder conventions.
 - Do not add speculative abstractions or unnecessary complexity.
 
-## 9. Testing and Validation
+## 10. Testing and Validation
 
 After making changes:
 
@@ -157,7 +177,7 @@ After making changes:
 
 Do not silently skip failing tests or suppress errors to make a build appear successful.
 
-## 10. Git and Review Restrictions
+## 11. Git and Review Restrictions
 
 Before committing:
 
