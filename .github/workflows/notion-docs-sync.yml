@@ -25,12 +25,12 @@ jobs:
         run: python -m unittest discover -s .github/scripts -p "test_*.py"
       - name: Sync Notion pages
         env:
-          NOTION_TOKEN: \${{ secrets.NOTION_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: python .github/scripts/sync_notion_docs.py
       - name: Create or update sync PR
         uses: peter-evans/create-pull-request@v8
         with:
-          token: \${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: docs-sync/notion
           base: develop
           delete-branch: false
