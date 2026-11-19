@@ -23,7 +23,7 @@ SOURCES = [
 LIST_ITEM_TYPES = ("bulleted_list_item", "numbered_list_item", "to_do")
 KNOWN_NON_RENDERED_TYPES = {
     "breadcrumb", "column", "column_list", "link_preview",
-    "synced_block", "table_of_contents", "template", "unsupported",
+    "synced_block", "table_of_contents", "template",
 }
 SUPPORTED_TYPES = {
     "paragraph", "heading_1", "heading_2", "heading_3",
