@@ -1,6 +1,13 @@
 name: Notion Exporter Tests
 
 on:
+  push:
+    branches:
+      - fix/notion-exporter-and-actions
+    paths:
+      - ".github/scripts/**"
+      - ".github/workflows/notion-docs-sync.yml"
+      - ".github/workflows/notion-exporter-tests.yml"
   pull_request:
     branches:
       - develop
