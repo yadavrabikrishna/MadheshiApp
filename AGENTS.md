@@ -91,17 +91,45 @@ The repository must remain the shared source of working context when the owner s
 
 Before substantive work, every agent must:
 1. Read `PROJECT_STATUS.md`.
-2. Read `docs/notion/README.md` and the relevant generated V1 specification snapshots.
-3. Inspect the current branch, `git status`, recent commits, relevant GitHub issue/PR, and the implementation. Treat the handoff as a guide, not as proof of current state.
-4. If the status file is stale or contradicts the repository, verify the facts and correct the status before proceeding.
+2. Read `docs/AI_HANDOFF.md` and follow its recovery and active-task handoff instructions.
+3. Read `docs/notion/README.md` and the relevant generated V1 specification snapshots.
+4. Inspect the current branch, `git status`, recent commits, relevant GitHub issue/PR, and the implementation. Treat status and handoff documents as guides, not as proof of current state.
+5. If a status or handoff record is stale or contradicts the repository, verify the facts and correct the record before proceeding.
 
-At the end of substantive work, update `PROJECT_STATUS.md` with:
-- What was completed and what remains.
+### Mandatory development checkpoints
+
+Handoff maintenance is continuous throughout substantive work; it is not an end-of-session-only activity.
+
+Every agent must update the **Active Task Handoff** section in `docs/AI_HANDOFF.md`:
+- At the start of a task, after confirming the actual repository and Git state.
+- At meaningful checkpoints during implementation, especially after completing a coherent unit of work or making an important decision.
+- After significant changes to files, task scope, implementation approach, validation results, or blockers.
+- Before ending a session, handing work to another agent, changing accounts/models, or stopping work for any reason.
+- When approaching a provider usage or message limit, if continued interaction is still possible. Do not wait for a warning or attempt to predict the exact limit; checkpoint periodically so a recent recovery point already exists.
+
+Each checkpoint must accurately record:
+- Task objective and relevant issue/PR.
+- Current branch and latest relevant commit.
+- Whether changes are committed, pushed, uncommitted, or untracked; distinguish these states clearly.
+- Files changed and concise progress since the previous checkpoint.
+- Exact validation commands run and their actual results, including failures or checks not run.
+- Decisions, unresolved questions, blockers, and one specific next action.
+
+Do not claim that local uncommitted or unpushed work is available to another agent or machine. Preserve the working tree; never use destructive Git commands to make a handoff appear clean. If work cannot be pushed, document that limitation and the exact local state.
+
+When a task is fully completed and no work remains to hand off, mark the active task as completed or clear the active-task template so it cannot be mistaken for current work. Do not leave stale task details that could mislead the next agent.
+
+### Project status
+
+At the end of substantive work, also update `PROJECT_STATUS.md` with:
+- What was completed and what remains at the project level.
 - Current branch and relevant issue/PR.
 - Files changed.
 - Exact tests/checks run and their outcomes.
 - Known blockers or owner decisions.
 - One clear next action.
+
+`PROJECT_STATUS.md` is the project-level progress summary; `docs/AI_HANDOFF.md` is the detailed, frequently refreshed record for the active or interrupted task. Keep their roles distinct and consistent.
 
 Do not put secrets, access tokens, personal credentials, or private account data in repository handoff files. Do not rely on conversation history as the only record of a decision or task state.
 
