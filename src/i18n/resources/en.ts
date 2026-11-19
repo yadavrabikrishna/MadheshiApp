@@ -28,6 +28,10 @@ export const en = {
     'The AD age calculator will be implemented in a later task.',
   'calculator.age.bs.description':
     'The BS age calculator will be implemented in a later task.',
+  'calculator.title.age.ad': 'Age (AD)',
+  'calculator.title.age.bs': 'Age (BS)',
+  'calculator.title.land.terai': 'Land (Terai)',
+  'calculator.title.land.hillMountain': 'Land (Hill / Mountain)',
   'calculator.land.type.label': 'Land type',
   'calculator.land.type.terai': 'Terai',
   'calculator.land.type.hillMountain': 'Hill / Mountain',

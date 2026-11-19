@@ -462,3 +462,170 @@ describe('Land type selector', () => {
     expect(landOption('AD (Gregorian)', true)).toBeOnTheScreen();
   });
 });
+
+describe('Calculator header title', () => {
+  type User = Awaited<ReturnType<typeof launchOnCalculator>>;
+
+  const headerTitle = () => {
+    const headings = screen.getAllByRole('heading');
+    expect(headings).toHaveLength(1);
+    return headings[0].props.children as string;
+  };
+
+  const EN = {
+    tabs: { interest: 'Interest', age: 'Age', land: 'Land' },
+    simple: 'Simple Interest',
+    compound: 'Compound Interest',
+    bs: 'BS (Bikram Sambat)',
+    ad: 'AD (Gregorian)',
+    terai: 'Terai',
+    hill: 'Hill / Mountain',
+  };
+  const NP = {
+    tabs: { interest: 'ब्याज', age: 'उमेर', land: 'जमिन' },
+    simple: 'घरेलु ब्याज',
+    compound: 'साहु ब्याज',
+    bs: 'विक्रम संवत',
+    ad: 'इस्वी संवत',
+    terai: 'तराई',
+    hill: 'पहाड / हिमाल',
+  };
+
+  /** Opens every calculator type and returns the header title shown for each. */
+  async function walkAllSix(user: User, l: typeof EN) {
+    const titles: string[] = [];
+    await user.press(topTab(l.tabs.interest));
+    await user.press(interestOption(l.simple));
+    titles.push(headerTitle());
+    await user.press(interestOption(l.compound));
+    titles.push(headerTitle());
+    await user.press(topTab(l.tabs.age));
+    await user.press(interestOption(l.ad));
+    titles.push(headerTitle());
+    await user.press(interestOption(l.bs));
+    titles.push(headerTitle());
+    await user.press(topTab(l.tabs.land));
+    await user.press(interestOption(l.terai));
+    titles.push(headerTitle());
+    await user.press(interestOption(l.hill));
+    titles.push(headerTitle());
+    return titles;
+  }
+
+  it('shows the Compound Interest title by default instead of "Calculator"', async () => {
+    await launchOnCalculator();
+    expect(headerTitle()).toBe('Compound Interest');
+  });
+
+  it('shows the right title for all six calculators in English', async () => {
+    const user = await launchOnCalculator();
+    expect(await walkAllSix(user, EN)).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      'Age (AD)',
+      'Age (BS)',
+      'Land (Terai)',
+      'Land (Hill / Mountain)',
+    ]);
+  });
+
+  it('shows the right title for all six calculators in Nepali', async () => {
+    const user = await launchOnCalculator();
+    await changeLanguage(user, 'नेपाली');
+    expect(await walkAllSix(user, NP)).toEqual([
+      'घरेलु ब्याज',
+      'साहु ब्याज',
+      'उमेर (इस्वी संवत)',
+      'उमेर (विक्रम संवत)',
+      'जमिन (तराई)',
+      'जमिन (पहाड / हिमाल)',
+    ]);
+  });
+
+  it("follows each calculator's own selection when switching top-level tabs", async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(interestOption(EN.simple));
+    await user.press(topTab('Age'));
+    expect(headerTitle()).toBe('Age (BS)');
+    await user.press(interestOption(EN.ad));
+    expect(headerTitle()).toBe('Age (AD)');
+
+    await user.press(topTab('Land'));
+    expect(headerTitle()).toBe('Land (Terai)');
+    await user.press(interestOption(EN.hill));
+    expect(headerTitle()).toBe('Land (Hill / Mountain)');
+
+    // Back to each tab: the title reflects what that tab had selected.
+    await user.press(topTab('Interest'));
+    expect(headerTitle()).toBe('Simple Interest');
+    await user.press(topTab('Age'));
+    expect(headerTitle()).toBe('Age (AD)');
+    await user.press(topTab('Land'));
+    expect(headerTitle()).toBe('Land (Hill / Mountain)');
+  });
+
+  it('re-translates the title on a language change without resetting any selection', async () => {
+    const user = await launchOnCalculator();
+
+    await user.press(interestOption(EN.simple));
+    await user.press(topTab('Age'));
+    await user.press(interestOption(EN.ad));
+    await user.press(topTab('Land'));
+    await user.press(interestOption(EN.hill));
+
+    await changeLanguage(user, 'नेपाली');
+    expect(headerTitle()).toBe('जमिन (पहाड / हिमाल)');
+    expect(topTab('जमिन').props.accessibilityState.selected).toBe(true);
+    expect(interestOption(NP.hill, true)).toBeOnTheScreen();
+
+    await user.press(topTab('उमेर'));
+    expect(headerTitle()).toBe('उमेर (इस्वी संवत)');
+    expect(interestOption(NP.ad, true)).toBeOnTheScreen();
+
+    await user.press(topTab('ब्याज'));
+    expect(headerTitle()).toBe('घरेलु ब्याज');
+    expect(interestOption(NP.simple, true)).toBeOnTheScreen();
+
+    await changeLanguage(user, 'English');
+    expect(headerTitle()).toBe('Simple Interest');
+    expect(topTab('Interest').props.accessibilityState.selected).toBe(true);
+  });
+
+  it('keeps the header controls working', async () => {
+    const user = await launchOnCalculator();
+
+    const themeToggle = () =>
+      screen.getByRole('button', { name: /^Switch to (light|dark) theme$/ });
+    const before = themeToggle().props.accessibilityLabel;
+    await user.press(themeToggle());
+    expect(themeToggle().props.accessibilityLabel).not.toBe(before);
+    expect(headerTitle()).toBe('Compound Interest');
+
+    // The language menu still opens and switches the language.
+    await changeLanguage(user, 'नेपाली');
+    expect(headerTitle()).toBe('साहु ब्याज');
+  });
+
+  it('leaves the bottom navigation unchanged', async () => {
+    const user = await launchOnCalculator();
+    await user.press(topTab('Land'));
+    await user.press(interestOption(EN.hill));
+
+    // The bottom tab keeps its own label; only the header title changes.
+    expect(
+      screen.getAllByRole('button', { name: /, tab, \d of 4/ }),
+    ).toHaveLength(4);
+    expect(
+      screen.getByRole('button', { name: /^Calculator, tab/ }),
+    ).toBeOnTheScreen();
+    expect(headerTitle()).toBe('Land (Hill / Mountain)');
+
+    await user.press(screen.getByRole('button', { name: /^Home, tab/ }));
+    expect(headerTitle()).toBe('Home');
+
+    await user.press(screen.getByRole('button', { name: /^Calculator, tab/ }));
+    expect(headerTitle()).toBe('Land (Hill / Mountain)');
+    expect(interestOption(EN.hill, true)).toBeOnTheScreen();
+  });
+});

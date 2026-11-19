@@ -1,15 +1,11 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 
 import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
+import type { DateSystem } from '../calculatorSelection';
 import { AdAgeView } from './AdAgeView';
 import { BsAgeView } from './BsAgeView';
-
-type DateSystem = 'ad' | 'bs';
-
-const DEFAULT_DATE_SYSTEM: DateSystem = 'bs';
 
 const DATE_SYSTEMS: {
   value: DateSystem;
@@ -20,29 +16,32 @@ const DATE_SYSTEMS: {
   { value: 'ad', labelKey: 'calculator.age.system.ad', View: AdAgeView },
 ];
 
-/** Age calculator: a BS / AD selector above the matching view. */
-export function AgeCalculatorView() {
+interface AgeCalculatorViewProps {
+  value: DateSystem;
+  onChange: (value: DateSystem) => void;
+}
+
+/**
+ * Age calculator: a BS / AD selector above the matching view.
+ * The selection is owned by CalculatorScreen (it also drives the header title).
+ */
+export function AgeCalculatorView({ value, onChange }: AgeCalculatorViewProps) {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
-  // Local to this view. The language lives in Redux, so changing it re-renders
-  // this view without resetting the selected date system.
-  const [dateSystem, setDateSystem] = useState<DateSystem>(DEFAULT_DATE_SYSTEM);
 
   const options: SegmentOption<DateSystem>[] = DATE_SYSTEMS.map(system => ({
     value: system.value,
     label: t(system.labelKey),
   }));
-  const ActiveView = DATE_SYSTEMS.find(
-    system => system.value === dateSystem,
-  )!.View;
+  const ActiveView = DATE_SYSTEMS.find(system => system.value === value)!.View;
 
   return (
     <View style={styles.container}>
       <View style={styles.selector}>
         <SegmentedControl
           options={options}
-          value={dateSystem}
-          onChange={setDateSystem}
+          value={value}
+          onChange={onChange}
           accessibilityLabel={t('calculator.age.system.label')}
         />
       </View>

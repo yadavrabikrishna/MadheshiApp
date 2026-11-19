@@ -1,15 +1,11 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 
 import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
+import type { LandType } from '../calculatorSelection';
 import { HillMountainLandView } from './HillMountainLandView';
 import { TeraiLandView } from './TeraiLandView';
-
-type LandType = 'terai' | 'hillMountain';
-
-const DEFAULT_LAND_TYPE: LandType = 'terai';
 
 const LAND_TYPES: {
   value: LandType;
@@ -28,27 +24,35 @@ const LAND_TYPES: {
   },
 ];
 
-/** Land calculator: a Terai / Hill-Mountain selector above the matching view. */
-export function LandCalculatorView() {
+interface LandCalculatorViewProps {
+  value: LandType;
+  onChange: (value: LandType) => void;
+}
+
+/**
+ * Land calculator: a Terai / Hill-Mountain selector above the matching view.
+ * The selection is owned by CalculatorScreen (it also drives the header title).
+ */
+export function LandCalculatorView({
+  value,
+  onChange,
+}: LandCalculatorViewProps) {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
-  // Local to this view. The language lives in Redux, so changing it re-renders
-  // this view without resetting the selected land type.
-  const [landType, setLandType] = useState<LandType>(DEFAULT_LAND_TYPE);
 
   const options: SegmentOption<LandType>[] = LAND_TYPES.map(type => ({
     value: type.value,
     label: t(type.labelKey),
   }));
-  const ActiveView = LAND_TYPES.find(type => type.value === landType)!.View;
+  const ActiveView = LAND_TYPES.find(type => type.value === value)!.View;
 
   return (
     <View style={styles.container}>
       <View style={styles.selector}>
         <SegmentedControl
           options={options}
-          value={landType}
-          onChange={setLandType}
+          value={value}
+          onChange={onChange}
           accessibilityLabel={t('calculator.land.type.label')}
         />
       </View>
