@@ -18,6 +18,11 @@ src/
     preferences/               Theme + language state and persistence thunks
     calculators/               Which calculators are enabled + the active one (saved state),
                                calculatorModel.ts = pure navigation/fallback rules
+    interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
+                               decimal.ts (cloned Decimal, input parsing), neutralDate.ts
+                               (YYYY/MM/DD validation + fixed 30-day/12-month duration),
+                               rate.ts (rate-mode normalisation), simpleInterest.ts
+                               (calculateSimpleInterest); public API via index.ts
   i18n/                      Centralized translations (en, np) and useTranslation
     resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
