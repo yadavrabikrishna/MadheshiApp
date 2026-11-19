@@ -280,3 +280,54 @@ describe('calculateFixedDuration', () => {
     }
   });
 });
+
+describe('owner-approved date-range rules (regression)', () => {
+  it('rejects 2025/01/01 -> 2024/12/31 (end earlier component-wise)', () => {
+    expect(duration('2025/01/01', '2024/12/31')).toBeNull();
+    expect(isEndBeforeStart(date('2025/01/01'), date('2024/12/31'))).toBe(true);
+  });
+
+  it('rejects an end that is earlier on the fixed scale (negative elapsed time)', () => {
+    const start = date('2020/01/32');
+    const end = date('2020/02/01');
+    expect(fixedDayCount(end) - fixedDayCount(start)).toBeLessThan(0);
+    expect(isEndBeforeStart(start, end)).toBe(false);
+    expect(calculateFixedDuration(start, end)).toBeNull();
+  });
+
+  it('normalises 2025/01/32 -> 2025/03/01 to a non-negative 29-day duration', () => {
+    const start = date('2025/01/32');
+    const end = date('2025/03/01');
+    // Elapsed time on the fixed scale is 29 days.
+    expect(fixedDayCount(end) - fixedDayCount(start)).toBe(29);
+    // The standard borrow steps would leave 0y 1m -1d; the result is normalised.
+    expect(calculateFixedDuration(start, end)).toEqual({
+      years: 0,
+      months: 0,
+      days: 29,
+    });
+  });
+
+  it('preserves the total elapsed time when normalising', () => {
+    const cases: Array<[string, string]> = [
+      ['2025/01/32', '2025/03/01'],
+      ['2025/12/32', '2026/02/01'],
+      ['2025/01/32', '2026/02/01'],
+      ['2025/05/32', '2025/07/05'],
+    ];
+    for (const [from, to] of cases) {
+      const start = date(from);
+      const end = date(to);
+      const result = calculateFixedDuration(start, end);
+      if (!result) {
+        throw new Error(`expected a duration for ${from} -> ${to}`);
+      }
+      expect(result.years).toBeGreaterThanOrEqual(0);
+      expect(result.months).toBeGreaterThanOrEqual(0);
+      expect(result.days).toBeGreaterThanOrEqual(0);
+      expect(result.years * 360 + result.months * 30 + result.days).toBe(
+        fixedDayCount(end) - fixedDayCount(start),
+      );
+    }
+  });
+});

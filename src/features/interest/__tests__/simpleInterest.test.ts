@@ -385,3 +385,73 @@ describe('multiple errors', () => {
     expect(outcome.ok).toBe(false);
   });
 });
+
+describe('owner-approved date-range rules (regression)', () => {
+  it('rejects 2025/01/01 -> 2024/12/31 before any calculation', () => {
+    const outcome = run({ startDate: '2025/01/01', endDate: '2024/12/31' });
+    expect(outcome).toEqual({ ok: false, errors: ['endBeforeStart'] });
+  });
+
+  it('rejects an end that is negative on the fixed scale', () => {
+    expect(errors({ startDate: '2020/01/32', endDate: '2020/02/01' })).toEqual([
+      'endBeforeStart',
+    ]);
+  });
+
+  it('calculates 2025/01/32 -> 2025/03/01 as a normalised 29-day duration', () => {
+    const result = ok({
+      principal: '30000',
+      rate: '1',
+      startDate: '2025/01/32',
+      endDate: '2025/03/01',
+    });
+    expect(result.duration).toEqual({ years: 0, months: 0, days: 29 });
+    expect(
+      result.timeInMonths.times(30).minus(29).abs().lessThan('1e-90'),
+    ).toBe(true);
+    expect(result.interest.toString()).toBe('290');
+    expect(result.total.toString()).toBe('30290');
+  });
+
+  it('gives identical timeInMonths, interest and total with or without normalisation', () => {
+    // Same 29-day fixed-scale elapsed time: one needs normalising, one does not.
+    const normalised = ok({
+      principal: '123456.78',
+      rate: '2.75',
+      startDate: '2025/01/32',
+      endDate: '2025/03/01',
+    });
+    const plain = ok({
+      principal: '123456.78',
+      rate: '2.75',
+      startDate: '2025/01/02',
+      endDate: '2025/01/31',
+    });
+    expect(normalised.duration).toEqual(plain.duration);
+    expect(normalised.timeInMonths.toString()).toBe(
+      plain.timeInMonths.toString(),
+    );
+    expect(normalised.interest.toString()).toBe(plain.interest.toString());
+    expect(normalised.total.toString()).toBe(plain.total.toString());
+  });
+
+  it('keeps full precision for a normalised multi-year duration', () => {
+    // 2025/01/32 -> 2026/02/01 = 359 fixed days = 11 months 29 days.
+    const result = ok({
+      principal: '1000',
+      rate: '1',
+      startDate: '2025/01/32',
+      endDate: '2026/02/01',
+    });
+    expect(result.duration).toEqual({ years: 0, months: 11, days: 29 });
+    // 359 / 30 months, unrounded.
+    expect(
+      result.timeInMonths.times(30).minus(359).abs().lessThan('1e-90'),
+    ).toBe(true);
+    // 1000 x 1% x 359/30 = 119.666..., so interest x 30 = 3590.
+    expect(result.interest.times(30).minus(3590).abs().lessThan('1e-90')).toBe(
+      true,
+    );
+    expect(result.interest.toString().length).toBeGreaterThan(60);
+  });
+});

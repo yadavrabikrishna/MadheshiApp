@@ -83,8 +83,20 @@ export type SimpleInterestOutcome =
  *
  * Rules: principal > 0; rate ≥ 0 (both rate modes normalise to value / 100);
  * dates are neutral `YYYY/MM/DD` (year 4 digits, month 01-12, day 01-32);
- * the end must not be earlier than the start; identical dates give zero
- * duration and zero interest.
+ * identical dates give zero duration and zero interest.
+ *
+ * Date-range rules (owner approved):
+ * 1. Reversed ranges are rejected with `endBeforeStart`, before any interest
+ *    is calculated, when the end is earlier than the start component-wise
+ *    (year, then month, then day) OR produces a negative elapsed time on the
+ *    fixed 30-day / 12-month scale. Example: `2025/01/01` to `2024/12/31` is
+ *    invalid.
+ * 2. When the standard fixed borrowing leaves negative remaining days, the
+ *    duration is normalised into non-negative years, months and days with the
+ *    same total fixed-scale elapsed time. Example: `2025/01/32` to
+ *    `2025/03/01` is a 29-day duration. Normalisation only changes how the
+ *    duration is split; `timeInMonths`, `interest` and `total` are identical
+ *    to what the un-normalised elapsed time would give, with no rounding.
  */
 export function calculateSimpleInterest(
   input: SimpleInterestInput,
