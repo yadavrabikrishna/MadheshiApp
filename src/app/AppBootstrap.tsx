@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Provider } from 'react-redux';
 
+import { hydrateCalculators } from '../features/calculators';
 import { hydratePreferences } from '../features/preferences';
 import {
   createUnavailablePreferencesRepository,
@@ -22,7 +23,7 @@ const getSystemTheme = (): ThemeMode =>
   Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 
 /**
- * Opens storage, loads the saved theme and language into Redux, and only then
+ * Opens storage, loads the saved theme, language and calculator settings into Redux, and only then
  * renders `children`. Until that finishes it shows a blank screen in the system
  * color, so the app never paints the wrong theme or language first.
  */
@@ -53,7 +54,12 @@ export function AppBootstrap({
         preferencesRepository,
         getSystemTheme,
       });
-      await appStore.dispatch(hydratePreferences());
+      // Both are loaded before anything renders, so the Calculator navigation is
+      // built from saved settings and never flashes the defaults first.
+      await Promise.all([
+        appStore.dispatch(hydratePreferences()),
+        appStore.dispatch(hydrateCalculators()),
+      ]);
       if (!cancelled) {
         setStore(appStore);
       }

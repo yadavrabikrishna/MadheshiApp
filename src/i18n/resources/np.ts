@@ -41,6 +41,23 @@ export const np: Translations = {
   'calculator.land.hillMountain.description':
     'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 
+  'calculator.basic.title': 'सामान्य क्यालकुलेटर',
+  'calculator.basic.description':
+    'सामान्य क्यालकुलेटरको इन्टरफेस र सञ्चालनहरू भविष्यको अपडेटमा तयार गरिनेछन्।',
+
+  'calculatorSettings.title': 'क्यालकुलेटर सेटिङ',
+  'calculatorSettings.entry.description':
+    'कुन क्यालकुलेटरहरू उपलब्ध हुने छनौट गर्नुहोस्',
+  'calculatorSettings.intro':
+    'क्यालकुलेटरहरू खोल्नुहोस् वा बन्द गर्नुहोस्। परिवर्तनहरू सुरक्षित गर्नुहोस् थिचेपछि लागू हुन्छन्।',
+  'calculatorSettings.specialist': 'विशेष क्यालकुलेटरहरू',
+  'calculatorSettings.selectAll': 'सबै छनौट गर्नुहोस्',
+  'calculatorSettings.deselectAll': 'सबै हटाउनुहोस्',
+  'calculatorSettings.save': 'सुरक्षित गर्नुहोस्',
+  'calculatorSettings.cancel': 'रद्द गर्नुहोस्',
+  'calculatorSettings.atLeastOne':
+    'कम्तीमा एउटा क्यालकुलेटर सक्रिय रहनुपर्छ, त्यसैले सामान्य क्यालकुलेटर स्वतः सक्रिय गरिएको छ।',
+
   'settings.appearance': 'देखावट',
   'settings.theme': 'थिम',
   'settings.theme.light': 'उज्यालो',

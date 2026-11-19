@@ -1,67 +1,49 @@
-import { View } from 'react-native';
-
-import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
-import { useThemedStyles, type AppTheme } from '../../../theme';
-import type { InterestType } from '../calculatorSelection';
+import type { CalculatorId } from '../../../types/calculators';
+import { CalculatorGroupView } from '../CalculatorGroupView';
 import { CompoundInterestView } from './CompoundInterestView';
 import { SimpleInterestView } from './SimpleInterestView';
 
-const INTEREST_TYPES: {
-  value: InterestType;
+const INTEREST_CALCULATORS: {
+  id: CalculatorId;
   labelKey: TranslationKey;
   View: () => React.JSX.Element;
 }[] = [
   {
-    value: 'simple',
+    id: 'simpleInterest',
     labelKey: 'calculator.interest.type.simple',
     View: SimpleInterestView,
   },
   {
-    value: 'compound',
+    id: 'compoundInterest',
     labelKey: 'calculator.interest.type.compound',
     View: CompoundInterestView,
   },
 ];
 
 interface InterestCalculatorViewProps {
-  value: InterestType;
-  onChange: (value: InterestType) => void;
+  /** The enabled Interest calculators. */
+  calculators: CalculatorId[];
+  value: CalculatorId;
+  onChange: (value: CalculatorId) => void;
 }
 
-/**
- * Interest calculator: a Simple / Compound selector above the matching view.
- * The selection is owned by CalculatorScreen (it also drives the header title).
- */
+/** Interest group: Simple / Compound selector (when both are enabled). */
 export function InterestCalculatorView({
+  calculators,
   value,
   onChange,
 }: InterestCalculatorViewProps) {
   const { t } = useTranslation();
-  const styles = useThemedStyles(createStyles);
-
-  const options: SegmentOption<InterestType>[] = INTEREST_TYPES.map(type => ({
-    value: type.value,
-    label: t(type.labelKey),
-  }));
-  const ActiveView = INTEREST_TYPES.find(type => type.value === value)!.View;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.selector}>
-        <SegmentedControl
-          options={options}
-          value={value}
-          onChange={onChange}
-          accessibilityLabel={t('calculator.interest.type.label')}
-        />
-      </View>
-      <ActiveView />
-    </View>
+    <CalculatorGroupView
+      options={INTEREST_CALCULATORS.filter(c => calculators.includes(c.id)).map(
+        c => ({ value: c.id, label: t(c.labelKey), View: c.View }),
+      )}
+      value={value}
+      onChange={onChange}
+      selectorLabel={t('calculator.interest.type.label')}
+    />
   );
 }
-
-const createStyles = (theme: AppTheme) => ({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  selector: { paddingHorizontal: 16, paddingTop: 16 },
-});

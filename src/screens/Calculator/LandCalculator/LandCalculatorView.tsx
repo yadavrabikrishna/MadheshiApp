@@ -1,67 +1,49 @@
-import { View } from 'react-native';
-
-import { SegmentedControl, type SegmentOption } from '../../../components';
 import { useTranslation, type TranslationKey } from '../../../i18n';
-import { useThemedStyles, type AppTheme } from '../../../theme';
-import type { LandType } from '../calculatorSelection';
+import type { CalculatorId } from '../../../types/calculators';
+import { CalculatorGroupView } from '../CalculatorGroupView';
 import { HillMountainLandView } from './HillMountainLandView';
 import { TeraiLandView } from './TeraiLandView';
 
-const LAND_TYPES: {
-  value: LandType;
+const LAND_CALCULATORS: {
+  id: CalculatorId;
   labelKey: TranslationKey;
   View: () => React.JSX.Element;
 }[] = [
   {
-    value: 'terai',
+    id: 'terai',
     labelKey: 'calculator.land.type.terai',
     View: TeraiLandView,
   },
   {
-    value: 'hillMountain',
+    id: 'hillMountain',
     labelKey: 'calculator.land.type.hillMountain',
     View: HillMountainLandView,
   },
 ];
 
 interface LandCalculatorViewProps {
-  value: LandType;
-  onChange: (value: LandType) => void;
+  /** The enabled Land calculators. */
+  calculators: CalculatorId[];
+  value: CalculatorId;
+  onChange: (value: CalculatorId) => void;
 }
 
-/**
- * Land calculator: a Terai / Hill-Mountain selector above the matching view.
- * The selection is owned by CalculatorScreen (it also drives the header title).
- */
+/** Land group: Terai / Hill-Mountain selector (when both are enabled). */
 export function LandCalculatorView({
+  calculators,
   value,
   onChange,
 }: LandCalculatorViewProps) {
   const { t } = useTranslation();
-  const styles = useThemedStyles(createStyles);
-
-  const options: SegmentOption<LandType>[] = LAND_TYPES.map(type => ({
-    value: type.value,
-    label: t(type.labelKey),
-  }));
-  const ActiveView = LAND_TYPES.find(type => type.value === value)!.View;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.selector}>
-        <SegmentedControl
-          options={options}
-          value={value}
-          onChange={onChange}
-          accessibilityLabel={t('calculator.land.type.label')}
-        />
-      </View>
-      <ActiveView />
-    </View>
+    <CalculatorGroupView
+      options={LAND_CALCULATORS.filter(c => calculators.includes(c.id)).map(
+        c => ({ value: c.id, label: t(c.labelKey), View: c.View }),
+      )}
+      value={value}
+      onChange={onChange}
+      selectorLabel={t('calculator.land.type.label')}
+    />
   );
 }
-
-const createStyles = (theme: AppTheme) => ({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  selector: { paddingHorizontal: 16, paddingTop: 16 },
-});

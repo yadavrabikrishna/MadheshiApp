@@ -40,6 +40,23 @@ export const en = {
   'calculator.land.hillMountain.description':
     'The Hill / Mountain land calculator will be implemented in a later task.',
 
+  'calculator.basic.title': 'Basic Calculator',
+  'calculator.basic.description':
+    'The Basic Calculator interface and operations will be implemented in a future update.',
+
+  'calculatorSettings.title': 'Calculator Settings',
+  'calculatorSettings.entry.description':
+    'Choose which calculators are available',
+  'calculatorSettings.intro':
+    'Turn calculators on or off. Changes apply when you press Save.',
+  'calculatorSettings.specialist': 'Specialist calculators',
+  'calculatorSettings.selectAll': 'Select All',
+  'calculatorSettings.deselectAll': 'Deselect All',
+  'calculatorSettings.save': 'Save',
+  'calculatorSettings.cancel': 'Cancel',
+  'calculatorSettings.atLeastOne':
+    'At least one calculator must remain enabled, so Basic Calculator was turned on automatically.',
+
   'settings.appearance': 'Appearance',
   'settings.theme': 'Theme',
   'settings.theme.light': 'Light',
