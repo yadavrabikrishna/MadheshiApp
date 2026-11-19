@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Export approved Madheshi App V1 Notion pages into generated Markdown."""
 from __future__ import annotations
-import os, sys, json, urllib.request, urllib.error
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,108 +19,237 @@ SOURCES = [
     ("V1_DEVELOPMENT_PLAN.md", "4119628c857d81458e31cdcfd484d031"),
 ]
 
+LIST_ITEM_TYPES = ("bulleted_list_item", "numbered_list_item", "to_do")
+KNOWN_NON_RENDERED_TYPES = {
+    "breadcrumb",
+    "column",
+    "column_list",
+    "link_preview",
+    "synced_block",
+    "table_of_contents",
+    "template",
+    "unsupported",
+}
+SUPPORTED_TYPES = {
+    "paragraph", "heading_1", "heading_2", "heading_3",
+    "bulleted_list_item", "numbered_list_item", "to_do",
+    "quote", "callout", "toggle", "code", "divider", "bookmark",
+    "image", "file", "pdf", "video", "audio", "equation",
+    "child_page", "child_database", "table",
+} | KNOWN_NON_RENDERED_TYPES
+
+
 def get(path):
     token = os.environ.get("NOTION_TOKEN")
-    if not token: raise RuntimeError("NOTION_TOKEN is missing")
+    if not token:
+        raise RuntimeError("NOTION_TOKEN is missing")
     req = urllib.request.Request(API + path, headers={
-        "Authorization": "Bearer " + token, "Notion-Version": VERSION,
-        "Accept": "application/json"})
+        "Authorization": "Bearer " + token,
+        "Notion-Version": VERSION,
+        "Accept": "application/json",
+    })
     try:
-        with urllib.request.urlopen(req, timeout=40) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", "replace")
-        raise RuntimeError(f"Notion API HTTP {e.code} at {path}: {detail}") from e
+        with urllib.request.urlopen(req, timeout=40) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")
+        raise RuntimeError(
+            f"Notion API HTTP {exc.code} at {path}: {detail}"
+        ) from exc
+
 
 def rt(items):
-    parts=[]
-    for x in items or []:
-        s=x.get("plain_text",""); a=x.get("annotations",{}) or {}
-        if a.get("code"): s="`"+s+"`"
-        if a.get("bold"): s="**"+s+"**"
-        if a.get("italic"): s="*"+s+"*"
-        if a.get("strikethrough"): s="~~"+s+"~~"
-        if a.get("underline"): s="<u>"+s+"</u>"
-        if x.get("href"): s="["+s+"]("+x["href"]+")"
-        parts.append(s)
+    parts = []
+    for item in items or []:
+        value = item.get("plain_text", "")
+        annotations = item.get("annotations", {}) or {}
+        if annotations.get("code"):
+            value = "`" + value + "`"
+        if annotations.get("bold"):
+            value = "**" + value + "**"
+        if annotations.get("italic"):
+            value = "*" + value + "*"
+        if annotations.get("strikethrough"):
+            value = "~~" + value + "~~"
+        if annotations.get("underline"):
+            value = "<u>" + value + "</u>"
+        if item.get("href"):
+            value = "[" + value + "](" + item["href"] + ")"
+        parts.append(value)
     return "".join(parts)
 
+
 def children(block_id):
-    result=[]; cursor=None
+    result = []
+    cursor = None
     while True:
-        q="?page_size=100"+("&start_cursor="+cursor if cursor else "")
-        payload=get("/blocks/"+block_id+"/children"+q)
-        result.extend(payload.get("results",[]))
-        if not payload.get("has_more"): return result
-        cursor=payload.get("next_cursor")
-        if not cursor: raise RuntimeError("Missing pagination cursor")
+        query = "?page_size=100" + (
+            "&start_cursor=" + cursor if cursor else ""
+        )
+        payload = get("/blocks/" + block_id + "/children" + query)
+        result.extend(payload.get("results", []))
+        if not payload.get("has_more"):
+            return result
+        cursor = payload.get("next_cursor")
+        if not cursor:
+            raise RuntimeError("Missing pagination cursor")
+
 
 def title_of(page):
-    for p in page.get("properties",{}).values():
-        if p.get("type")=="title": return rt(p.get("title",[])) or "Untitled"
+    for prop in page.get("properties", {}).values():
+        if prop.get("type") == "title":
+            return rt(prop.get("title", [])) or "Untitled"
     return "Untitled"
 
+
 def table_md(block):
-    rows=children(block["id"])
-    data=[[rt(c) for c in row.get("table_row",{}).get("cells",[])] for row in rows]
-    if not data: return ""
-    n=max(map(len,data)); data=[r+[""]*(n-len(r)) for r in data]
-    def fmt(row): return "| "+" | ".join(c.replace("|","\\|").replace("\n"," ") for c in row)+" |"
-    return "\n".join([fmt(data[0]),fmt(["---"]*n)]+[fmt(r) for r in data[1:]])
+    rows = children(block["id"])
+    data = [
+        [rt(cell) for cell in row.get("table_row", {}).get("cells", [])]
+        for row in rows
+    ]
+    if not data:
+        return ""
+    column_count = max(map(len, data))
+    data = [row + [""] * (column_count - len(row)) for row in data]
 
-def render(blocks,depth=0):
-    out=[]
-    for b in blocks:
-        typ=b.get("type"); d=b.get(typ,{}) or {}; text=""
-        if typ in ("paragraph","heading_1","heading_2","heading_3","bulleted_list_item","numbered_list_item","quote","callout","toggle"):
-            text=rt(d.get("rich_text",[]))
-        elif typ=="code":
-            fence=chr(96)*3
-            text=fence+d.get("language","")+"\n"+rt(d.get("rich_text",[]))+"\n"+fence
-        elif typ=="divider": text="---"
-        elif typ=="bookmark":
-            u=d.get("url",""); caption=rt(d.get("caption",[])) or u
-            text="["+caption+"]("+u+")" if u else caption
-        elif typ in ("image","file","pdf","video","audio"):
-            f=d.get("file") or d.get("external") or {}; u=f.get("url","")
-            caption=rt(d.get("caption",[])) or typ.title()
-            text="["+caption+"]("+u+")" if u else caption
-        elif typ=="equation": text="$$"+d.get("expression","")+"$$"
-        elif typ=="child_page": text="### "+d.get("title","Child page")
-        elif typ=="child_database": text="**Database:** "+d.get("title","Database")
-        elif typ=="table": text=table_md(b)
-        if typ=="heading_1": text="# "+text
-        elif typ=="heading_2": text="## "+text
-        elif typ=="heading_3": text="### "+text
-        elif typ=="bulleted_list_item": text="- "+text
-        elif typ=="numbered_list_item": text="1. "+text
-        elif typ=="quote": text="> "+text
-        elif typ=="callout": text="> "+((d.get("icon") or {}).get("emoji",""))+" "+text
-        if depth and typ in ("bulleted_list_item","numbered_list_item"): text="  "*depth+text
-        if text: out.append(text)
-        if b.get("has_children") and typ!="table":
-            nested=render(children(b["id"]),depth+(1 if typ in ("bulleted_list_item","numbered_list_item","toggle") else 0))
-            if nested: out.append(nested)
-    return "\n\n".join(out)
+    def format_row(row):
+        cells = [
+            cell.replace("|", "\\|").replace("\\n", " ")
+            for cell in row
+        ]
+        return "| " + " | ".join(cells) + " |"
 
-def export(filename,page_id):
-    page=get("/pages/"+page_id); title=title_of(page)
-    url=page.get("url") or "https://www.notion.so/"+page_id.replace("-","")
-    edited=page.get("last_edited_time","unknown"); body=render(children(page_id))
-    synced=datetime.now(timezone.utc).isoformat(timespec="seconds")
-    header=("<!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->\n"
-      +"<!-- Source page ID: "+page_id+" -->\n<!-- Notion last edited: "+edited+" -->\n"
-      +"<!-- Synced at: "+synced+" -->\n\n# "+title+"\n\n"
-      +"**Source:** ["+title+"]("+url+")  \n**Notion last edited:** "+edited+"  \n"
-      +"**Snapshot synced:** "+synced+"\n\n---\n\n")
-    OUT.mkdir(parents=True,exist_ok=True)
-    (OUT/filename).write_text(header+body.rstrip()+"\n",encoding="utf-8")
-    print("Exported "+title+" to "+str(OUT/filename))
+    return "\\n".join(
+        [format_row(data[0]), format_row(["---"] * column_count)]
+        + [format_row(row) for row in data[1:]]
+    )
+
+
+def render(blocks, depth=0):
+    output = []
+    numbered_index = 0
+
+    for block in blocks:
+        block_type = block.get("type")
+        data = block.get(block_type, {}) or {}
+        text = ""
+
+        if block_type in (
+            "paragraph", "heading_1", "heading_2", "heading_3",
+            "bulleted_list_item", "numbered_list_item", "quote",
+            "callout", "toggle",
+        ):
+            text = rt(data.get("rich_text", []))
+        elif block_type == "to_do":
+            marker = "[x]" if data.get("checked") else "[ ]"
+            text = marker + " " + rt(data.get("rich_text", []))
+        elif block_type == "code":
+            fence = chr(96) * 3
+            text = (
+                fence + data.get("language", "") + "\\n"
+                + rt(data.get("rich_text", [])) + "\\n" + fence
+            )
+        elif block_type == "divider":
+            text = "---"
+        elif block_type == "bookmark":
+            url = data.get("url", "")
+            caption = rt(data.get("caption", [])) or url
+            text = "[" + caption + "](" + url + ")" if url else caption
+        elif block_type in ("image", "file", "pdf", "video", "audio"):
+            file_data = data.get("file") or data.get("external") or {}
+            url = file_data.get("url", "")
+            caption = rt(data.get("caption", [])) or block_type.title()
+            text = "[" + caption + "](" + url + ")" if url else caption
+        elif block_type == "equation":
+            text = "$$" + data.get("expression", "") + "$$"
+        elif block_type == "child_page":
+            text = "### " + data.get("title", "Child page")
+        elif block_type == "child_database":
+            text = "**Database:** " + data.get("title", "Database")
+        elif block_type == "table":
+            text = table_md(block)
+        elif block_type not in KNOWN_NON_RENDERED_TYPES:
+            print(
+                f"Warning: unsupported Notion block type '{block_type}' "
+                f"(block id: {block.get('id', 'unknown')}); content was not rendered.",
+                file=sys.stderr,
+            )
+
+        if block_type == "heading_1":
+            text = "# " + text
+        elif block_type == "heading_2":
+            text = "## " + text
+        elif block_type == "heading_3":
+            text = "### " + text
+        elif block_type == "bulleted_list_item":
+            text = "- " + text
+        elif block_type == "numbered_list_item":
+            numbered_index += 1
+            text = str(numbered_index) + ". " + text
+        elif block_type == "to_do":
+            text = "- " + text
+        elif block_type == "quote":
+            text = "> " + text
+        elif block_type == "callout":
+            emoji = (data.get("icon") or {}).get("emoji", "")
+            text = "> " + emoji + " " + text
+
+        if block_type != "numbered_list_item":
+            numbered_index = 0
+
+        if depth and block_type in LIST_ITEM_TYPES:
+            text = "  " * depth + text
+
+        if text:
+            output.append(text)
+
+        if block.get("has_children") and block_type != "table":
+            nested_depth = depth + (
+                1 if block_type in LIST_ITEM_TYPES or block_type == "toggle"
+                else 0
+            )
+            nested = render(children(block["id"]), nested_depth)
+            if nested:
+                output.append(nested)
+
+    return "\\n\\n".join(output)
+
+
+def export(filename, page_id):
+    page = get("/pages/" + page_id)
+    title = title_of(page)
+    url = page.get("url") or (
+        "https://www.notion.so/" + page_id.replace("-", "")
+    )
+    edited = page.get("last_edited_time", "unknown")
+    body = render(children(page_id))
+    synced = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    header = (
+        "<!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->\\n"
+        + "<!-- Source page ID: " + page_id + " -->\\n"
+        + "<!-- Notion last edited: " + edited + " -->\\n"
+        + "<!-- Synced at: " + synced + " -->\\n\\n# " + title + "\\n\\n"
+        + "**Source:** [" + title + "](" + url + ")  \\n"
+        + "**Notion last edited:** " + edited + "  \\n"
+        + "**Snapshot synced:** " + synced + "\\n\\n---\\n\\n"
+    )
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / filename).write_text(
+        header + body.rstrip() + "\\n", encoding="utf-8"
+    )
+    print("Exported " + title + " to " + str(OUT / filename))
+
 
 def main():
-    for file,page in SOURCES: export(file,page)
+    for filename, page_id in SOURCES:
+        export(filename, page_id)
     return 0
-if __name__=="__main__":
-    try: sys.exit(main())
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
     except Exception as exc:
-        print("Sync failed: "+str(exc),file=sys.stderr); sys.exit(1)
+        print("Sync failed: " + str(exc), file=sys.stderr)
+        sys.exit(1)
