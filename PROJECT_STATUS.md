@@ -1,47 +1,49 @@
-# Madheshi App — Development Handoff
+# Madheshi App — Documentation and AI Handoff Status
 
-> Maintained by contributors and AI agents. Keep this concise and based on verified state.
+> Maintained by contributors and AI agents. Update only with verified repository state.
 
-## Project baseline
+## Repository baseline
 - Repository: yadavrabikrishna/MadheshiApp
 - Integration branch: develop
+- Current audited develop commit: e0c9a60b732cf937fc86b641c6b1ba79b9ffabad
 - Release: V1
-- App: React Native CLI + TypeScript
-- Approved V1 architecture: local-first mobile app; WordPress REST API for news; SQLite for offline/persistent data; no separate FastAPI/PostgreSQL backend.
+- Stack: React Native CLI + TypeScript, StyleSheet, React Navigation, Redux Toolkit + RTK Query, npm.
+- V1 boundaries: Madheshi.com WordPress REST API for news; SQLite for local persistence; calculators run on-device; no separate FastAPI/PostgreSQL backend.
+- Decimal arithmetic: decimal.js 10.6.0 is now included in the current dependency baseline.
 
-## Verified task state (2026-11-18)
-- Main Calculator selector: Interest / Age / Land integrated.
-- Interest selector: Simple / Compound integrated.
-- Age date-system selector: BS / AD integrated; recent commit history places BS first.
-- Land selector: open issue #14, Terai / Hill-Mountain options; Terai default. Issue covers selector/placeholders only, not conversion calculations.
-- Open issue: #14 — Add Terai and Hill/Mountain selector to Land calculator.
-- Documentation sync PR #16 is open as a draft: https://github.com/yadavrabikrishna/MadheshiApp/pull/16 (branch `chore/notion-docs-sync`).
+## Current repository state (audited 2026-11-19)
+- Calculator navigation/preferences and dynamic localized header work have been integrated in develop.
+- Calculator component folders exist for Simple/Compound Interest, AD/BS Age, Terai/Hill-Mountain Land, and Basic Calculator; the calculator views remain the next application implementation work.
+- Current calculator navigation and preference behavior are described in docs/PROJECT_STRUCTURE.md.
+- This status file is for cross-agent handoff, not a substitute for inspecting the current code, Git status, issue, or PR.
 
-## Documentation audit findings
-- README, AGENTS.md and CONTRIBUTING.md contain outdated separate FastAPI/PostgreSQL backend references; approved V1 Notion specs explicitly prohibit this backend.
-- decimal.js is described as approved in docs but is absent from package.json and package-lock.json. Do not claim it is installed; add when calculator implementation requires it.
-- docs/PROJECT_STRUCTURE.md describes “top tabs” and component names that need verification against current source.
-- Age selector default is not clearly settled in the approved spec. Recent implementation history uses BS first. Confirm the rule in Notion before changing behavior.
-- Notion pages are mirrored under docs/notion/ by automation. These are generated snapshots and must not be edited manually.
+## Documentation infrastructure
+- PR #16: https://github.com/yadavrabikrishna/MadheshiApp/pull/16
+- Branch: chore/notion-docs-sync
+- PR remains open and unmerged; owner review is required.
+- The PR adds CLAUDE.md, PROJECT_STATUS.md, docs/notion/README.md, three initial Notion snapshots, a GitHub Actions workflow, and a Notion API export script.
+- The sync workflow requires the repository Actions secret NOTION_TOKEN, with read-content access to all three approved Notion pages.
+- Workflow design: scheduled every 30 minutes and manually triggerable; opens/updates a PR against develop; does not auto-merge.
+- Generated files under docs/notion/ must not be edited manually. Update the Notion source, then sync.
 
-## Current task
-Set up Notion → GitHub specification snapshots and portable agent handoff.
+## Source-of-truth boundaries
+- Notion: approved V1 scope, functional requirements, calculation rules, architecture boundaries and test checklist.
+- GitHub: source code, agent instructions, contribution workflow, project structure, current development handoff, automation.
+- docs/notion/*.md: generated snapshots of the controlling Notion pages, not independent specifications.
 
-## Next steps
-1. Review/merge the Notion sync PR after inspecting its workflow/script.
-2. Add/confirm repository secret NOTION_TOKEN; manually run the workflow to validate access.
-3. Correct outdated backend statements across repo documentation.
-4. Clarify Age default/date-preference requirement in Notion.
-5. Verify docs/PROJECT_STRUCTURE.md against actual code.
-6. Continue issue #14 using the branch/PR workflow.
+## Outstanding documentation validation
+1. Review PR #16 changes and check whether the GitHub Actions workflow can access all three Notion pages using NOTION_TOKEN.
+2. Run the workflow manually and inspect the three generated Markdown files against their Notion sources, including nested content and tables.
+3. Confirm that the Notion integration has access to the parent pages and all required source pages.
+4. Confirm the age calculator default is interpreted consistently: the Release Scope says it follows the user's selected date preference; do not assume BS-first or AD-first is universally correct.
+5. Keep docs/PROJECT_STRUCTURE.md aligned with actual committed source files.
 
-## Handoff update template
-Record:
-- Last completed: concrete verified work.
-- Branch/issue/PR: identifiers and links.
-- Changed files.
-- Checks run: exact command and result.
-- Blockers/decisions needed.
-- Next action: one concrete task/command.
+## Session handoff checklist
+- Last completed:
+- Branch / issue / PR:
+- Files changed:
+- Checks actually run and results:
+- Blockers / owner decisions:
+- Next concrete action:
 
-Do not write vague claims such as “everything done”.
+Never report a check as passed unless it was executed and its output reviewed.
