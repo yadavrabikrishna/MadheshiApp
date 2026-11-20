@@ -29,8 +29,7 @@ jest.setTimeout(60000);
 
 const DESCRIPTIONS = {
   en: {
-    simple:
-      'The simple interest calculator will be implemented in a later task.',
+    simple: 'Principal amount',
     compound:
       'The compound interest calculator will be implemented in a later task.',
     ageAd: 'The AD age calculator will be implemented in a later task.',
@@ -40,7 +39,7 @@ const DESCRIPTIONS = {
       'The Hill / Mountain land calculator will be implemented in a later task.',
   },
   np: {
-    simple: 'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageAd: 'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageBs: 'विक्रम संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
@@ -161,7 +160,13 @@ describe('Interest type selector', () => {
 
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['Simple Interest', 'Compound Interest']);
+    ).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      // The Simple Interest view's own rate-mode selector follows the type selector.
+      '% per month',
+      'Rs. per Rs. 100',
+    ]);
     expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
     expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
@@ -188,12 +193,23 @@ describe('Interest type selector', () => {
     await changeLanguage(user, 'नेपाली');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज']);
+    ).toEqual([
+      'घरेलु ब्याज',
+      'साहु ब्याज',
+      '% प्रति महिना',
+      'रु. प्रति रु. १००',
+    ]);
 
     await changeLanguage(user, 'English');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['Simple Interest', 'Compound Interest']);
+    ).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      // The Simple Interest view's own rate-mode selector follows the type selector.
+      '% per month',
+      'Rs. per Rs. 100',
+    ]);
   });
 
   it('keeps the selected interest type when the language changes, in both directions', async () => {
@@ -292,7 +308,13 @@ describe('Age date system selector', () => {
     const user = await launchOnCalculator();
 
     // Interest tab: only the Interest selector.
-    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(radioLabels()).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      // The Simple Interest view's own rate-mode selector follows the type selector.
+      '% per month',
+      'Rs. per Rs. 100',
+    ]);
 
     await user.press(topTab('Land'));
     expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);

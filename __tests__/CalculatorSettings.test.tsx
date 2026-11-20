@@ -88,6 +88,8 @@ async function openCalculator(user: User) {
   await user.press(bottomTab('Calculator'));
 }
 
+const RATE_MODE_RADIOS = ['% per month', 'Rs. per Rs. 100'];
+
 async function launchOnCalculator(device: Device = newDevice()): Promise<User> {
   const user = await launch(device);
   await openCalculator(user);
@@ -178,7 +180,11 @@ describe('first-time defaults', () => {
     await launchOnCalculator();
 
     expect(topTabLabels()).toEqual(['Interest', 'Age', 'Land']);
-    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(radioLabels()).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      ...RATE_MODE_RADIOS, // the Simple Interest view's own selector
+    ]);
     expect(screen.queryByText('Basic Calculator')).toBeNull();
   });
 
@@ -444,7 +450,11 @@ describe('dynamic Calculator navigation', () => {
     const user = await launchOnCalculator(device);
 
     expect(topTabLabels()).toEqual(['Interest', 'Land']);
-    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(radioLabels()).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      ...RATE_MODE_RADIOS, // the Simple Interest view's own selector
+    ]);
 
     await user.press(topTab('Land'));
     expect(radioLabels()).toEqual([]);
@@ -477,7 +487,11 @@ describe('dynamic Calculator navigation', () => {
       'Land',
       'Basic Calculator',
     ]);
-    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(radioLabels()).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      ...RATE_MODE_RADIOS, // the Simple Interest view's own selector
+    ]);
   });
 
   it('Basic Calculator only: rendered directly with no navigation', async () => {
@@ -498,7 +512,8 @@ describe('dynamic Calculator navigation', () => {
     expect(topTabLabels()).toEqual(['Interest', 'Age', 'Land']);
     for (const tab of ['Interest', 'Age', 'Land']) {
       await user.press(topTab(tab));
-      expect(radioLabels()).toEqual([]);
+      // No group selector; only the Simple Interest view's rate-mode radios.
+      expect(radioLabels()).toEqual(tab === 'Interest' ? RATE_MODE_RADIOS : []);
     }
   });
 

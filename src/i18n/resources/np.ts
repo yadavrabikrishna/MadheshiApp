@@ -18,8 +18,6 @@ export const np: Translations = {
   'calculator.interest.type.label': 'ब्याजको प्रकार',
   'calculator.interest.type.simple': 'घरेलु ब्याज',
   'calculator.interest.type.compound': 'साहु ब्याज',
-  'calculator.interest.simple.description':
-    'घरेलु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.interest.compound.description':
     'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   'calculator.age.system.label': 'मिति प्रणाली',
@@ -44,6 +42,58 @@ export const np: Translations = {
   'calculator.basic.title': 'सामान्य क्यालकुलेटर',
   'calculator.basic.description':
     'सामान्य क्यालकुलेटरको इन्टरफेस र सञ्चालनहरू भविष्यको अपडेटमा तयार गरिनेछन्।',
+
+  'simpleInterest.currency': 'रु.',
+  'simpleInterest.principal.label': 'मूलधन रकम',
+  'simpleInterest.principal.hint': 'ऋण दिएको वा लिएको रकम, रुपैयाँमा।',
+  'simpleInterest.principal.placeholder': '100000',
+  'simpleInterest.rate.label': 'मासिक ब्याजदर',
+  'simpleInterest.rate.hint.percent':
+    'प्रति महिना प्रतिशत। जस्तै, २ को अर्थ हरेक महिना २% हो।',
+  'simpleInterest.rate.hint.rupees':
+    'प्रति रु. १०० मा प्रति महिना रुपैयाँ। जस्तै, २ को अर्थ हरेक महिना रु. १०० मा रु. २ हो।',
+  'simpleInterest.rate.placeholder': '2',
+  'simpleInterest.rateMode.label': 'दर राख्ने तरिका',
+  'simpleInterest.rateMode.percent': '% प्रति महिना',
+  'simpleInterest.rateMode.rupees': 'रु. प्रति रु. १००',
+  'simpleInterest.startDate.label': 'सुरु मिति',
+  'simpleInterest.endDate.label': 'अन्तिम मिति',
+  'simpleInterest.date.hint':
+    '८ अङ्क टाइप गर्नुहोस् (YYYYMMDD)। स्ल्याश आफैँ थपिन्छ।',
+  'simpleInterest.date.placeholder': 'YYYY/MM/DD',
+  'simpleInterest.calculate': 'हिसाब गर्नुहोस्',
+
+  'simpleInterest.error.prefix': 'त्रुटि',
+  'simpleInterest.error.summary': 'तल चिन्ह लगाइएका क्षेत्रहरू सच्याउनुहोस्।',
+  'simpleInterest.error.principalInvalid':
+    'मूलधन सङ्ख्यामा राख्नुहोस्, जस्तै 100000 वा 2500.50।',
+  'simpleInterest.error.principalNotPositive': 'मूलधन शून्यभन्दा बढी हुनुपर्छ।',
+  'simpleInterest.error.rateInvalid':
+    'दर सङ्ख्यामा राख्नुहोस्, जस्तै 2 वा 1.5। शून्य मान्य छ।',
+  'simpleInterest.error.rateNegative': 'दर ऋणात्मक हुन सक्दैन।',
+  'simpleInterest.error.rateModeInvalid': 'दर कसरी राख्ने भनेर छान्नुहोस्।',
+  'simpleInterest.error.startDateInvalid':
+    'सुरु मिति पूरा YYYY/MM/DD मा राख्नुहोस्; महिना 01 देखि 12 र गते 01 देखि 32।',
+  'simpleInterest.error.endDateInvalid':
+    'अन्तिम मिति पूरा YYYY/MM/DD मा राख्नुहोस्; महिना 01 देखि 12 र गते 01 देखि 32।',
+  'simpleInterest.error.endBeforeStart':
+    'अन्तिम मिति सुरु मितिभन्दा अगाडि हुन सक्दैन।',
+
+  'simpleInterest.result.title': 'घरेलु ब्याजको नतिजा',
+  'simpleInterest.result.principal': 'मूलधन',
+  'simpleInterest.result.enteredRate': 'राखिएको दर',
+  'simpleInterest.result.monthlyRate': 'प्रयोग भएको मासिक दर',
+  'simpleInterest.result.startDate': 'सुरु मिति',
+  'simpleInterest.result.endDate': 'अन्तिम मिति',
+  'simpleInterest.result.duration': 'अवधि',
+  'simpleInterest.result.interest': 'घरेलु ब्याज',
+  'simpleInterest.result.total': 'जम्मा रकम',
+  'simpleInterest.rateText.percent': '{rate}% प्रति महिना',
+  'simpleInterest.rateText.rupees': 'रु. {rate} प्रति रु. १०० प्रति महिना',
+  'simpleInterest.rateText.monthly': '{percent}% प्रति महिना ({fraction})',
+  'simpleInterest.unit.years': 'वर्ष',
+  'simpleInterest.unit.months': 'महिना',
+  'simpleInterest.unit.days': 'दिन',
 
   'calculatorSettings.title': 'क्यालकुलेटर सेटिङ',
   'calculatorSettings.entry.description':
