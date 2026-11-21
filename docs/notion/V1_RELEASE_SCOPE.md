@@ -1,13 +1,13 @@
 <!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->
 <!-- Source page ID: 4119628c857d811ab1fbff2b9062d66f -->
 <!-- Notion last edited: 2026-11-19T07:28:00.000Z -->
-<!-- Synced at: 2026-11-19T10:21:28+00:00 -->
+<!-- Synced at: 2026-11-21T10:49:32+00:00 -->
 
 # V1. Madheshi App — Release Scope & Product Overview
 
 **Source:** [V1. Madheshi App — Release Scope & Product Overview](https://app.notion.com/p/V1-Madheshi-App-Release-Scope-Product-Overview-4119628c857d811ab1fbff2b9062d66f)  
 **Notion last edited:** 2026-11-19T07:28:00.000Z  
-**Snapshot synced:** 2026-11-19T10:21:28+00:00
+**Snapshot synced:** 2026-11-21T10:49:32+00:00
 
 ---
 
