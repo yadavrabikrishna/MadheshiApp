@@ -6,9 +6,8 @@
 
 - Repository: yadavrabikrishna/MadheshiApp
 - Integration branch: `develop`
-- Audited develop commit: `206ba71a07d4a42930103873d30fe2861466f7ee` (remote `develop` head, re-checked 2026-11-20; the earlier audit referenced `7b52a93`, which is stale because `develop` has since been updated).
-- Audit date: 2026-11-20
-- This branch (`feature/simple-interest-calculator`) is based on PR #29's branch (`82604c1`), not on the current `develop`, so it does not yet contain the newer `AGENTS.md` / `docs/AI_HANDOFF.md` from `develop`.
+- Audited develop commit: `b19114497cc259a738b7e96026297f2f0460dbd7` (remote `develop` head after the merge of PR #34, checked 2026-11-21; earlier audits referenced `206ba71` and `7b52a93`, which are stale).
+- Audit date: 2026-11-21
 - Release: V1
 - Stack: React Native CLI + TypeScript, React Native StyleSheet, React Navigation, Redux Toolkit + RTK Query, npm.
 - V1 boundaries: Madheshi.com WordPress REST API for news; SQLite for local persistence; calculators run on-device; no separate FastAPI/PostgreSQL backend.
@@ -18,8 +17,8 @@
 
 - The four primary bottom-navigation destinations (Home, News, Calculator and Settings) are part of the approved app shell.
 - Calculator navigation and configuration are integrated: Interest, Age and Land groups; individual calculator enable/disable settings; saved active-calculator selection; Basic Calculator fallback; and a localized header title that follows the active calculator.
-- Simple Interest is implemented on the integration branch `feature/simple-interest-calculator`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26: form, masked inputs, result card, en/np, light/dark). That work is NOT yet in `develop`; it is pushed on that branch (no PR yet) and awaiting owner review and on-device Android validation (see the recovery checkpoint under "Current handoff").
-- On `develop` the calculator views are still placeholders. Compound Interest, Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders everywhere; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
+- Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). The three actions do nothing yet: clipboard (#35), share-as-image (#36) and save-as-image (#37) are separate issues.
+- Compound Interest, Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
 - Basic Calculator is currently a placeholder; it does not provide keypad or arithmetic functionality.
 - The current calculator navigation, persistence and source layout are described in `docs/PROJECT_STRUCTURE.md`. Always inspect the current implementation before extending it.
 
@@ -37,8 +36,11 @@ The following work is merged into `develop`:
 - PR #16 — shared AI handoff instructions and Notion documentation sync infrastructure.
 - PR #24 — Notion exporter task-list rendering, exporter tests and GitHub Actions runtime updates.
 - PR #23 — generated V1 Notion specification snapshots.
+- PR #29 — Simple Interest calculation engine (Issue #27).
+- PR #33 — complete Simple Interest calculator UI (Issue #26).
+- PR #34 — `@react-native-clipboard/clipboard`, `react-native-view-shot` and `react-native-share` installed (dependencies only; no feature code uses them yet).
 
-PR #16, #21, #22, #23 and #24 are closed and merged. Verify GitHub directly for any newer issue or PR before starting work.
+PR #16, #21, #22, #23, #24, #29, #33 and #34 are closed and merged. Verify GitHub directly for any newer issue or PR before starting work.
 
 ## Documentation and automation
 
@@ -75,14 +77,9 @@ Source-of-truth boundaries:
 
 ## Next application milestone
 
-Simple Interest (engine + UI) is implemented and pushed on `feature/simple-interest-calculator` and awaits owner review and device testing. Remaining steps before it reaches `develop`:
+Simple Interest (engine + UI) is merged into `develop`. The Android build and manual real-device validation of the whole Simple Interest screen (keyboard avoidance, caret/Backspace behavior of the masked inputs, Nepali rendering, screen reader, light/dark, small and large screens, and now the result action row) is still outstanding: the agent environment has no Android SDK or emulator.
 
-1. Owner review of the working tree; fix any findings.
-2. Android build/run and manual validation on a real device (keyboard avoidance, caret/Backspace behavior of the masked inputs, Nepali rendering, screen reader, light/dark, small and large screens). This has not been done: the agent environment has no Android SDK or emulator.
-3. Open ONE final PR from `feature/simple-interest-calculator` to `develop` containing the engine and the UI, with `Closes #26` and `Closes #27`, when the owner asks. PR #29 is not merged separately. The owner merges manually.
-4. Rebase/merge in the newer `develop` (`AGENTS.md`, `docs/AI_HANDOFF.md`) as part of that integration.
-
-Later milestones (each needs its own issue and task branch from the latest `develop`): Compound Interest UI (reuse `src/utils/formatMoney.ts` and the masked inputs), Age and Land calculators, Basic Calculator, and Issue #30 (Copy Result / Share as Image, which needs owner approval before any clipboard or image-share dependency is added).
+Next implementation steps, each on its own task branch from the latest `develop`: wire the result actions that Issue #30 left as UI only (clipboard #35, share as image #36, save as image #37; the three packages are already installed), then Compound Interest UI (reuse `src/utils/formatMoney.ts` and the masked inputs), Age and Land calculators, and Basic Calculator.
 
 Do not assume a UI task authorizes changing approved calculation rules. Keep each issue's UI and calculation scope explicit. Review the latest V1 snapshots in `docs/notion/` (date-counting, partial-period, rate-entry and rounding rules) before extending the calculators.
 
@@ -107,6 +104,18 @@ At the end of substantive work, update this file with:
 Never report a check as passed unless it was executed and its output reviewed. Never put secrets, access tokens, personal credentials or private account data in repository handoff files.
 
 ## Current handoff
+
+### Checkpoint — Issue #30 (Calculator Result Actions UI), 2026-11-21 (committed and pushed on `feature/calculator-result-actions-ui`; PR to `develop` with `Closes #30`, owner review and manual merge required)
+
+Branch created from `develop` at `b191144`. The older Issue #26 checkpoints below describe `feature/simple-interest-calculator` before it was merged (PR #33); their "no PR yet" notes are superseded.
+
+- Completed: a reusable `ResultActions` row (Copy, Share, Save Image) rendered as the last child of the valid Simple Interest result card. Ionicons `copy-outline`, `share-social-outline`, `download-outline`; labels in English and Nepali (`resultActions.*`); text, icon and border colors come from theme tokens; each button is at least 56 high, shares the width equally and has no fixed height or width, so long Nepali labels and large fonts wrap. Callback props `onCopy`, `onShare`, `onSaveImage` (all optional) are the integration points; `SimpleInterestResultCard` accepts them and passes them through, and nothing supplies them yet. A press without a handler does nothing and shows no message.
+- Scope guard: no clipboard, view-capture, share or save code. `package.json`, `package-lock.json`, native files and calculation logic are unchanged.
+- Files: `src/components/common/ResultActions.tsx` (new), `src/components/common/__tests__/ResultActions.test.tsx` (new, 10 tests), `src/components/index.ts`, `src/screens/Calculator/InterestCalculator/SimpleInterestResultCard.tsx`, `src/i18n/resources/{en,np}.ts`, `__tests__/SimpleInterestCalculator.test.tsx` (+6 tests), `docs/PROJECT_STRUCTURE.md`, `PROJECT_STATUS.md`.
+- Checks run (2026-11-21, after `npm ci` from the existing lockfile): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check` on the changed source and test files clean; `npm test -- --runInBand` exit 0, 22 suites, 482 tests (baseline on `develop` before the change: 21 suites, 466 tests). Mutation checks confirmed the new tests fail when the card stops rendering the row, when the action order or an icon changes, and when a fixed height replaces the minimum height.
+- NOT verified: an Android build or run (no Android SDK in the agent environment); the layout on a real device or on small screens and large system font sizes (Jest cannot measure layout; the tests only check that sizes are not fixed); TalkBack output; the design supplied with the issue (the issue text has no attached design, so the row follows its written description).
+- Owner decisions: (1) the Nepali labels कपी गर्नुहोस् / सेयर गर्नुहोस् / तस्बिर सुरक्षित गर्नुहोस् are my wording in the project's existing style; please confirm. (2) With no handler the buttons look enabled and do nothing, because the issue is UI only and forbids implying a result. If they should look disabled until #35 to #37 land, it is a small change in `ResultActions`.
+- Next action: owner reviews the PR and checks the row on an Android device; then implement #35, #36 and #37 by passing handlers from `SimpleInterestView` to the card (they will also need a ref to capture the card without the action row).
 
 ### Checkpoint — Issue #26 automatic scroll-to-field fix, 2026-11-21 (committed and pushed on top of `0bf9cd7`; no PR yet)
 

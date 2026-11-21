@@ -950,3 +950,132 @@ describe('Simple Interest result card layout', () => {
     expect(screen.getByText('2025/01/01 – 2025/04/01')).toBeOnTheScreen();
   });
 });
+
+describe('Simple Interest calculator: result actions (Issue #30)', () => {
+  const actionLabels = [
+    en['resultActions.copy'],
+    en['resultActions.share'],
+    en['resultActions.saveImage'],
+  ];
+  const actionButton = (name: string) => screen.queryByRole('button', { name });
+  const noActions = () =>
+    actionLabels.forEach(l => expect(actionButton(l)).toBeNull());
+
+  /** Every text of the rendered tree, in visual (top to bottom) order. */
+  const textsInOrder = () => {
+    const out: string[] = [];
+    const walk = (node: unknown) => {
+      if (typeof node === 'string') {
+        out.push(node);
+      } else if (node && typeof node === 'object') {
+        const { children } = node as { children?: unknown[] | null };
+        children?.forEach(walk);
+      }
+    };
+    walk(screen.toJSON());
+    return out;
+  };
+
+  const validForm = {
+    principal: '100000',
+    rate: '2',
+    start: '20250101',
+    end: '20250401',
+  };
+
+  it('shows no actions before a calculation or after an invalid one', async () => {
+    const user = await launchSimpleInterest();
+    noActions();
+
+    await calculate(user); // empty form: invalid
+    expect(
+      screen.getByText(en['simpleInterest.error.summary']),
+    ).toBeOnTheScreen();
+    noActions();
+  });
+
+  it('shows Copy, Share and Save Image in order at the bottom of a valid result', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+
+    const names = screen
+      .getAllByRole('button')
+      .map(button => button.props.accessibilityLabel);
+    const first = names.indexOf(en['resultActions.copy']);
+    expect(first).toBeGreaterThan(
+      names.indexOf(en['simpleInterest.calculate']),
+    );
+    expect(names.slice(first, first + 3)).toEqual(actionLabels);
+
+    // Below every result row, including the Total Amount row.
+    const texts = textsInOrder();
+    const total = texts.indexOf(en['simpleInterest.result.total']);
+    expect(total).toBeGreaterThan(-1);
+    for (const label of actionLabels) {
+      expect(texts.indexOf(label)).toBeGreaterThan(total);
+    }
+  });
+
+  it('removes the actions together with a stale result when an input is edited', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+    expect(actionButton(en['resultActions.copy'])).toBeOnTheScreen();
+
+    await fillForm({ principal: '2000' });
+    noActions();
+
+    await calculate(user);
+    expect(actionButton(en['resultActions.copy'])).toBeOnTheScreen();
+  });
+
+  it('shows Nepali action labels with a Nepali result', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+
+    for (const key of [
+      'resultActions.copy',
+      'resultActions.share',
+      'resultActions.saveImage',
+    ] as const) {
+      expect(screen.getByRole('button', { name: np[key] })).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: en[key] })).toBeNull();
+    }
+  });
+
+  it('keeps the actions, in dark theme tokens, across a theme change', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+
+    await user.press(
+      screen.getByRole('button', { name: 'Switch to dark theme' }),
+    );
+
+    for (const label of actionLabels) {
+      expect(screen.getByText(label)).toHaveStyle({
+        color: themes.dark.colors.text,
+      });
+    }
+  });
+
+  it('does not change the result or show any message when an action is pressed', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+
+    for (const label of actionLabels) {
+      await user.press(screen.getByRole('button', { name: label }));
+    }
+
+    expect(screen.getByText('Rs. 6,000')).toBeOnTheScreen();
+    expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/copied|shared|saved|success/i)).toBeNull();
+  });
+});

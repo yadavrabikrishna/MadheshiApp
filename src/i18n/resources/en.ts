@@ -91,6 +91,10 @@ export const en = {
   'simpleInterest.unit.months': 'Months',
   'simpleInterest.unit.days': 'Days',
 
+  'resultActions.copy': 'Copy',
+  'resultActions.share': 'Share',
+  'resultActions.saveImage': 'Save Image',
+
   'calculatorSettings.title': 'Calculator Settings',
   'calculatorSettings.entry.description':
     'Choose which calculators are available',

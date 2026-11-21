@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 
+import { ResultActions, type ResultActionsProps } from '../../../components';
 import { useTranslation } from '../../../i18n';
 import type {
   NeutralDate,
@@ -9,7 +10,12 @@ import type {
 import { useThemedStyles, type AppTheme } from '../../../theme';
 import { fillTemplate, formatMoney } from '../../../utils';
 
-interface SimpleInterestResultCardProps {
+/**
+ * `onCopy`, `onShare` and `onSaveImage` are the integration points for the
+ * result actions; they are passed straight to the action row. None is wired
+ * up yet (clipboard, share and save are separate issues).
+ */
+interface SimpleInterestResultCardProps extends ResultActionsProps {
   result: SimpleInterestResult;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
@@ -28,6 +34,9 @@ export function SimpleInterestResultCard({
   result,
   enteredRate,
   rateMode,
+  onCopy,
+  onShare,
+  onSaveImage,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
@@ -104,6 +113,11 @@ export function SimpleInterestResultCard({
         <Text style={styles.durationLine}>{durationLine}</Text>
       </View>
       {rows.slice(2).map(renderRow)}
+      <ResultActions
+        onCopy={onCopy}
+        onShare={onShare}
+        onSaveImage={onSaveImage}
+      />
     </View>
   );
 }

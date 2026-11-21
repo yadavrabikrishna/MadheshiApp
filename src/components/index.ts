@@ -1,6 +1,7 @@
 export { Button } from './common/Button';
 export { Icon, type IconName } from './common/Icon';
 export { MaskedField } from './common/MaskedField';
+export { ResultActions, type ResultActionsProps } from './common/ResultActions';
 export { ScreenPlaceholder } from './common/ScreenPlaceholder';
 export { SwitchRow } from './common/SwitchRow';
 export {

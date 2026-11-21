@@ -91,6 +91,10 @@ export const np: Translations = {
   'simpleInterest.unit.months': 'महिना',
   'simpleInterest.unit.days': 'दिन',
 
+  'resultActions.copy': 'कपी गर्नुहोस्',
+  'resultActions.share': 'सेयर गर्नुहोस्',
+  'resultActions.saveImage': 'तस्बिर सुरक्षित गर्नुहोस्',
+
   'calculatorSettings.title': 'क्यालकुलेटर सेटिङ',
   'calculatorSettings.entry.description':
     'कुन क्यालकुलेटरहरू उपलब्ध हुने छनौट गर्नुहोस्',
