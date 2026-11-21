@@ -12,7 +12,8 @@ src/
     AppBootstrap.tsx           Opens storage, hydrates Redux, then renders the app
     AppRoot.tsx                Themed NavigationContainer and StatusBar
   components/                Reusable UI, no business logic
-    common/                    Button, Icon, MaskedField, ScreenPlaceholder, SegmentedControl,
+    common/                    Button, Icon, MaskedField, ResultActions (Copy / Share / Save
+                               Image row, UI only), ScreenPlaceholder, SegmentedControl,
                                SwitchRow, TextField, TopTabs, useKeyboardAwareForm (keyboard
                                inset + scroll-into-view hook)
     header/                    Top-right header controls (theme, language)
