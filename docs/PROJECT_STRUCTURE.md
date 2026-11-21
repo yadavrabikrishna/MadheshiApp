@@ -12,7 +12,9 @@ src/
     AppBootstrap.tsx           Opens storage, hydrates Redux, then renders the app
     AppRoot.tsx                Themed NavigationContainer and StatusBar
   components/                Reusable UI, no business logic
-    common/                    Button, Icon, ScreenPlaceholder, SegmentedControl, SwitchRow, TopTabs
+    common/                    Button, Icon, MaskedField, ScreenPlaceholder, SegmentedControl,
+                               SwitchRow, TextField, TopTabs, useKeyboardAwareForm (keyboard
+                               inset + scroll-into-view hook)
     header/                    Top-right header controls (theme, language)
   features/                  One folder per feature: Redux slice, selectors, tests
     preferences/               Theme + language state and persistence thunks
@@ -23,6 +25,8 @@ src/
                                (YYYY/MM/DD validation + fixed 30-day/12-month duration),
                                rate.ts (rate-mode normalisation), simpleInterest.ts
                                (calculateSimpleInterest); public API via index.ts
+  utils/                     Pure helpers: formatMoney (Decimal, half-up, Indian grouping),
+                               maskedInput (value/display masks and caret-preserving edits), fillTemplate
   i18n/                      Centralized translations (en, np) and useTranslation
     resources/                 en.ts defines the keys; np.ts must match
   navigation/                React Navigation setup and route types
@@ -31,7 +35,8 @@ src/
                                settings in Redux and sets the header title (calculatorLabels.ts),
                                CalculatorGroupView = a group's selector (only when 2+ are enabled),
                                + one folder per calculator
-      InterestCalculator/        InterestCalculatorView, SimpleInterestView, CompoundInterestView
+      InterestCalculator/        InterestCalculatorView, SimpleInterestView (+ ResultCard, form reducer,
+                                 error-message mapping), CompoundInterestView
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
       BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)

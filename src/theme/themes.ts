@@ -16,6 +16,8 @@ export interface ThemeColors {
   tabInactive: string;
   /** Scrim behind popups. */
   overlay: string;
+  /** Validation messages and invalid-field borders. Always paired with text/an icon. */
+  error: string;
 }
 
 export interface AppTheme {

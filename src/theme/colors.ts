@@ -18,6 +18,8 @@ export const lightColors = {
   border: '#E5E7EB',
   tabInactive: '#6B7280',
   overlay: 'rgba(17, 24, 39, 0.4)',
+  // Validation text on the light surfaces (about 6:1 contrast).
+  error: '#B91C1C',
 } as const;
 
 export const darkColors = {
@@ -34,6 +36,8 @@ export const darkColors = {
   border: '#374151',
   tabInactive: '#9CA3AF',
   overlay: 'rgba(0, 0, 0, 0.6)',
+  // Validation text on the dark surfaces (about 7:1 contrast).
+  error: '#FCA5A5',
 } as const;
 
 export const appColors = {

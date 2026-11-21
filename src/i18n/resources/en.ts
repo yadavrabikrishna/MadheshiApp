@@ -17,8 +17,6 @@ export const en = {
   'calculator.interest.type.label': 'Interest type',
   'calculator.interest.type.simple': 'Simple Interest',
   'calculator.interest.type.compound': 'Compound Interest',
-  'calculator.interest.simple.description':
-    'The simple interest calculator will be implemented in a later task.',
   'calculator.interest.compound.description':
     'The compound interest calculator will be implemented in a later task.',
   'calculator.age.system.label': 'Date system',
@@ -43,6 +41,55 @@ export const en = {
   'calculator.basic.title': 'Basic Calculator',
   'calculator.basic.description':
     'The Basic Calculator interface and operations will be implemented in a future update.',
+
+  'simpleInterest.currency': 'Rs.',
+  'simpleInterest.principal.label': 'Principal amount',
+  'simpleInterest.principal.hint': 'The amount borrowed or lent, in Rs.',
+  'simpleInterest.principal.placeholder': '100000',
+  'simpleInterest.rate.label': 'Monthly interest rate',
+  'simpleInterest.rate.hint.percent':
+    'Percent per month. For example, 2 means 2% every month.',
+  'simpleInterest.rate.hint.rupees':
+    'Rupees per Rs. 100 per month. For example, 2 means Rs. 2 on every Rs. 100 each month.',
+  'simpleInterest.rate.placeholder': '2',
+  'simpleInterest.rateMode.label': 'Rate entry mode',
+  'simpleInterest.rateMode.percent': '% per month',
+  'simpleInterest.rateMode.rupees': 'Rs. per Rs. 100',
+  'simpleInterest.startDate.label': 'Start Date',
+  'simpleInterest.endDate.label': 'End Date',
+  'simpleInterest.date.hint':
+    'Type 8 digits (YYYYMMDD). The slashes are added for you.',
+  'simpleInterest.date.placeholder': 'YYYY/MM/DD',
+  'simpleInterest.calculate': 'Calculate',
+
+  'simpleInterest.error.prefix': 'Error',
+  'simpleInterest.error.summary': 'Please correct the fields marked below.',
+  'simpleInterest.error.principalInvalid':
+    'Enter the principal as a number, for example 100000 or 2500.50.',
+  'simpleInterest.error.principalNotPositive':
+    'The principal must be greater than zero.',
+  'simpleInterest.error.rateInvalid':
+    'Enter the rate as a number, for example 2 or 1.5. Zero is allowed.',
+  'simpleInterest.error.rateNegative': 'The rate cannot be negative.',
+  'simpleInterest.error.rateModeInvalid': 'Choose how the rate is entered.',
+  'simpleInterest.error.startDateInvalid':
+    'Enter a complete start date as YYYY/MM/DD, with month 01 to 12 and day 01 to 32.',
+  'simpleInterest.error.endDateInvalid':
+    'Enter a complete end date as YYYY/MM/DD, with month 01 to 12 and day 01 to 32.',
+  'simpleInterest.error.endBeforeStart':
+    'The end date cannot be earlier than the start date.',
+
+  'simpleInterest.result.title': 'Simple Interest result',
+  'simpleInterest.result.principal': 'Principal',
+  'simpleInterest.result.interestRate': 'Interest Rate',
+  'simpleInterest.result.duration': 'Duration',
+  'simpleInterest.result.interest': 'Simple Interest',
+  'simpleInterest.result.total': 'Total Amount',
+  'simpleInterest.rateText.percent': '{rate}% per month',
+  'simpleInterest.rateText.rupees': 'Rs. {rate} per Rs. 100 per month',
+  'simpleInterest.unit.years': 'Years',
+  'simpleInterest.unit.months': 'Months',
+  'simpleInterest.unit.days': 'Days',
 
   'calculatorSettings.title': 'Calculator Settings',
   'calculatorSettings.entry.description':

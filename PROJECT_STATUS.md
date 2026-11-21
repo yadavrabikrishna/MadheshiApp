@@ -6,8 +6,9 @@
 
 - Repository: yadavrabikrishna/MadheshiApp
 - Integration branch: `develop`
-- Audited develop commit: `7b52a93cacae8ca16be3a39bcad3669f79536f06`
-- Audit date: 2026-11-19
+- Audited develop commit: `206ba71a07d4a42930103873d30fe2861466f7ee` (remote `develop` head, re-checked 2026-11-20; the earlier audit referenced `7b52a93`, which is stale because `develop` has since been updated).
+- Audit date: 2026-11-20
+- This branch (`feature/simple-interest-calculator`) is based on PR #29's branch (`82604c1`), not on the current `develop`, so it does not yet contain the newer `AGENTS.md` / `docs/AI_HANDOFF.md` from `develop`.
 - Release: V1
 - Stack: React Native CLI + TypeScript, React Native StyleSheet, React Navigation, Redux Toolkit + RTK Query, npm.
 - V1 boundaries: Madheshi.com WordPress REST API for news; SQLite for local persistence; calculators run on-device; no separate FastAPI/PostgreSQL backend.
@@ -17,7 +18,8 @@
 
 - The four primary bottom-navigation destinations (Home, News, Calculator and Settings) are part of the approved app shell.
 - Calculator navigation and configuration are integrated: Interest, Age and Land groups; individual calculator enable/disable settings; saved active-calculator selection; Basic Calculator fallback; and a localized header title that follows the active calculator.
-- The calculator views/components exist as the implementation starting points, but the actual calculator experiences and calculation-domain behavior remain to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
+- Simple Interest is implemented on the integration branch `feature/simple-interest-calculator`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26: form, masked inputs, result card, en/np, light/dark). That work is NOT yet in `develop`; it is pushed on that branch (no PR yet) and awaiting owner review and on-device Android validation (see the recovery checkpoint under "Current handoff").
+- On `develop` the calculator views are still placeholders. Compound Interest, Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders everywhere; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
 - Basic Calculator is currently a placeholder; it does not provide keypad or arithmetic functionality.
 - The current calculator navigation, persistence and source layout are described in `docs/PROJECT_STRUCTURE.md`. Always inspect the current implementation before extending it.
 
@@ -73,15 +75,16 @@ Source-of-truth boundaries:
 
 ## Next application milestone
 
-The next planned feature is implementation of the Simple Interest Calculator experience. Before creating or implementing that feature:
+Simple Interest (engine + UI) is implemented and pushed on `feature/simple-interest-calculator` and awaits owner review and device testing. Remaining steps before it reaches `develop`:
 
-1. Confirm this status update has been reviewed and merged by the project owner.
-2. Confirm the generated Notion snapshots have synchronized the latest `^10.6.0` dependency policy.
-3. Review the latest V1 Release Scope, Functional Requirements and Development Plan snapshots, especially the approved interest date-counting, partial-period, rate-entry and rounding rules.
-4. Review the current Simple Interest navigation/view components, theme and localization patterns, tests, and the prototype reference. Treat the prototype as reference material only; implement the native React Native experience using the existing project architecture.
-5. Create a dedicated GitHub issue describing the approved scope, then implement it on a task branch created from the latest `develop`.
+1. Owner review of the working tree; fix any findings.
+2. Android build/run and manual validation on a real device (keyboard avoidance, caret/Backspace behavior of the masked inputs, Nepali rendering, screen reader, light/dark, small and large screens). This has not been done: the agent environment has no Android SDK or emulator.
+3. Open ONE final PR from `feature/simple-interest-calculator` to `develop` containing the engine and the UI, with `Closes #26` and `Closes #27`, when the owner asks. PR #29 is not merged separately. The owner merges manually.
+4. Rebase/merge in the newer `develop` (`AGENTS.md`, `docs/AI_HANDOFF.md`) as part of that integration.
 
-Do not assume the Simple Interest UI issue includes Compound Interest, or that a UI task authorizes changing approved calculation rules. Keep the issue's UI and calculation scope explicit.
+Later milestones (each needs its own issue and task branch from the latest `develop`): Compound Interest UI (reuse `src/utils/formatMoney.ts` and the masked inputs), Age and Land calculators, Basic Calculator, and Issue #30 (Copy Result / Share as Image, which needs owner approval before any clipboard or image-share dependency is added).
+
+Do not assume a UI task authorizes changing approved calculation rules. Keep each issue's UI and calculation scope explicit. Review the latest V1 snapshots in `docs/notion/` (date-counting, partial-period, rate-entry and rounding rules) before extending the calculators.
 
 ## Required agent handoff protocol
 
@@ -104,6 +107,48 @@ At the end of substantive work, update this file with:
 Never report a check as passed unless it was executed and its output reviewed. Never put secrets, access tokens, personal credentials or private account data in repository handoff files.
 
 ## Current handoff
+
+### Checkpoint — Issue #26 automatic scroll-to-field fix, 2026-11-21 (committed and pushed on top of `0bf9cd7`; no PR yet)
+
+Follow-up to device testing of `0bf9cd7`: the keyboard, Next/Done and manual scrolling worked, but the form did not scroll the focused field above the keyboard by itself. UI only; the engine, `package.json` and `package-lock.json` are untouched.
+
+- Root cause (found by tracing the code; not reproducible without a device): `useKeyboardAwareForm` only scrolled through `measureLayout()` on the ScrollView's inner content view (no failure callback, so a failed measurement was silently dropped) and compared against a cached `viewportHeight`. The keyboard-show handler itself never scrolled; it only set the bottom padding and depended on a later ScrollView `onLayout`. On first focus the keyboard does not exist yet, so the field looks visible and nothing scrolls.
+- Fix, same hook (no second system): the focused field, the ScrollView and the keyboard's top edge are all measured in WINDOW coordinates (`measureInWindow`, the same call that already drives the padding) and `computeScrollDelta` returns how far to scroll (0 when already visible, so no needless movement; a field taller than the visible area shows its top). The check runs on field focus (so Next works), on the keyboard-show event itself (the keyboard top limits the visible area even before the padding is laid out), and when the ScrollView is resized. Each check measures fresh and is event-driven only, so it cannot loop. A measurement that finishes after focus moved on is ignored.
+- Files modified: `src/components/common/useKeyboardAwareForm.ts`, `src/components/common/__tests__/useKeyboardAwareForm.test.tsx` (23 tests, incl. a mid-animation convergence test), `__tests__/SimpleInterestCalculator.test.tsx` (+7 view-level tests), `PROJECT_STATUS.md`.
+- Checks run (2026-11-21): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check src __tests__ PROJECT_STATUS.md docs/PROJECT_STRUCTURE.md` clean; `npm test -- --runInBand` exit 0, 21 suites, 461 tests passed. Mutation checks confirmed the new tests fail when focus-scrolling or keyboard-show scrolling is removed. Two integration tests initially failed because the test simulation did not emit the scroll event a real ScrollView emits after `scrollTo` (a test flaw, fixed in the test; the production hook was verified separately).
+- NOT verified on a device (Jest cannot reproduce Android keyboard, IME or window timing): that `endCoordinates.screenY` and `measureInWindow` share the same coordinate origin in edge-to-edge (a status-bar-sized offset would leave the field slightly covered); the animation feel (no jump or flicker); content-end clamping (a field cannot scroll past the end of the content); Next between decimal-pad and number-pad keyboards.
+- Next action: owner re-tests on the Android device (steps in the final report of that session), then authorizes the final PR to `develop`.
+
+### Checkpoint — Issue #26 Android keyboard fixes, 2026-11-21 (committed and pushed on top of `0c18e21`; no PR yet)
+
+Found during the owner's real-device test of `feature/simple-interest-calculator`. UI only; the engine, `package.json` and `package-lock.json` are untouched.
+
+- Root causes: (1) keyboard overlap: the app is edge-to-edge (`targetSdkVersion = 36`, `edgeToEdgeEnabled=true`), so Android no longer resizes the window and `windowSoftInputMode="adjustResize"` has no effect; the old `KeyboardAvoidingView` had no `behavior` on Android, and its own frame is parent-relative, so it was not a reliable fix; (2) no Next/Done: the inputs had no `returnKeyType`, `submitBehavior`, refs or focus chain; (3) the validation summary sat above Calculate.
+- Implemented with built-in React Native APIs only: `src/components/common/useKeyboardAwareForm.ts` measures the form container in window coordinates when the keyboard shows (`Keyboard` events + `measureInWindow`), pads its bottom by the overlap (0 again when the keyboard hides), and scrolls the focused field fully into view (label above, hint/error below), again whenever the viewport resizes; nothing moves if the field is already visible. `TextField` forwards `ref`, `returnKeyType`, `submitBehavior`, `onSubmitEditing`, `onFocus`, `onBlur` (so `MaskedField` gets them too). `SimpleInterestView` chains Principal -> Rate -> Start Date -> End Date: "Next" with `submitBehavior="submit"` (keyboard stays open, next field focused), "Done" with `blurAndSubmit` + `Keyboard.dismiss()` on the last. The summary is now the first element, directly above Principal Amount (still one summary; each field keeps its own message); after a failed Calculate the form scrolls to the top so the summary is seen.
+- Files modified: `src/components/common/TextField.tsx`, `src/components/index.ts`, `src/screens/Calculator/InterestCalculator/SimpleInterestView.tsx`, `__tests__/SimpleInterestCalculator.test.tsx` (+8 tests), `PROJECT_STATUS.md`, `docs/PROJECT_STRUCTURE.md`. Files created: `src/components/common/useKeyboardAwareForm.ts`, `src/components/common/__tests__/useKeyboardAwareForm.test.tsx` (17 tests).
+- Checks run (2026-11-21): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check src __tests__` clean; `npm test -- --runInBand` exit 0, 21 suites, 448 tests passed.
+- NOT verified on a device (Jest cannot reproduce Android's keyboard/IME/window behavior): fields stay above the keyboard (especially the date fields) on small and large screens; Next keeps the keyboard open between decimal-pad and number-pad fields (the keyboard height may change); the action key actually shows "Next"/"Done" on the numeric keyboard (Gboard and a Nepali keyboard); Done closes the keyboard and the layout returns with no blank space; scrolling when the keyboard is closed; the summary scroll-to-top; TalkBack; light/dark. iOS number pads have no return key; iOS was not a target here.
+- Next action: owner re-tests on the Android device (list above), then authorizes the final PR to `develop`.
+
+### Recovery checkpoint — Issue #26 (Simple Interest Calculator UI), 2026-11-20
+
+- Status: implemented, review findings fixed, verified by automated checks; committed and pushed to `origin/feature/simple-interest-calculator` on the owner's explicit authorization (2026-11-20) so it can be tested on a local PC. **No PR has been created.** Owner review and Android device validation are still required before the final PR.
+- Branch: `feature/simple-interest-calculator`, based on `feature/simple-interest-calculation-logic` (PR #29 head `82604c1`, unchanged; this branch's single new commit sits directly on `82604c1`). PR #29 is open and was not modified; `develop` (`206ba71`) was not modified. Issues #26 and #27 are open (checked 2026-11-20).
+- Completed: form (principal, monthly rate, exactly two rate modes `percentPerMonth` / `rupeesPer100PerMonth`, neutral Start/End Date); the single engine call `calculateSimpleInterest` (via `runSimpleInterest` in `simpleInterestForm.ts`; no second engine, no duplicated formulas or date logic); field-level localized errors for all 8 engine codes (`simpleInterestMessages.ts`; `endBeforeStart` beside End Date); result card (principal, entered rate/mode, monthly rate, dates, duration, emphasised interest and total); Decimal-safe money formatting (half-up to 2 dp, trailing zeros trimmed, Nepal/Indian grouping, reusable); masked inputs (one continuous 8-digit date input with auto `/`, digit-wise Backspace, cursor-preserving edits, rejected 9th digit, Devanagari digits accepted; no date picker, no AD/BS labels); any edit clears the result; local state only; en/np strings; light/dark via a new `error` theme token.
+- Review findings fixed (2026-11-20): (1) `MaskedField` could let a stale native selection event move the caret backwards; a programmatic caret is now "pending" and absorbs at most one differing native event (or is confirmed by the matching one); later events are treated as user movement; no timers. (2) Added the missing integration tests (zero rate, zero duration, `2025/01/32` to `2025/03/01` = 29 days, reversed range, Light to Dark and Dark to Light with values kept, English to Nepali with values entered first, valid result kept across language and theme changes). (3) Added component tests for the real `MaskedField` event/selection path. (4) Accessibility: fields keep their normal hint, each error is announced once by its own row (the summary line and the result-card container no longer add duplicate/ineffective alert props). (5) Added direct unit tests for `fillTemplate` and `formatNeutralDate`. (6) Corrected stale sections of this file.
+- Files modified (code/tests): `src/components/index.ts`, `src/i18n/resources/{en,np}.ts`, `src/screens/Calculator/InterestCalculator/SimpleInterestView.tsx` (placeholder replaced; the key `calculator.interest.simple.description` was removed), `src/theme/{colors,themes}.ts`, `__tests__/CalculatorTabs.test.tsx` and `__tests__/CalculatorSettings.test.tsx` (new markers; the Simple view adds two rate-mode radios).
+- Files modified (docs): `PROJECT_STATUS.md` (this file), `docs/PROJECT_STRUCTURE.md`.
+- Files created: `src/components/common/{TextField,MaskedField}.tsx`, `src/components/common/__tests__/MaskedField.test.tsx`, `src/utils/{formatMoney,maskedInput,fillTemplate,index}.ts`, `src/utils/__tests__/{formatMoney,maskedInput,fillTemplate}.test.ts`, `src/screens/Calculator/InterestCalculator/{SimpleInterestResultCard.tsx,simpleInterestForm.ts,simpleInterestMessages.ts}`, `src/screens/Calculator/InterestCalculator/__tests__/{simpleInterestForm,formatNeutralDate}.test.ts`, `__tests__/SimpleInterestCalculator.test.tsx` (22 integration tests with the real engine, store and i18n).
+- Automated checks actually run on this working tree (2026-11-20, after the last source/test change): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check src __tests__` clean; `npm test -- --runInBand` exit 0, 20 suites, 424 tests passed. The stale-selection component test was also confirmed to FAIL when the fix is disabled and pass with it. Only documentation changed after that run.
+- Automated tests do NOT prove native Android behavior. Jest simulates the event order (change text, then selection events); it cannot reproduce real keyboard/IME timing.
+- Keyboard avoidance: the first implementation (`KeyboardAvoidingView` + `adjustResize`) failed on a real device (edge-to-edge ignores `adjustResize`); it was replaced by `useKeyboardAwareForm` (see the 2026-11-21 checkpoint above).
+- Remaining Android-only verification (not done; no SDK/emulator in the agent environment): Android build/run; keyboard avoidance with fields reachable; caret placement and Backspace of the date and principal inputs with real keyboards (including a Nepali/Gboard keyboard); `decimal-pad` / `number-pad` behavior; Nepali text rendering; TalkBack; touch targets; light/dark appearance and the `error` token contrast (comments claim about 6:1 / 7:1, not measured); small and large screens.
+- Scope guard: Issue #30 (Copy Result / Share as Image) is **not** implemented: no clipboard, view-capture or share code and no new dependency (`package.json` and `package-lock.json` unchanged). The engine in `src/features/interest` is unchanged.
+- Decisions to flag to the owner: added an `error` theme token (the crimson `primary` lacks contrast for small text on dark); Indian grouping is used for both languages; the Nepali UI shows ASCII digits; Devanagari digits typed into inputs are normalised; a leading `.` becomes `0.`; a trailing `.` (e.g. `2.`) is kept and the engine reports it invalid; form state is lost when switching Simple/Compound; comma-decimal keyboard locales are not handled. After the stale-event fix, a user caret movement that arrives immediately after a formatted edit and before the keyboard's own event can be absorbed once; the next keystroke's diff-based edit detection still corrects the value.
+- Remaining work: (1) owner review; (2) on-device Android validation; (3) the PR only when the owner asks (one PR to `develop` with `Closes #26` and `Closes #27`); (4) bring in the newer `develop` (`AGENTS.md`, `docs/AI_HANDOFF.md`).
+- Next action: owner pulls the branch, runs it on an Android device, then authorizes the final PR or requests changes.
+
+### Previous checkpoint — Issue #27 (engine, PR #29)
 
 - Last completed: Issue #27 — pure Simple Interest calculation engine in `src/features/interest/` (neutral `YYYY/MM/DD` validation, fixed 30-day/12-month duration, monthly-rate normalisation for both rate modes, Decimal.js simple interest with a cloned constructor) plus unit tests. No UI, Redux, storage, dependency or Compound Interest changes.
 - Public API (`src/features/interest`): `calculateSimpleInterest(input)` returns `{ ok: true, value }` or `{ ok: false, errors }`; also `parseNeutralDate`, `calculateFixedDuration`, `isEndBeforeStart`, `fixedDayCount`, `normalizeMonthlyRate`, `parseDecimalInput`, `RATE_ENTRY_MODES`, `CalcDecimal`. Results are exact (unrounded) Decimal values; money display formatting is left to the UI (Issue #26).
