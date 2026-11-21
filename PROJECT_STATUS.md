@@ -108,6 +108,17 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #26 automatic scroll-to-field fix, 2026-11-21 (committed and pushed on top of `0bf9cd7`; no PR yet)
+
+Follow-up to device testing of `0bf9cd7`: the keyboard, Next/Done and manual scrolling worked, but the form did not scroll the focused field above the keyboard by itself. UI only; the engine, `package.json` and `package-lock.json` are untouched.
+
+- Root cause (found by tracing the code; not reproducible without a device): `useKeyboardAwareForm` only scrolled through `measureLayout()` on the ScrollView's inner content view (no failure callback, so a failed measurement was silently dropped) and compared against a cached `viewportHeight`. The keyboard-show handler itself never scrolled; it only set the bottom padding and depended on a later ScrollView `onLayout`. On first focus the keyboard does not exist yet, so the field looks visible and nothing scrolls.
+- Fix, same hook (no second system): the focused field, the ScrollView and the keyboard's top edge are all measured in WINDOW coordinates (`measureInWindow`, the same call that already drives the padding) and `computeScrollDelta` returns how far to scroll (0 when already visible, so no needless movement; a field taller than the visible area shows its top). The check runs on field focus (so Next works), on the keyboard-show event itself (the keyboard top limits the visible area even before the padding is laid out), and when the ScrollView is resized. Each check measures fresh and is event-driven only, so it cannot loop. A measurement that finishes after focus moved on is ignored.
+- Files modified: `src/components/common/useKeyboardAwareForm.ts`, `src/components/common/__tests__/useKeyboardAwareForm.test.tsx` (23 tests, incl. a mid-animation convergence test), `__tests__/SimpleInterestCalculator.test.tsx` (+7 view-level tests), `PROJECT_STATUS.md`.
+- Checks run (2026-11-21): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check src __tests__ PROJECT_STATUS.md docs/PROJECT_STRUCTURE.md` clean; `npm test -- --runInBand` exit 0, 21 suites, 461 tests passed. Mutation checks confirmed the new tests fail when focus-scrolling or keyboard-show scrolling is removed. Two integration tests initially failed because the test simulation did not emit the scroll event a real ScrollView emits after `scrollTo` (a test flaw, fixed in the test; the production hook was verified separately).
+- NOT verified on a device (Jest cannot reproduce Android keyboard, IME or window timing): that `endCoordinates.screenY` and `measureInWindow` share the same coordinate origin in edge-to-edge (a status-bar-sized offset would leave the field slightly covered); the animation feel (no jump or flicker); content-end clamping (a field cannot scroll past the end of the content); Next between decimal-pad and number-pad keyboards.
+- Next action: owner re-tests on the Android device (steps in the final report of that session), then authorizes the final PR to `develop`.
+
 ### Checkpoint — Issue #26 Android keyboard fixes, 2026-11-21 (committed and pushed on top of `0c18e21`; no PR yet)
 
 Found during the owner's real-device test of `feature/simple-interest-calculator`. UI only; the engine, `package.json` and `package-lock.json` are untouched.

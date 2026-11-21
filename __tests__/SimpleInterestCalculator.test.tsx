@@ -2,8 +2,9 @@
  * Simple Interest calculator UI (Issue #26): the real app tree, Redux store, i18n
  * and the real calculation engine, on a Node SQLite database.
  */
-import { Keyboard, TextInput } from 'react-native';
+import { Keyboard, ScrollView, TextInput, View } from 'react-native';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -665,5 +666,192 @@ describe('Simple Interest calculator: keyboard actions and summary placement', (
     await fillForm({ principal: '10' });
 
     expect(screen.queryByText(en['simpleInterest.error.summary'])).toBeNull();
+  });
+});
+
+describe('Simple Interest calculator: automatic scrolling to the focused field', () => {
+  /**
+   * A simulated screen behind the real view. Under Jest, View/TextInput/
+   * ScrollView are mocks whose measureInWindow/scrollTo are shared jest.fn on
+   * the prototype, so they are given positions here. Real Android keyboard and
+   * layout behavior is NOT covered; that needs a device.
+   */
+  const labels = {
+    principal: en['simpleInterest.principal.label'],
+    rate: en['simpleInterest.rate.label'],
+    startDate: en['simpleInterest.startDate.label'],
+    endDate: en['simpleInterest.endDate.label'],
+  };
+  const SCROLL_TOP = 100;
+  const SCROLL_HEIGHT = 600;
+  const KEYBOARD_TOP = 400;
+  const handlers: Record<string, Array<(event: unknown) => void>> = {};
+  const world = { scrollY: 0, contentY: {} as Record<string, number> };
+  const scrollTo = ScrollView.prototype.scrollTo as unknown as jest.Mock;
+  const sharedMeasureInWindow = () =>
+    (View.prototype as unknown as { measureInWindow: jest.Mock })
+      .measureInWindow;
+  const windowY = (label: string) =>
+    SCROLL_TOP + world.contentY[label] - world.scrollY;
+  const fullyVisible = (label: string) =>
+    windowY(label) >= SCROLL_TOP &&
+    windowY(label) + 48 <= Math.min(SCROLL_TOP + SCROLL_HEIGHT, KEYBOARD_TOP);
+
+  beforeEach(() => {
+    world.scrollY = 0;
+    // content y of each field (height 48); End Date is far down the form
+    world.contentY = {
+      [labels.principal]: 650,
+      [labels.rate]: 760,
+      [labels.startDate]: 40,
+      [labels.endDate]: 900,
+    };
+    jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      event: string,
+      handler: (e: unknown) => void,
+    ) => {
+      (handlers[event] ??= []).push(handler);
+      return { remove: jest.fn() };
+    }) as unknown as typeof Keyboard.addListener);
+    // One shared jest.fn serves View, ScrollView and TextInput alike, so a
+    // single implementation answers by what is being measured.
+    sharedMeasureInWindow().mockImplementation(function (
+      this: { props: { accessibilityLabel?: string } },
+      callback: (...rect: number[]) => void,
+    ) {
+      const label = this.props.accessibilityLabel;
+      if (label !== undefined && label in world.contentY) {
+        callback(0, windowY(label), 300, 48); // an input field
+      } else {
+        callback(0, SCROLL_TOP, 360, SCROLL_HEIGHT); // the form and its ScrollView
+      }
+    });
+    scrollTo.mockReset();
+    // A real ScrollView moves and then reports its offset through onScroll;
+    // the hook relies on that to know where the form currently is.
+    scrollTo.mockImplementation(function (
+      this: {
+        props: { onScroll: (event: unknown) => void };
+      },
+      { y }: { y: number },
+    ) {
+      world.scrollY = y;
+      this.props.onScroll({ nativeEvent: { contentOffset: { x: 0, y } } });
+    });
+  });
+
+  afterEach(() => {
+    for (const key of Object.keys(handlers)) {
+      delete handlers[key];
+    }
+    sharedMeasureInWindow().mockReset();
+    scrollTo.mockReset();
+  });
+
+  const openKeyboard = async () => {
+    const events = ['keyboardWillShow', 'keyboardDidShow'];
+    for (const event of events) {
+      for (const handler of handlers[event] ?? []) {
+        await act(async () =>
+          handler({ endCoordinates: { screenY: KEYBOARD_TOP } }),
+        );
+      }
+    }
+  };
+  const closeKeyboard = async () => {
+    for (const event of ['keyboardWillHide', 'keyboardDidHide']) {
+      for (const handler of handlers[event] ?? []) {
+        await act(async () => handler({}));
+      }
+    }
+  };
+
+  it('scrolls an obscured Principal Amount field fully above the keyboard when it is focused', async () => {
+    await launchSimpleInterest();
+    await openKeyboard();
+    scrollTo.mockClear();
+
+    await fireEvent(field(labels.principal), 'focus');
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(fullyVisible(labels.principal)).toBe(true);
+  });
+
+  it('scrolls when the keyboard opens while a field is already focused', async () => {
+    await launchSimpleInterest();
+    world.scrollY = 0;
+    world.contentY[labels.principal] = 350; // visible without a keyboard
+    await fireEvent(field(labels.principal), 'focus');
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    await openKeyboard();
+
+    expect(scrollTo).toHaveBeenCalled();
+    expect(fullyVisible(labels.principal)).toBe(true);
+  });
+
+  it('Next: the following field is scrolled into view when it is obscured', async () => {
+    await launchSimpleInterest();
+    await openKeyboard();
+    await fireEvent(field(labels.principal), 'focus');
+    await fireEvent(field(labels.principal), 'blur');
+    scrollTo.mockClear();
+
+    // Next on Principal focuses Rate (native then reports the focus event).
+    await fireEvent(field(labels.principal), 'submitEditing');
+    await fireEvent(field(labels.rate), 'focus');
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(fullyVisible(labels.rate)).toBe(true);
+  });
+
+  it('every field, including the last ones near the bottom, ends up above the keyboard', async () => {
+    await launchSimpleInterest();
+    await openKeyboard();
+
+    let previous: string | undefined;
+    for (const label of Object.values(labels)) {
+      if (previous) {
+        await fireEvent(field(previous), 'blur');
+      }
+      await fireEvent(field(label), 'focus');
+      expect(fullyVisible(label)).toBe(true);
+      previous = label;
+    }
+  });
+
+  it('does not scroll when the focused field is already fully visible', async () => {
+    await launchSimpleInterest();
+    await openKeyboard();
+    scrollTo.mockClear();
+
+    await fireEvent(field(labels.startDate), 'focus'); // content y 40: visible
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('does not scroll again for repeated focus and keyboard events', async () => {
+    await launchSimpleInterest();
+    await openKeyboard();
+    await fireEvent(field(labels.endDate), 'focus');
+    const calls = scrollTo.mock.calls.length;
+    expect(calls).toBe(1);
+
+    await fireEvent(field(labels.endDate), 'focus');
+    await openKeyboard();
+
+    expect(scrollTo).toHaveBeenCalledTimes(calls);
+  });
+
+  it('keeps the entered values and the layout intact when the keyboard closes', async () => {
+    await launchSimpleInterest();
+    await fillForm({ principal: '1000', rate: '2' });
+    await openKeyboard();
+    await fireEvent(field(labels.endDate), 'focus');
+
+    await closeKeyboard();
+
+    expect(field(labels.principal).props.value).toBe('1,000');
+    expect(field(labels.rate).props.value).toBe('2');
   });
 });
