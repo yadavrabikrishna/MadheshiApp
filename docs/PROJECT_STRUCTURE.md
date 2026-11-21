@@ -21,6 +21,10 @@ src/
     preferences/               Theme + language state and persistence thunks
     calculators/               Which calculators are enabled + the active one (saved state),
                                calculatorModel.ts = pure navigation/fallback rules
+    resultActions/             Copy-to-clipboard for result summaries: clipboard.ts
+                               (copyTextToClipboard, verifies by reading back because Android
+                               swallows native write errors), useCopyResult.ts (hook: copy +
+                               auto-hiding localized feedback); public API via index.ts
     interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
                                decimal.ts (cloned Decimal, input parsing), neutralDate.ts
                                (YYYY/MM/DD validation + fixed 30-day/12-month duration),
@@ -37,14 +41,16 @@ src/
                                CalculatorGroupView = a group's selector (only when 2+ are enabled),
                                + one folder per calculator
       InterestCalculator/        InterestCalculatorView, SimpleInterestView (+ ResultCard, form reducer,
-                                 error-message mapping), CompoundInterestView
+                                 error-message mapping, simpleInterestDisplay.ts = the displayed
+                                 text shared by the card and the copied summary,
+                                 simpleInterestSummary.ts = plain-text summary), CompoundInterestView
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
       BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)
     Settings/                  SettingsScreen, CalculatorSettingsScreen (draft until Save)
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks
-  test-utils/                Jest helpers (real SQLite via node:sqlite); not shipped
+  test-utils/                Jest helpers (real SQLite via node:sqlite, fakeClipboard); not shipped
   theme/                     Color tokens, light/dark themes, navigation theme, hooks
   types/                     Shared domain types and constants
 ```

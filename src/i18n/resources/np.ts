@@ -94,6 +94,8 @@ export const np: Translations = {
   'resultActions.copy': 'कपी गर्नुहोस्',
   'resultActions.share': 'सेयर गर्नुहोस्',
   'resultActions.saveImage': 'तस्बिर सुरक्षित गर्नुहोस्',
+  'resultActions.copied': 'क्लिपबोर्डमा कपी गरियो',
+  'resultActions.copyFailed': 'कपी गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।',
 
   'calculatorSettings.title': 'क्यालकुलेटर सेटिङ',
   'calculatorSettings.entry.description':

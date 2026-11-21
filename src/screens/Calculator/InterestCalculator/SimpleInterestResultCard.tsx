@@ -1,84 +1,65 @@
 import { Text, View } from 'react-native';
 
 import { ResultActions, type ResultActionsProps } from '../../../components';
-import { useTranslation } from '../../../i18n';
 import type {
-  NeutralDate,
   RateEntryMode,
   SimpleInterestResult,
 } from '../../../features/interest';
+import { useCopyResult } from '../../../features/resultActions';
+import { useTranslation } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
-import { fillTemplate, formatMoney } from '../../../utils';
+import { getSimpleInterestDisplay } from './simpleInterestDisplay';
+import { buildSimpleInterestSummary } from './simpleInterestSummary';
+
+export { formatNeutralDate } from './simpleInterestDisplay';
 
 /**
- * `onCopy`, `onShare` and `onSaveImage` are the integration points for the
- * result actions; they are passed straight to the action row. None is wired
- * up yet (clipboard, share and save are separate issues).
+ * Copy is handled here (it copies a text summary of this result). `onShare`
+ * and `onSaveImage` are still integration points that are passed straight to
+ * the action row; they are not wired up yet.
  */
-interface SimpleInterestResultCardProps extends ResultActionsProps {
+interface SimpleInterestResultCardProps
+  extends Omit<ResultActionsProps, 'onCopy' | 'feedback'> {
   result: SimpleInterestResult;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
   rateMode: RateEntryMode;
 }
 
-const pad = (value: number, width: number) =>
-  String(value).padStart(width, '0');
-
-/** Neutral display only: no calendar name, no conversion. */
-export function formatNeutralDate(date: NeutralDate): string {
-  return `${pad(date.year, 4)}/${pad(date.month, 2)}/${pad(date.day, 2)}`;
-}
-
 export function SimpleInterestResultCard({
   result,
   enteredRate,
   rateMode,
-  onCopy,
   onShare,
   onSaveImage,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
-
-  const enteredRateText = fillTemplate(
-    t(
-      rateMode === 'percentPerMonth'
-        ? 'simpleInterest.rateText.percent'
-        : 'simpleInterest.rateText.rupees',
-    ),
-    { rate: enteredRate },
+  const { copy, feedback } = useCopyResult(() =>
+    buildSimpleInterestSummary(result, enteredRate, rateMode, t),
   );
-  const { years, months, days } = result.duration;
-  const durationText = [
-    `${years} ${t('simpleInterest.unit.years')}`,
-    `${months} ${t('simpleInterest.unit.months')}`,
-    `${days} ${t('simpleInterest.unit.days')}`,
-  ].join(', ');
-  const rs = t('simpleInterest.currency');
 
-  const dateRangeText = `${formatNeutralDate(
-    result.startDate,
-  )} – ${formatNeutralDate(result.endDate)}`;
-  const durationLine = `${t(
-    'simpleInterest.result.duration',
-  )}: ${durationText}`;
+  const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
+  const dateRangeText = `${display.startDate} – ${display.endDate}`;
+  const durationLine = `${t('simpleInterest.result.duration')}: ${
+    display.duration
+  }`;
 
   /** Rows before the dates/duration block, and the emphasised rows after it. */
   const rows: { label: string; value: string; strong?: boolean }[] = [
+    { label: t('simpleInterest.result.principal'), value: display.principal },
     {
-      label: t('simpleInterest.result.principal'),
-      value: `${rs} ${formatMoney(result.principal)}`,
+      label: t('simpleInterest.result.interestRate'),
+      value: display.interestRate,
     },
-    { label: t('simpleInterest.result.interestRate'), value: enteredRateText },
     {
       label: t('simpleInterest.result.interest'),
-      value: `${rs} ${formatMoney(result.interest)}`,
+      value: display.interest,
       strong: true,
     },
     {
       label: t('simpleInterest.result.total'),
-      value: `${rs} ${formatMoney(result.total)}`,
+      value: display.total,
       strong: true,
     },
   ];
@@ -114,9 +95,10 @@ export function SimpleInterestResultCard({
       </View>
       {rows.slice(2).map(renderRow)}
       <ResultActions
-        onCopy={onCopy}
+        onCopy={copy}
         onShare={onShare}
         onSaveImage={onSaveImage}
+        feedback={feedback}
       />
     </View>
   );

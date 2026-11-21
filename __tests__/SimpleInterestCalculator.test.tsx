@@ -10,12 +10,14 @@ import {
   screen,
   userEvent,
 } from '@testing-library/react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppBootstrap, AppRoot } from '../src/app';
 import { en } from '../src/i18n/resources/en';
 import { np } from '../src/i18n/resources/np';
 import { themes } from '../src/theme';
+import { installFakeClipboard } from '../src/test-utils/fakeClipboard';
 import { runMigrations } from '../src/storage/migrations';
 import { createPreferencesRepository } from '../src/storage/preferencesRepository';
 import {
@@ -1064,12 +1066,15 @@ describe('Simple Interest calculator: result actions (Issue #30)', () => {
     }
   });
 
-  it('does not change the result or show any message when an action is pressed', async () => {
+  it('does not change the result or show any message when Share or Save Image is pressed (not wired up yet)', async () => {
     const user = await launchSimpleInterest();
     await fillForm(validForm);
     await calculate(user);
 
-    for (const label of actionLabels) {
+    for (const label of [
+      en['resultActions.share'],
+      en['resultActions.saveImage'],
+    ]) {
       await user.press(screen.getByRole('button', { name: label }));
     }
 
@@ -1077,5 +1082,205 @@ describe('Simple Interest calculator: result actions (Issue #30)', () => {
     expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText(/copied|shared|saved|success/i)).toBeNull();
+  });
+});
+
+describe('Simple Interest calculator: copy result summary (Issue #35)', () => {
+  const validForm = {
+    principal: '100000',
+    rate: '2',
+    start: '20250101',
+    end: '20250401',
+  };
+  const englishSummary = [
+    'Simple Interest result',
+    '',
+    'Principal: Rs. 1,00,000',
+    'Interest Rate: 2% per month',
+    'Start Date: 2025/01/01',
+    'End Date: 2025/04/01',
+    'Duration: 0 Years, 3 Months, 0 Days',
+    '',
+    'Simple Interest: Rs. 6,000',
+    'Total Amount: Rs. 1,06,000',
+  ].join('\n');
+  const nepaliSummary = [
+    'घरेलु ब्याजको नतिजा',
+    '',
+    'मूलधन: रु. 1,00,000',
+    'ब्याज दर: 2% प्रति महिना',
+    'सुरु मिति: 2025/01/01',
+    'अन्तिम मिति: 2025/04/01',
+    'अवधि: 0 वर्ष, 3 महिना, 0 दिन',
+    '',
+    'घरेलु ब्याज: रु. 6,000',
+    'जम्मा रकम: रु. 1,06,000',
+  ].join('\n');
+
+  const copyButton = () =>
+    screen.getByRole('button', { name: en['resultActions.copy'] });
+  const calculated = async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+    return user;
+  };
+
+  it('is not offered until a valid result is shown, and goes with the result', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await launchSimpleInterest();
+    expect(screen.queryByRole('button', { name: 'Copy' })).toBeNull();
+
+    await calculate(user); // empty form: invalid
+    expect(screen.queryByRole('button', { name: 'Copy' })).toBeNull();
+
+    await fillForm(validForm);
+    await calculate(user);
+    expect(copyButton()).toBeOnTheScreen();
+
+    await fillForm({ principal: '2000' });
+    expect(screen.queryByRole('button', { name: 'Copy' })).toBeNull();
+    expect(clipboard.setString).not.toHaveBeenCalled();
+  });
+
+  it('copies a readable English summary of the inputs and results', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await calculated();
+
+    await user.press(copyButton());
+
+    expect(clipboard.setString).toHaveBeenCalledTimes(1);
+    expect(clipboard.content).toBe(englishSummary);
+    expect(
+      await screen.findByText(en['resultActions.copied']),
+    ).toBeOnTheScreen();
+  });
+
+  it('copies the summary in Nepali, with a Nepali message, after a language change', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await calculated();
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+
+    await user.press(
+      screen.getByRole('button', { name: np['resultActions.copy'] }),
+    );
+
+    expect(clipboard.content).toBe(nepaliSummary);
+    expect(
+      await screen.findByText(np['resultActions.copied']),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
+  });
+
+  it('copies the entered rate and mode and the displayed (rounded) money', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await launchSimpleInterest();
+    await user.press(
+      screen.getByRole('radio', { name: en['simpleInterest.rateMode.rupees'] }),
+    );
+    // 1,000 at Rs. 0.5 per Rs. 100 per month for 10 days = 1.6666...
+    await fillForm({
+      principal: '1000',
+      rate: '0.5',
+      start: '20250101',
+      end: '20250111',
+    });
+    await calculate(user);
+
+    await user.press(copyButton());
+
+    expect(clipboard.content).toContain(
+      'Interest Rate: Rs. 0.5 per Rs. 100 per month',
+    );
+    expect(clipboard.content).toContain('Simple Interest: Rs. 1.67');
+    expect(clipboard.content).toContain('Total Amount: Rs. 1,001.67');
+    expect(clipboard.content).toContain('Duration: 0 Years, 0 Months, 10 Days');
+  });
+
+  it('shows the success message only after the clipboard write has finished', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await calculated();
+    // Hold the read-back that confirms the write, so the write is "in flight".
+    let finish: (text: string) => void = () => {};
+    jest
+      .mocked(Clipboard.getString)
+      .mockImplementationOnce(
+        () => new Promise<string>(resolve => (finish = resolve)),
+      );
+
+    await user.press(copyButton());
+
+    expect(clipboard.setString).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
+    expect(screen.queryByText(en['resultActions.copyFailed'])).toBeNull();
+
+    await act(async () => finish(clipboard.content));
+
+    expect(screen.getByText(en['resultActions.copied'])).toBeOnTheScreen();
+  });
+
+  it('shows an error and never success when the native write silently fails', async () => {
+    // Android swallows native clipboard errors, so JS sees no exception.
+    const clipboard = installFakeClipboard('silentFailure');
+    const user = await calculated();
+
+    await user.press(copyButton());
+
+    expect(clipboard.setString).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(en['resultActions.copyFailed']),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
+    // The app and the result are unaffected.
+    expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
+  });
+
+  it.each(['throwOnWrite', 'rejectOnRead'] as const)(
+    'shows an error and does not crash when the clipboard fails (%s)',
+    async mode => {
+      installFakeClipboard(mode);
+      const user = await calculated();
+
+      await user.press(copyButton());
+
+      expect(
+        await screen.findByText(en['resultActions.copyFailed']),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
+      expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
+    },
+  );
+
+  it('replaces the error with success when a later copy works', async () => {
+    installFakeClipboard('silentFailure');
+    const user = await calculated();
+    await user.press(copyButton());
+    expect(
+      await screen.findByText(en['resultActions.copyFailed']),
+    ).toBeOnTheScreen();
+
+    installFakeClipboard('working');
+    await user.press(copyButton());
+
+    expect(
+      await screen.findByText(en['resultActions.copied']),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(en['resultActions.copyFailed'])).toBeNull();
+  });
+
+  it('does not keep the message when the result is replaced', async () => {
+    installFakeClipboard();
+    const user = await calculated();
+    await user.press(copyButton());
+    expect(
+      await screen.findByText(en['resultActions.copied']),
+    ).toBeOnTheScreen();
+
+    await fillForm({ principal: '2000' });
+    await calculate(user);
+
+    expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
+    expect(copyButton()).toBeOnTheScreen();
   });
 });
