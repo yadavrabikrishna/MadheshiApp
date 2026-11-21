@@ -1,13 +1,13 @@
 <!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->
 <!-- Source page ID: 4119628c857d81458e31cdcfd484d031 -->
 <!-- Notion last edited: 2026-11-19T10:06:00.000Z -->
-<!-- Synced at: 2026-11-19T10:21:29+00:00 -->
+<!-- Synced at: 2026-11-21T02:46:57+00:00 -->
 
 # V1. Madheshi App — Development Plan, Architecture Boundaries & Test Checklist
 
 **Source:** [V1. Madheshi App — Development Plan, Architecture Boundaries & Test Checklist](https://app.notion.com/p/V1-Madheshi-App-Development-Plan-Architecture-Boundaries-Test-Checklist-4119628c857d81458e31cdcfd484d031)  
 **Notion last edited:** 2026-11-19T10:06:00.000Z  
-**Snapshot synced:** 2026-11-19T10:21:29+00:00
+**Snapshot synced:** 2026-11-21T02:46:57+00:00
 
 ---
 
