@@ -1,0 +1,136 @@
+import {
+  calculateSimpleInterest,
+  type RateEntryMode,
+} from '../../../../features/interest';
+import { translate, type TranslationKey } from '../../../../i18n';
+import type { Language } from '../../../../types/preferences';
+import { getSimpleInterestDisplay } from '../simpleInterestDisplay';
+import { buildSimpleInterestSummary } from '../simpleInterestSummary';
+
+function summary(
+  input: {
+    principal: string;
+    rate: string;
+    rateMode?: RateEntryMode;
+    startDate: string;
+    endDate: string;
+  },
+  language: Language = 'en',
+) {
+  const rateMode = input.rateMode ?? 'percentPerMonth';
+  const outcome = calculateSimpleInterest({ ...input, rateMode });
+  if (!outcome.ok) {
+    throw new Error(`expected a valid result: ${outcome.errors.join(', ')}`);
+  }
+  const t = (key: TranslationKey) => translate(language, key);
+  return {
+    text: buildSimpleInterestSummary(outcome.value, input.rate, rateMode, t),
+    display: getSimpleInterestDisplay(outcome.value, input.rate, rateMode, t),
+  };
+}
+
+const base = {
+  principal: '100000',
+  rate: '2',
+  startDate: '2025/01/01',
+  endDate: '2025/04/01',
+};
+
+describe('buildSimpleInterestSummary', () => {
+  it('lists the inputs, then the results, in English', () => {
+    expect(summary(base).text).toBe(
+      [
+        'Simple Interest result',
+        '',
+        'Principal: Rs. 1,00,000',
+        'Interest Rate: 2% per month',
+        'Start Date: 2025/01/01',
+        'End Date: 2025/04/01',
+        'Duration: 0 Years, 3 Months, 0 Days',
+        '',
+        'Simple Interest: Rs. 6,000',
+        'Total Amount: Rs. 1,06,000',
+      ].join('\n'),
+    );
+  });
+
+  it('is fully translated in Nepali', () => {
+    expect(summary(base, 'np').text).toBe(
+      [
+        'घरेलु ब्याजको नतिजा',
+        '',
+        'मूलधन: रु. 1,00,000',
+        'ब्याज दर: 2% प्रति महिना',
+        'सुरु मिति: 2025/01/01',
+        'अन्तिम मिति: 2025/04/01',
+        'अवधि: 0 वर्ष, 3 महिना, 0 दिन',
+        '',
+        'घरेलु ब्याज: रु. 6,000',
+        'जम्मा रकम: रु. 1,06,000',
+      ].join('\n'),
+    );
+  });
+
+  it('shows the rate as entered, with its mode', () => {
+    expect(
+      summary({ ...base, rate: '2', rateMode: 'rupeesPer100PerMonth' }).text,
+    ).toContain('Interest Rate: Rs. 2 per Rs. 100 per month');
+    expect(
+      summary({ ...base, rate: '2', rateMode: 'rupeesPer100PerMonth' }, 'np')
+        .text,
+    ).toContain('ब्याज दर: रु. 2 प्रति रु. १०० प्रति महिना');
+    expect(summary({ ...base, rate: '0.75' }).text).toContain(
+      'Interest Rate: 0.75% per month',
+    );
+  });
+
+  it('uses the displayed money format: Indian grouping and half-up rounding', () => {
+    const { text } = summary({
+      principal: '1234567',
+      rate: '2',
+      startDate: '2025/01/01',
+      endDate: '2025/02/01',
+    });
+    expect(text).toContain('Principal: Rs. 12,34,567');
+    expect(text).toContain('Simple Interest: Rs. 24,691.34');
+    expect(text).toContain('Total Amount: Rs. 12,59,258.34');
+
+    // 1,000 at 0.5% for 10 days = 1.6666... shown as 1.67
+    const rounded = summary({
+      principal: '1000',
+      rate: '0.5',
+      startDate: '2025/01/01',
+      endDate: '2025/01/11',
+    }).text;
+    expect(rounded).toContain('Simple Interest: Rs. 1.67');
+    expect(rounded).toContain('Total Amount: Rs. 1,001.67');
+  });
+
+  it('handles a zero rate and identical dates', () => {
+    const { text } = summary({
+      principal: '5000',
+      rate: '0',
+      startDate: '2025/01/15',
+      endDate: '2025/01/15',
+    });
+    expect(text).toContain('Interest Rate: 0% per month');
+    expect(text).toContain('Duration: 0 Years, 0 Months, 0 Days');
+    expect(text).toContain('Simple Interest: Rs. 0');
+    expect(text).toContain('Total Amount: Rs. 5,000');
+  });
+
+  it('copies exactly the values the result card shows', () => {
+    const { text, display } = summary(base);
+
+    for (const value of Object.values(display)) {
+      expect(text).toContain(value);
+    }
+  });
+
+  it('is plain text: no markup and no trailing line break', () => {
+    const { text } = summary(base);
+
+    expect(text).not.toMatch(/[*_#<>]/);
+    expect(text.endsWith('\n')).toBe(false);
+  });
+});

@@ -17,7 +17,7 @@
 
 - The four primary bottom-navigation destinations (Home, News, Calculator and Settings) are part of the approved app shell.
 - Calculator navigation and configuration are integrated: Interest, Age and Land groups; individual calculator enable/disable settings; saved active-calculator selection; Basic Calculator fallback; and a localized header title that follows the active calculator.
-- Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). The three actions do nothing yet: clipboard (#35), share-as-image (#36) and save-as-image (#37) are separate issues.
+- Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). Copy now copies a plain-text summary to the clipboard (Issue #35, PR pending owner review); Share (#36) and Save Image (#37) do nothing yet and are separate issues.
 - Compound Interest, Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
 - Basic Calculator is currently a placeholder; it does not provide keypad or arithmetic functionality.
 - The current calculator navigation, persistence and source layout are described in `docs/PROJECT_STRUCTURE.md`. Always inspect the current implementation before extending it.
@@ -38,6 +38,7 @@ The following work is merged into `develop`:
 - PR #23 — generated V1 Notion specification snapshots.
 - PR #29 — Simple Interest calculation engine (Issue #27).
 - PR #33 — complete Simple Interest calculator UI (Issue #26).
+- PR #39 — Calculator result actions UI (Issue #30).
 - PR #34 — `@react-native-clipboard/clipboard`, `react-native-view-shot` and `react-native-share` installed (dependencies only; no feature code uses them yet).
 
 PR #16, #21, #22, #23, #24, #29, #33 and #34 are closed and merged. Verify GitHub directly for any newer issue or PR before starting work.
@@ -104,6 +105,16 @@ At the end of substantive work, update this file with:
 Never report a check as passed unless it was executed and its output reviewed. Never put secrets, access tokens, personal credentials or private account data in repository handoff files.
 
 ## Current handoff
+
+### Checkpoint — Issue #35 (copy Simple Interest result summary), 2026-11-21 (branch `feature/calculator-copy-result-summary` from `develop` at `266a12f`; PR to `develop` with `Closes #35`, owner review and manual merge required)
+
+- Completed: the Copy action of `ResultActions` now copies a plain-text summary (title, principal, entered rate + mode, start/end date, duration, interest, total) in the active language, using exactly the text the result card displays (shared `simpleInterestDisplay.ts`; `simpleInterestSummary.ts` joins it). Clipboard access lives in `src/features/resultActions/clipboard.ts`; `useCopyResult` shows "Copied to clipboard" only after the write is confirmed and a localized error otherwise (auto-hides after 3 s; presses during a copy are ignored; no state update after unmount). `ResultActions` gained an optional `feedback` prop (live region; error uses the `error` token and the alert role). Copy exists only on the valid result card. Share and Save Image remain unwired (#36, #37).
+- Success detection: `Clipboard.setString` returns nothing and Android swallows native exceptions, so success means reading the clipboard back and comparing it with the text.
+- Files: new `jest.setup.js`, `src/features/resultActions/{clipboard,useCopyResult,index}.ts` (+ `__tests__/{clipboard,useCopyResult}`), `src/test-utils/fakeClipboard.ts`, `src/screens/Calculator/InterestCalculator/{simpleInterestDisplay,simpleInterestSummary}.ts` (+ `__tests__/simpleInterestSummary.test.ts`); modified `jest.config.js` (setupFiles: global clipboard mock), `ResultActions.tsx` (+ tests), `src/components/index.ts`, `SimpleInterestResultCard.tsx`, `src/i18n/resources/{en,np}.ts`, `__tests__/SimpleInterestCalculator.test.tsx`, `docs/PROJECT_STRUCTURE.md`, `PROJECT_STATUS.md`. `package.json`, `package-lock.json` and native files unchanged.
+- Checks run (2026-11-21): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npm test -- --runInBand` exit 0, 25 suites, 524 tests (22 suites / 482 tests before this change); Prettier run on all changed files.
+- NOT verified: Android build or run (no Android SDK here); actual clipboard content and paste on a device; whether the read-back can be blocked by Android 13+/clipboard-access rules on some devices (it would then show the error message); TalkBack announcement of the feedback; layout on small screens.
+- Owner decisions: (1) Nepali strings `क्लिपबोर्डमा कपी गरियो` / `कपी गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।` are my wording; please confirm. (2) The read-back success check (above). (3) Display text was extracted into `simpleInterestDisplay.ts` so the card and summary cannot drift. (4) `jest.setup.js` was added so the native clipboard module loads in all Jest suites. (5) 3 s auto-hide.
+- Next action: owner reviews the PR and tries Copy and paste on an Android device; then implement #36 and #37.
 
 ### Checkpoint — Issue #30 (Calculator Result Actions UI), 2026-11-21 (committed and pushed on `feature/calculator-result-actions-ui`; PR to `develop` with `Closes #30`, owner review and manual merge required)
 

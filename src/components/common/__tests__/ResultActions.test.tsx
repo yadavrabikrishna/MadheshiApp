@@ -202,3 +202,82 @@ describe('ResultActions', () => {
     }
   });
 });
+
+describe('ResultActions feedback', () => {
+  const liveRegion = () =>
+    JSON.stringify(screen.toJSON()).includes(
+      '"accessibilityLiveRegion":"polite"',
+    );
+
+  it('shows no message unless the caller passes feedback, but keeps a live region ready', async () => {
+    await render(setup().ui);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(liveRegion()).toBe(true);
+  });
+
+  it('shows no message for null feedback', async () => {
+    await render(setup({ feedback: null }).ui);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(glyph('checkmark-circle-outline'))).toBeNull();
+    expect(screen.queryByText(glyph('alert-circle-outline'))).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+  });
+
+  it('shows a success message in the text color, without an alert role', async () => {
+    await render(
+      setup({ feedback: { type: 'success', message: 'Copied to clipboard' } })
+        .ui,
+    );
+
+    expect(screen.getByText('Copied to clipboard')).toHaveStyle({
+      color: themes.light.colors.text,
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(
+      screen.getByText(glyph('checkmark-circle-outline')),
+    ).toBeOnTheScreen();
+    expect(liveRegion()).toBe(true);
+  });
+
+  it('shows an error message as an alert in the error color', async () => {
+    await render(
+      setup({ feedback: { type: 'error', message: "Couldn't copy" } }).ui,
+    );
+
+    // The alert role is on the message text itself.
+    expect(screen.getByRole('alert')).toBe(screen.getByText("Couldn't copy"));
+    expect(screen.getByText("Couldn't copy")).toHaveStyle({
+      color: themes.light.colors.error,
+    });
+    expect(screen.getByText(glyph('alert-circle-outline'))).toBeOnTheScreen();
+  });
+
+  it('uses dark theme tokens for the message', async () => {
+    const { ui, store } = setup({
+      feedback: { type: 'error', message: "Couldn't copy" },
+    });
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setTheme('dark'));
+    });
+
+    expect(screen.getByText("Couldn't copy")).toHaveStyle({
+      color: themes.dark.colors.error,
+    });
+  });
+
+  it('does not call any handler by showing feedback', async () => {
+    const onCopy = jest.fn();
+    await render(
+      setup({
+        onCopy,
+        feedback: { type: 'success', message: 'Copied to clipboard' },
+      }).ui,
+    );
+
+    expect(onCopy).not.toHaveBeenCalled();
+  });
+});
