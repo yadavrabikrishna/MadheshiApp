@@ -17,7 +17,7 @@
 
 - The four primary bottom-navigation destinations (Home, News, Calculator and Settings) are part of the approved app shell.
 - Calculator navigation and configuration are integrated: Interest, Age and Land groups; individual calculator enable/disable settings; saved active-calculator selection; Basic Calculator fallback; and a localized header title that follows the active calculator.
-- Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). Copy now copies a plain-text summary to the clipboard (Issue #35, PR pending owner review); Share (#36) and Save Image (#37) do nothing yet and are separate issues.
+- Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). Copy copies a plain-text summary to the clipboard (Issue #35, PR #40, merged); Share shares the result card as an image (Issue #36, PR pending owner review); Save Image (#37) does nothing yet and is a separate issue.
 - Compound Interest, Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
 - Basic Calculator is currently a placeholder; it does not provide keypad or arithmetic functionality.
 - The current calculator navigation, persistence and source layout are described in `docs/PROJECT_STRUCTURE.md`. Always inspect the current implementation before extending it.
@@ -39,6 +39,7 @@ The following work is merged into `develop`:
 - PR #29 — Simple Interest calculation engine (Issue #27).
 - PR #33 — complete Simple Interest calculator UI (Issue #26).
 - PR #39 — Calculator result actions UI (Issue #30).
+- PR #40 — Copy Simple Interest result summary to the clipboard (Issue #35).
 - PR #34 — `@react-native-clipboard/clipboard`, `react-native-view-shot` and `react-native-share` installed (dependencies only; no feature code uses them yet).
 
 PR #16, #21, #22, #23, #24, #29, #33 and #34 are closed and merged. Verify GitHub directly for any newer issue or PR before starting work.
@@ -105,6 +106,15 @@ At the end of substantive work, update this file with:
 Never report a check as passed unless it was executed and its output reviewed. Never put secrets, access tokens, personal credentials or private account data in repository handoff files.
 
 ## Current handoff
+
+### Checkpoint — Issue #36 (share result card as an image), 2026-11-21 (branch `feature/calculator-share-result-image` from `develop` at `db8f4e3`; PR to `develop` with `Closes #36`, owner review and manual merge required)
+
+- Completed: the Share action of `ResultActions` captures only the result card content as a PNG (`react-native-view-shot`, `result: 'tmpfile'`) and opens the native share sheet with it (`react-native-share`, `type: 'image/png'`, `failOnCancel: false`). The card is split into a capture view (`testID="result-card-image"`, `collapsable={false}`, own themed surface background, padding) and the action row outside it, so buttons, feedback and inputs are never in the image; the on-screen look is unchanged. Success and cancellation show no message (the share sheet is the feedback); a capture or share-sheet failure shows a localized, auto-hiding error (3 s) and never a success message. Presses during a share are ignored. Temporary file: deleted at once on cancel or failure; after a share it is kept (the receiving app may still be reading it) and deleted when the next share starts (otherwise left to the OS cache cleanup). Reusable: `shareViewAsImage(ref, {title})` and `useShareResultImage()` in `src/features/resultActions/`; another calculator attaches `captureRef` to its card view. Copy and Save Image are unchanged (Save Image still unwired, #37).
+- Files: new `src/features/resultActions/{shareImage,useShareResultImage}.ts` (+ `__tests__/{shareImage,useShareResultImage}`); modified `src/features/resultActions/index.ts`, `SimpleInterestResultCard.tsx`, `src/i18n/resources/{en,np}.ts` (`resultActions.shareTitle`, `resultActions.shareFailed`), `jest.setup.js` (global mocks for the two native modules), `__tests__/SimpleInterestCalculator.test.tsx`, `docs/PROJECT_STRUCTURE.md`, `PROJECT_STATUS.md`. `package.json`, `package-lock.json` and native files unchanged (react-native-share already ships its FileProvider).
+- Checks run (2026-11-21): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npm test -- --runInBand` exit 0, 27 suites, 549 tests (25 / 524 before this change); Prettier run on all changed files.
+- NOT verified: Android build or run (no Android SDK here); that the share sheet really opens with the image and compatible apps (WhatsApp, Messenger, Gmail, Drive) receive it; that the captured PNG looks right in light/dark and Nepali on a device (Jest cannot render pixels); behavior on devices where the share result is not reported; TalkBack.
+- Owner decisions: (1) the image has no outer border or rounded corners (it is the card content with its themed background); (2) no message on success or cancel; (3) Nepali strings `नतिजा सेयर गर्नुहोस्` / `सेयर गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।` are my wording; (4) the last shared image stays in the app cache until the next share.
+- Next action: owner reviews the PR and tests Share on an Android device; then Issue #37 (Save Image), which can reuse the same capture view.
 
 ### Checkpoint — Issue #35 (copy Simple Interest result summary), 2026-11-21 (branch `feature/calculator-copy-result-summary` from `develop` at `266a12f`; PR to `develop` with `Closes #35`, owner review and manual merge required)
 

@@ -5,21 +5,27 @@ import type {
   RateEntryMode,
   SimpleInterestResult,
 } from '../../../features/interest';
-import { useCopyResult } from '../../../features/resultActions';
+import {
+  useCopyResult,
+  useShareResultImage,
+} from '../../../features/resultActions';
 import { useTranslation } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
 import { getSimpleInterestDisplay } from './simpleInterestDisplay';
 import { buildSimpleInterestSummary } from './simpleInterestSummary';
 
+/** Shared image name: this prefix + a random number + `.png`. */
+export const SHARE_IMAGE_FILE_NAME = 'simple-interest-result-';
+
 export { formatNeutralDate } from './simpleInterestDisplay';
 
 /**
- * Copy is handled here (it copies a text summary of this result). `onShare`
- * and `onSaveImage` are still integration points that are passed straight to
- * the action row; they are not wired up yet.
+ * Copy (a text summary) and Share (the card as an image) are handled here.
+ * `onSaveImage` is still an integration point that is passed straight to the
+ * action row; it is not wired up yet.
  */
 interface SimpleInterestResultCardProps
-  extends Omit<ResultActionsProps, 'onCopy' | 'feedback'> {
+  extends Omit<ResultActionsProps, 'onCopy' | 'onShare' | 'feedback'> {
   result: SimpleInterestResult;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
@@ -30,7 +36,6 @@ export function SimpleInterestResultCard({
   result,
   enteredRate,
   rateMode,
-  onShare,
   onSaveImage,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
@@ -38,6 +43,12 @@ export function SimpleInterestResultCard({
   const { copy, feedback } = useCopyResult(() =>
     buildSimpleInterestSummary(result, enteredRate, rateMode, t),
   );
+
+  const {
+    captureRef,
+    share,
+    feedback: shareFeedback,
+  } = useShareResultImage(SHARE_IMAGE_FILE_NAME);
 
   const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
   const dateRangeText = `${display.startDate} – ${display.endDate}`;
@@ -80,26 +91,36 @@ export function SimpleInterestResultCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title} accessibilityRole="header">
-        {t('simpleInterest.result.title')}
-      </Text>
-      {rows.slice(0, 2).map(renderRow)}
-      {/* One compact block: "Start - End", then "Duration: ..." */}
+      {/* Only this view becomes the shared image; the action row is outside. */}
       <View
-        style={styles.row}
-        accessible
-        accessibilityLabel={`${dateRangeText}. ${durationLine}`}
+        ref={captureRef}
+        collapsable={false}
+        testID="result-card-image"
+        style={styles.capture}
       >
-        <Text style={styles.value}>{dateRangeText}</Text>
-        <Text style={styles.durationLine}>{durationLine}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('simpleInterest.result.title')}
+        </Text>
+        {rows.slice(0, 2).map(renderRow)}
+        {/* One compact block: "Start - End", then "Duration: ..." */}
+        <View
+          style={styles.row}
+          accessible
+          accessibilityLabel={`${dateRangeText}. ${durationLine}`}
+        >
+          <Text style={styles.value}>{dateRangeText}</Text>
+          <Text style={styles.durationLine}>{durationLine}</Text>
+        </View>
+        {rows.slice(2).map(renderRow)}
       </View>
-      {rows.slice(2).map(renderRow)}
-      <ResultActions
-        onCopy={copy}
-        onShare={onShare}
-        onSaveImage={onSaveImage}
-        feedback={feedback}
-      />
+      <View style={styles.actions}>
+        <ResultActions
+          onCopy={copy}
+          onShare={share}
+          onSaveImage={onSaveImage}
+          feedback={shareFeedback ?? feedback}
+        />
+      </View>
     </View>
   );
 }
@@ -107,12 +128,19 @@ export function SimpleInterestResultCard({
 const createStyles = (theme: AppTheme) => ({
   card: {
     marginTop: 8,
-    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+    overflow: 'hidden' as const,
   },
+  /** The image: its own background, so it is readable in light and dark. */
+  capture: {
+    padding: 16,
+    paddingBottom: 0,
+    backgroundColor: theme.colors.surface,
+  },
+  actions: { paddingHorizontal: 16, paddingBottom: 16 },
   title: {
     fontSize: 18,
     fontWeight: '700' as const,

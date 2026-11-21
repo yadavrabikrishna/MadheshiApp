@@ -24,7 +24,11 @@ src/
     resultActions/             Copy-to-clipboard for result summaries: clipboard.ts
                                (copyTextToClipboard, verifies by reading back because Android
                                swallows native write errors), useCopyResult.ts (hook: copy +
-                               auto-hiding localized feedback); public API via index.ts
+                               auto-hiding localized feedback), shareImage.ts (captures one view
+                               as a PNG with react-native-view-shot and opens the share sheet with
+                               react-native-share) and useShareResultImage.ts (hook: ref to the
+                               view to capture + share + error-only feedback); public API via
+                               index.ts
     interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
                                decimal.ts (cloned Decimal, input parsing), neutralDate.ts
                                (YYYY/MM/DD validation + fixed 30-day/12-month duration),
