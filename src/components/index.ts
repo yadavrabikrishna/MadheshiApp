@@ -8,5 +8,6 @@ export {
   type SegmentOption,
 } from './common/SegmentedControl';
 export { TextField, type TextFieldProps } from './common/TextField';
+export { useKeyboardAwareForm } from './common/useKeyboardAwareForm';
 export { TopTabs, type TopTabOption } from './common/TopTabs';
 export { HeaderActions } from './header/HeaderActions';

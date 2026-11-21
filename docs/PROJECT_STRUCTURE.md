@@ -13,7 +13,8 @@ src/
     AppRoot.tsx                Themed NavigationContainer and StatusBar
   components/                Reusable UI, no business logic
     common/                    Button, Icon, MaskedField, ScreenPlaceholder, SegmentedControl,
-                               SwitchRow, TextField, TopTabs
+                               SwitchRow, TextField, TopTabs, useKeyboardAwareForm (keyboard
+                               inset + scroll-into-view hook)
     header/                    Top-right header controls (theme, language)
   features/                  One folder per feature: Redux slice, selectors, tests
     preferences/               Theme + language state and persistence thunks

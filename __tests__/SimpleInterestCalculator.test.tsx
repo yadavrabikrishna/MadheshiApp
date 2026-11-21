@@ -2,6 +2,7 @@
  * Simple Interest calculator UI (Issue #26): the real app tree, Redux store, i18n
  * and the real calculation engine, on a Node SQLite database.
  */
+import { Keyboard, TextInput } from 'react-native';
 import {
   fireEvent,
   render,
@@ -542,5 +543,127 @@ describe('Simple Interest calculator: theme and language changes', () => {
     expect(screen.getByText(en['simpleInterest.result.title'])).toHaveStyle({
       color: themes.dark.colors.text,
     });
+  });
+});
+
+describe('Simple Interest calculator: keyboard actions and summary placement', () => {
+  const labels = [
+    en['simpleInterest.principal.label'],
+    en['simpleInterest.rate.label'],
+    en['simpleInterest.startDate.label'],
+    en['simpleInterest.endDate.label'],
+  ];
+
+  /** Every text of the rendered tree, in visual (top to bottom) order. */
+  const textsInOrder = () => {
+    const out: string[] = [];
+    const walk = (node: unknown) => {
+      if (typeof node === 'string') {
+        out.push(node);
+      } else if (node && typeof node === 'object') {
+        const { children } = node as { children?: unknown[] | null };
+        children?.forEach(walk);
+      }
+    };
+    walk(screen.toJSON());
+    return out;
+  };
+
+  it('shows "Next" on every field that has a following field and "Done" on the last', async () => {
+    await launchSimpleInterest();
+
+    expect(labels.map(label => field(label).props.returnKeyType)).toEqual([
+      'next',
+      'next',
+      'next',
+      'done',
+    ]);
+  });
+
+  it('keeps the keyboard open on Next (submit, not blur-and-submit)', async () => {
+    await launchSimpleInterest();
+
+    expect(labels.map(label => field(label).props.submitBehavior)).toEqual([
+      'submit',
+      'submit',
+      'submit',
+      'blurAndSubmit',
+    ]);
+  });
+
+  /**
+   * Under Jest, TextInput is a mock class whose `focus` is one shared jest.fn;
+   * `mock.contexts` holds the instance of every call, so the focused field is
+   * identified by its accessibility label.
+   */
+  const focusMock = () =>
+    (TextInput.prototype as unknown as { focus: jest.Mock }).focus;
+  const focusedLabels = () =>
+    focusMock().mock.contexts.map(
+      (instance: { props: { accessibilityLabel: string } }) =>
+        instance.props.accessibilityLabel,
+    );
+
+  it('Next moves focus to the following field, in form order, without dismissing the keyboard', async () => {
+    await launchSimpleInterest();
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    focusMock().mockClear();
+
+    await fireEvent(field(labels[0]), 'submitEditing');
+    await fireEvent(field(labels[1]), 'submitEditing');
+    await fireEvent(field(labels[2]), 'submitEditing');
+
+    // Principal -> Rate -> Start Date -> End Date, and nothing else.
+    expect(focusedLabels()).toEqual([labels[1], labels[2], labels[3]]);
+    expect(dismiss).not.toHaveBeenCalled();
+  });
+
+  it('Done on the last field dismisses the keyboard and focuses nothing else', async () => {
+    await launchSimpleInterest();
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    focusMock().mockClear();
+
+    await fireEvent(field(labels[3]), 'submitEditing');
+
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(focusedLabels()).toEqual([]);
+  });
+
+  it('shows no summary before a failed Calculate', async () => {
+    await launchSimpleInterest();
+
+    expect(screen.queryByText(en['simpleInterest.error.summary'])).toBeNull();
+  });
+
+  it('shows one summary, immediately above Principal Amount and not above Calculate', async () => {
+    const user = await launchSimpleInterest();
+
+    await calculate(user);
+
+    expect(
+      screen.getAllByText(en['simpleInterest.error.summary']),
+    ).toHaveLength(1);
+    const texts = textsInOrder();
+    const summary = texts.indexOf(en['simpleInterest.error.summary']);
+    const principal = texts.indexOf(en['simpleInterest.principal.label']);
+    const calculateLabel = texts.lastIndexOf(en['simpleInterest.calculate']);
+    expect(summary).toBeGreaterThanOrEqual(0);
+    expect(summary).toBeLessThan(principal);
+    expect(principal).toBeLessThan(calculateLabel);
+    // Nothing sits between the summary and the Principal Amount label.
+    expect(principal - summary).toBe(1);
+  });
+
+  it('keeps each field message next to its field and removes the summary on edit', async () => {
+    const user = await launchSimpleInterest();
+    await calculate(user);
+
+    expect(
+      screen.getByText(en['simpleInterest.error.principalInvalid']),
+    ).toBeOnTheScreen();
+
+    await fillForm({ principal: '10' });
+
+    expect(screen.queryByText(en['simpleInterest.error.summary'])).toBeNull();
   });
 });

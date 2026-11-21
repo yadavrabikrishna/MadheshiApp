@@ -1,7 +1,10 @@
+import type { Ref } from 'react';
 import {
   Text,
   TextInput,
   View,
+  type ReturnKeyTypeOptions,
+  type TextInputInstance,
   type TextInputSelectionChangeEvent,
 } from 'react-native';
 
@@ -23,6 +26,18 @@ export interface TextFieldProps {
   /** A short symbol shown before the input, e.g. "Rs.". */
   prefix?: string;
   maxLength?: number;
+  /** The underlying input, so a form can move focus between fields. */
+  ref?: Ref<TextInputInstance>;
+  /** "next" on every field with a following field, "done" on the last one. */
+  returnKeyType?: ReturnKeyTypeOptions;
+  /**
+   * "submit" keeps focus (and the keyboard) when the action key is pressed, so
+   * `onSubmitEditing` can focus the next field. "blurAndSubmit" closes it.
+   */
+  submitBehavior?: 'submit' | 'blurAndSubmit';
+  onSubmitEditing?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   /** Controlled caret, used by masked inputs. */
   selection?: { start: number; end: number };
   onSelectionChange?: (event: TextInputSelectionChangeEvent) => void;
@@ -47,6 +62,12 @@ export function TextField({
   errorPrefix,
   prefix,
   maxLength,
+  ref,
+  returnKeyType,
+  submitBehavior,
+  onSubmitEditing,
+  onFocus,
+  onBlur,
   selection,
   onSelectionChange,
 }: TextFieldProps) {
@@ -68,6 +89,7 @@ export function TextField({
           </Text>
         ) : null}
         <TextInput
+          ref={ref}
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
@@ -76,6 +98,11 @@ export function TextField({
           placeholderTextColor={theme.colors.textSecondary}
           selectionColor={theme.colors.primary}
           maxLength={maxLength}
+          returnKeyType={returnKeyType}
+          submitBehavior={submitBehavior}
+          onSubmitEditing={onSubmitEditing}
+          onFocus={onFocus}
+          onBlur={onBlur}
           selection={selection}
           onSelectionChange={onSelectionChange}
           autoCorrect={false}

@@ -1,16 +1,17 @@
-import { useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   ScrollView,
   Text,
   View,
+  type TextInputInstance,
 } from 'react-native';
 
 import {
   Button,
   MaskedField,
   SegmentedControl,
+  useKeyboardAwareForm,
   type SegmentOption,
 } from '../../../components';
 import type { RateEntryMode } from '../../../features/interest';
@@ -37,6 +38,44 @@ export function SimpleInterestView() {
     initialSimpleInterestForm,
   );
 
+  const keyboardForm = useKeyboardAwareForm();
+  const { scrollToTop } = keyboardForm;
+  const principalRef = useRef<TextInputInstance>(null);
+  const rateRef = useRef<TextInputInstance>(null);
+  const startDateRef = useRef<TextInputInstance>(null);
+  const endDateRef = useRef<TextInputInstance>(null);
+
+  // The summary is at the top of the form; after a failed Calculate (pressed
+  // lower down) bring it, and the first invalid field, back into view.
+  useEffect(() => {
+    if (form.errors.length > 0) {
+      scrollToTop();
+    }
+  }, [form.errors, scrollToTop]);
+
+  /**
+   * Keyboard action key for the text inputs, top to bottom: "Next" keeps the
+   * keyboard open and focuses the following field; the last field shows "Done"
+   * and closes it. Each focus also scrolls the field above the keyboard.
+   */
+  const chain = (
+    current: React.RefObject<TextInputInstance | null>,
+    next?: React.RefObject<TextInputInstance | null>,
+  ) => ({
+    ref: current,
+    returnKeyType: next ? ('next' as const) : ('done' as const),
+    submitBehavior: next ? ('submit' as const) : ('blurAndSubmit' as const),
+    onSubmitEditing: () => {
+      if (next) {
+        next.current?.focus();
+      } else {
+        Keyboard.dismiss();
+      }
+    },
+    onFocus: () => keyboardForm.onFieldFocus(current.current),
+    onBlur: () => keyboardForm.onFieldBlur(current.current),
+  });
+
   const errorKeys = groupErrorsByField(form.errors);
   const errorsFor = (field: SimpleInterestField) =>
     (errorKeys[field] ?? []).map(key => t(key));
@@ -51,17 +90,28 @@ export function SimpleInterestView() {
   ];
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    // collapsable={false}: Android must keep this view so it can be measured.
+    <View
+      ref={keyboardForm.containerRef}
+      collapsable={false}
+      style={[styles.flex, { paddingBottom: keyboardForm.keyboardInset }]}
     >
       <ScrollView
+        ref={keyboardForm.scrollRef}
+        {...keyboardForm.scrollProps}
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
       >
+        {form.errors.length > 0 ? (
+          // Visual summary only: each field's own error row is the announced one.
+          <Text style={[styles.summary, { color: theme.colors.error }]}>
+            {t('simpleInterest.error.summary')}
+          </Text>
+        ) : null}
+
         <MaskedField
+          {...chain(principalRef, rateRef)}
           mask={groupedDecimalMask}
           label={t('simpleInterest.principal.label')}
           hint={t('simpleInterest.principal.hint')}
@@ -87,6 +137,7 @@ export function SimpleInterestView() {
         />
         <View style={styles.gap} />
         <MaskedField
+          {...chain(rateRef, startDateRef)}
           mask={plainDecimalMask}
           label={t('simpleInterest.rate.label')}
           hint={t(
@@ -105,6 +156,7 @@ export function SimpleInterestView() {
         />
 
         <MaskedField
+          {...chain(startDateRef, endDateRef)}
           mask={dateMask}
           label={t('simpleInterest.startDate.label')}
           hint={t('simpleInterest.date.hint')}
@@ -118,6 +170,7 @@ export function SimpleInterestView() {
           errorPrefix={errorPrefix}
         />
         <MaskedField
+          {...chain(endDateRef)}
           mask={dateMask}
           label={t('simpleInterest.endDate.label')}
           placeholder={t('simpleInterest.date.placeholder')}
@@ -129,13 +182,6 @@ export function SimpleInterestView() {
           errors={errorsFor('endDate')}
           errorPrefix={errorPrefix}
         />
-
-        {form.errors.length > 0 ? (
-          // Visual summary only: each field's own error row is the announced one.
-          <Text style={[styles.summary, { color: theme.colors.error }]}>
-            {t('simpleInterest.error.summary')}
-          </Text>
-        ) : null}
 
         <Button
           variant="primary"
@@ -151,7 +197,7 @@ export function SimpleInterestView() {
           />
         ) : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
