@@ -40,10 +40,6 @@ export function SimpleInterestResultCard({
     ),
     { rate: enteredRate },
   );
-  const monthlyRateText = fillTemplate(t('simpleInterest.rateText.monthly'), {
-    percent: result.monthlyRatePercent.toFixed(),
-    fraction: result.monthlyRate.toFixed(),
-  });
   const { years, months, days } = result.duration;
   const durationText = [
     `${years} ${t('simpleInterest.unit.years')}`,
@@ -52,22 +48,20 @@ export function SimpleInterestResultCard({
   ].join(', ');
   const rs = t('simpleInterest.currency');
 
+  const dateRangeText = `${formatNeutralDate(
+    result.startDate,
+  )} – ${formatNeutralDate(result.endDate)}`;
+  const durationLine = `${t(
+    'simpleInterest.result.duration',
+  )}: ${durationText}`;
+
+  /** Rows before the dates/duration block, and the emphasised rows after it. */
   const rows: { label: string; value: string; strong?: boolean }[] = [
     {
       label: t('simpleInterest.result.principal'),
       value: `${rs} ${formatMoney(result.principal)}`,
     },
-    { label: t('simpleInterest.result.enteredRate'), value: enteredRateText },
-    { label: t('simpleInterest.result.monthlyRate'), value: monthlyRateText },
-    {
-      label: t('simpleInterest.result.startDate'),
-      value: formatNeutralDate(result.startDate),
-    },
-    {
-      label: t('simpleInterest.result.endDate'),
-      value: formatNeutralDate(result.endDate),
-    },
-    { label: t('simpleInterest.result.duration'), value: durationText },
+    { label: t('simpleInterest.result.interestRate'), value: enteredRateText },
     {
       label: t('simpleInterest.result.interest'),
       value: `${rs} ${formatMoney(result.interest)}`,
@@ -80,24 +74,36 @@ export function SimpleInterestResultCard({
     },
   ];
 
+  const renderRow = (row: (typeof rows)[number]) => (
+    <View
+      key={row.label}
+      style={[styles.row, row.strong && styles.rowStrong]}
+      accessible
+      accessibilityLabel={`${row.label}: ${row.value}`}
+    >
+      <Text style={styles.label}>{row.label}</Text>
+      <Text style={[styles.value, row.strong && styles.valueStrong]}>
+        {row.value}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.card}>
       <Text style={styles.title} accessibilityRole="header">
         {t('simpleInterest.result.title')}
       </Text>
-      {rows.map(row => (
-        <View
-          key={row.label}
-          style={[styles.row, row.strong && styles.rowStrong]}
-          accessible
-          accessibilityLabel={`${row.label}: ${row.value}`}
-        >
-          <Text style={styles.label}>{row.label}</Text>
-          <Text style={[styles.value, row.strong && styles.valueStrong]}>
-            {row.value}
-          </Text>
-        </View>
-      ))}
+      {rows.slice(0, 2).map(renderRow)}
+      {/* One compact block: "Start - End", then "Duration: ..." */}
+      <View
+        style={styles.row}
+        accessible
+        accessibilityLabel={`${dateRangeText}. ${durationLine}`}
+      >
+        <Text style={styles.value}>{dateRangeText}</Text>
+        <Text style={styles.durationLine}>{durationLine}</Text>
+      </View>
+      {rows.slice(2).map(renderRow)}
     </View>
   );
 }
@@ -127,6 +133,11 @@ const createStyles = (theme: AppTheme) => ({
   value: {
     fontSize: 16,
     color: theme.colors.text,
+    marginTop: 2,
+  },
+  durationLine: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   valueStrong: { fontSize: 22, fontWeight: '700' as const },

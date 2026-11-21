@@ -154,13 +154,14 @@ describe('Simple Interest calculator', () => {
       screen.getByText(en['simpleInterest.result.title']),
     ).toBeOnTheScreen();
     expect(screen.getByText('Rs. 1,00,000')).toBeOnTheScreen();
+    expect(screen.getByText('Interest Rate')).toBeOnTheScreen();
     expect(screen.getByText('2% per month')).toBeOnTheScreen();
-    expect(screen.getByText('2% per month (0.02)')).toBeOnTheScreen();
-    expect(screen.getByText('0 Years, 3 Months, 0 Days')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Duration: 0 Years, 3 Months, 0 Days'),
+    ).toBeOnTheScreen();
     expect(screen.getByText('Rs. 6,000')).toBeOnTheScreen();
     expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
-    expect(screen.getByText('2025/01/01')).toBeOnTheScreen();
-    expect(screen.getByText('2025/04/01')).toBeOnTheScreen();
+    expect(screen.getByText('2025/01/01 – 2025/04/01')).toBeOnTheScreen();
   });
 
   it('gives the same numbers for Rs. per Rs. 100 and shows the entered mode', async () => {
@@ -371,7 +372,7 @@ describe('Simple Interest calculator: engine edge cases through the UI', () => {
 
     expect(screen.getByText('Rs. 0')).toBeOnTheScreen();
     expect(screen.getAllByText('Rs. 1,000')).toHaveLength(2); // principal + total
-    expect(screen.getByText('0% per month (0)')).toBeOnTheScreen();
+    expect(screen.getByText('0% per month')).toBeOnTheScreen();
     expect(
       screen.queryByText(en['simpleInterest.error.rateInvalid']),
     ).toBeNull();
@@ -387,9 +388,11 @@ describe('Simple Interest calculator: engine edge cases through the UI', () => {
     });
     await calculate(user);
 
-    expect(screen.getByText('0 Years, 0 Months, 0 Days')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Duration: 0 Years, 0 Months, 0 Days'),
+    ).toBeOnTheScreen();
     expect(screen.getByText('Rs. 0')).toBeOnTheScreen();
-    expect(screen.getAllByText('2025/01/15')).toHaveLength(2);
+    expect(screen.getByText('2025/01/15 – 2025/01/15')).toBeOnTheScreen();
     expect(screen.getAllByText('Rs. 5,000')).toHaveLength(2);
   });
 
@@ -406,8 +409,10 @@ describe('Simple Interest calculator: engine edge cases through the UI', () => {
     expect(
       screen.queryByText(en['simpleInterest.error.endBeforeStart']),
     ).toBeNull();
-    expect(screen.getByText('0 Years, 0 Months, 29 Days')).toBeOnTheScreen();
-    expect(screen.getByText('2025/01/32')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Duration: 0 Years, 0 Months, 29 Days'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('2025/01/32 – 2025/03/01')).toBeOnTheScreen();
     // 30000 x 3% x 29/30 = 870
     expect(screen.getByText('Rs. 870')).toBeOnTheScreen();
     expect(screen.getByText('Rs. 30,870')).toBeOnTheScreen();
@@ -853,5 +858,95 @@ describe('Simple Interest calculator: automatic scrolling to the focused field',
 
     expect(field(labels.principal).props.value).toBe('1,000');
     expect(field(labels.rate).props.value).toBe('2');
+  });
+});
+
+describe('Simple Interest result card layout', () => {
+  const calculateValid = async (rateMode?: 'rupees') => {
+    const user = await launchSimpleInterest();
+    if (rateMode === 'rupees') {
+      await user.press(
+        screen.getByRole('radio', {
+          name: en['simpleInterest.rateMode.rupees'],
+        }),
+      );
+    }
+    await fillForm({
+      principal: '100000',
+      rate: '2',
+      start: '20250101',
+      end: '20250401',
+    });
+    await calculate(user);
+    return user;
+  };
+
+  it('shows one Interest Rate row with the entered rate, and no converted monthly rate', async () => {
+    await calculateValid();
+
+    expect(screen.getAllByText('Interest Rate')).toHaveLength(1);
+    expect(screen.getByText('2% per month')).toBeOnTheScreen();
+    expect(screen.queryByText(/Entered rate|Monthly rate used/i)).toBeNull();
+    expect(screen.queryByText(/\(0\.02\)/)).toBeNull();
+  });
+
+  it('keeps the rupees-wise mode and its existing format', async () => {
+    await calculateValid('rupees');
+
+    expect(screen.getByText('Interest Rate')).toBeOnTheScreen();
+    expect(screen.getByText('Rs. 2 per Rs. 100 per month')).toBeOnTheScreen();
+  });
+
+  it('shows the dates and the duration as two lines of one block', async () => {
+    await calculateValid();
+
+    const dates = screen.getByText('2025/01/01 – 2025/04/01');
+    const duration = screen.getByText('Duration: 0 Years, 3 Months, 0 Days');
+    // Same parent View, dates first, and no separate Start/End/Duration rows.
+    expect(dates.parent).toBe(duration.parent);
+    expect(dates.parent?.children).toEqual([dates, duration]);
+    // "Start Date" / "End Date" now appear only as the form's field labels.
+    expect(screen.getAllByText('Start Date')).toHaveLength(1);
+    expect(screen.getAllByText('End Date')).toHaveLength(1);
+    // Announced as one item.
+    expect(
+      screen.getByLabelText(
+        '2025/01/01 – 2025/04/01. Duration: 0 Years, 3 Months, 0 Days',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('keeps the card order: principal, rate, dates and duration, interest, total', async () => {
+    await calculateValid();
+
+    const texts: string[] = [];
+    const walk = (node: unknown) => {
+      if (typeof node === 'string') {
+        texts.push(node);
+      } else if (node && typeof node === 'object') {
+        (node as { children?: unknown[] | null }).children?.forEach(walk);
+      }
+    };
+    walk(screen.toJSON());
+    const order = [
+      en['simpleInterest.result.principal'],
+      en['simpleInterest.result.interestRate'],
+      '2025/01/01 – 2025/04/01',
+      en['simpleInterest.result.interest'],
+      en['simpleInterest.result.total'],
+    ].map(text => texts.lastIndexOf(text));
+    expect(order.every(index => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('is localized in Nepali (label, rate text, duration line)', async () => {
+    const user = await calculateValid();
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+
+    expect(screen.getByText('ब्याज दर')).toBeOnTheScreen();
+    expect(screen.getByText('2% प्रति महिना')).toBeOnTheScreen();
+    expect(screen.getByText('अवधि: 0 वर्ष, 3 महिना, 0 दिन')).toBeOnTheScreen();
+    expect(screen.getByText('2025/01/01 – 2025/04/01')).toBeOnTheScreen();
   });
 });
