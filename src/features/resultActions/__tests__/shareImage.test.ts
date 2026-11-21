@@ -34,6 +34,19 @@ describe('shareViewAsImage', () => {
     expect(result).toEqual({ outcome: 'shared', uri: URI });
   });
 
+  it('passes the file name prefix to the capture when given, and omits it otherwise', async () => {
+    await shareViewAsImage(target, { title: 't', fileName: 'my-result-' });
+    expect(captureRef).toHaveBeenLastCalledWith(
+      target,
+      expect.objectContaining({ fileName: 'my-result-' }),
+    );
+
+    await shareViewAsImage(target, { title: 't' });
+    expect(jest.mocked(captureRef).mock.calls[1][1]).not.toHaveProperty(
+      'fileName',
+    );
+  });
+
   it('keeps the file after a share (the receiving app may still read it)', async () => {
     await shareViewAsImage(target, { title: 't' });
 

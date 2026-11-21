@@ -47,7 +47,7 @@ function isCancellation(error: unknown): boolean {
  */
 export async function shareViewAsImage(
   target: RefObject<ComponentRef<typeof View> | null>,
-  options: { title: string },
+  options: { title: string; fileName?: string },
 ): Promise<ShareImageResult> {
   let uri: string | undefined;
   try {
@@ -55,6 +55,9 @@ export async function shareViewAsImage(
       format: 'png',
       quality: 1,
       result: 'tmpfile',
+      // Android: the name prefix; a random number follows it (view-shot
+      // default is "ReactNative-snapshot-image<random>").
+      ...(options.fileName ? { fileName: options.fileName } : {}),
     });
     if (!uri) {
       return { outcome: 'failed' };

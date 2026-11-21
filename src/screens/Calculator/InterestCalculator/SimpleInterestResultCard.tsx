@@ -14,6 +14,9 @@ import { useThemedStyles, type AppTheme } from '../../../theme';
 import { getSimpleInterestDisplay } from './simpleInterestDisplay';
 import { buildSimpleInterestSummary } from './simpleInterestSummary';
 
+/** Shared image name: this prefix + a random number + `.png`. */
+export const SHARE_IMAGE_FILE_NAME = 'simple-interest-result-';
+
 export { formatNeutralDate } from './simpleInterestDisplay';
 
 /**
@@ -41,7 +44,11 @@ export function SimpleInterestResultCard({
     buildSimpleInterestSummary(result, enteredRate, rateMode, t),
   );
 
-  const { captureRef, share, feedback: shareFeedback } = useShareResultImage();
+  const {
+    captureRef,
+    share,
+    feedback: shareFeedback,
+  } = useShareResultImage(SHARE_IMAGE_FILE_NAME);
 
   const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
   const dateRangeText = `${display.startDate} – ${display.endDate}`;

@@ -14,11 +14,14 @@ export const SHARE_FEEDBACK_MS = 3000;
  * the view that should become the image (give it `collapsable={false}` and
  * keep the action row outside it), and connect `share` to the Share action.
  *
+ * `fileName` is the image's name prefix; the capture adds a random number
+ * (for example `simple-interest-result-` gives `simple-interest-result-123.png`).
+ *
  * The native share sheet is the feedback for a successful share and for a
  * cancellation, so `feedback` only ever reports an error, and only when the
  * capture or the share sheet really failed.
  */
-export function useShareResultImage(): {
+export function useShareResultImage(fileName?: string): {
   captureRef: RefObject<ComponentRef<typeof View> | null>;
   share: () => void;
   feedback: CopyFeedback | null;
@@ -55,7 +58,10 @@ export function useShareResultImage(): {
     lastUri.current = undefined;
 
     const run = async () => {
-      const { outcome, uri } = await shareViewAsImage(captureRef, { title });
+      const { outcome, uri } = await shareViewAsImage(captureRef, {
+        title,
+        fileName,
+      });
       sharing.current = false;
       lastUri.current = uri;
       if (outcome !== 'failed' || !mounted.current) {
@@ -65,7 +71,7 @@ export function useShareResultImage(): {
       hideTimer.current = setTimeout(() => setFailed(false), SHARE_FEEDBACK_MS);
     };
     run();
-  }, [title]);
+  }, [title, fileName]);
 
   // Derived, so the message follows a language change while it is shown.
   const feedback: CopyFeedback | null = failed

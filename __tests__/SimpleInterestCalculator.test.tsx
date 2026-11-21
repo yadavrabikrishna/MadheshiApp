@@ -1349,7 +1349,11 @@ describe('Simple Interest calculator: share result as image (Issue #36)', () => 
 
     expect(captureRef).toHaveBeenCalledTimes(1);
     const [, options] = jest.mocked(captureRef).mock.calls[0];
-    expect(options).toMatchObject({ format: 'png', result: 'tmpfile' });
+    expect(options).toMatchObject({
+      format: 'png',
+      result: 'tmpfile',
+      fileName: 'simple-interest-result-',
+    });
 
     // The captured view holds the result, not the inputs or the action row.
     const captured = cardImage();
