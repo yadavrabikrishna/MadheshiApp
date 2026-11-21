@@ -105,10 +105,11 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
-- Last completed: repository and documentation infrastructure audit; refreshed this status file against `develop` commit `7b52a93cacae8ca16be3a39bcad3669f79536f06`.
-- Branch: `chore/refresh-project-status`.
-- Pull request: pending creation; owner review and manual merge required.
-- Files changed: `PROJECT_STATUS.md` only.
-- Checks: verified GitHub branch/commit, current status file, project structure, agent/contribution instructions, merged PR metadata and documented GitHub Actions run results. No local test or Android build was run for this documentation-only change.
-- Blocker / owner decision: review and merge the status-refresh PR; then confirm the Notion sync has propagated the latest Decimal.js semver policy.
-- Next action: after this PR is merged and the Notion snapshots are current, refine and create the Simple Interest Calculator issue.
+- Last completed: Issue #27 — pure Simple Interest calculation engine in `src/features/interest/` (neutral `YYYY/MM/DD` validation, fixed 30-day/12-month duration, monthly-rate normalisation for both rate modes, Decimal.js simple interest with a cloned constructor) plus unit tests. No UI, Redux, storage, dependency or Compound Interest changes.
+- Public API (`src/features/interest`): `calculateSimpleInterest(input)` returns `{ ok: true, value }` or `{ ok: false, errors }`; also `parseNeutralDate`, `calculateFixedDuration`, `isEndBeforeStart`, `fixedDayCount`, `normalizeMonthlyRate`, `parseDecimalInput`, `RATE_ENTRY_MODES`, `CalcDecimal`. Results are exact (unrounded) Decimal values; money display formatting is left to the UI (Issue #26).
+- Branch: `feature/simple-interest-calculation-logic` (from `develop` at `00becc7`). Pull request: open against `develop` with `Closes #27`; owner review and manual merge required.
+- Files changed: `src/features/interest/{decimal,neutralDate,rate,simpleInterest,index}.ts`, `src/features/interest/__tests__/{neutralDate,rate,simpleInterest}.test.ts`, `docs/PROJECT_STRUCTURE.md`, `PROJECT_STATUS.md`.
+- Checks run: `npx tsc --noEmit` (exit 0), `npm run lint` (exit 0), `npm test -- --runInBand` (13 suites, 343 tests passed, including 157 interest tests). Android build/run not applicable: pure TypeScript, no native, dependency or UI change.
+- Owner-approved decisions (2026-11-19): (1) a date range is rejected with `endBeforeStart`, before any calculation, when the end is earlier component-wise (year/month/day) OR gives a negative elapsed time on the fixed 30/12 scale (e.g. `2025/01/01` to `2024/12/31` is invalid); (2) when the standard borrowing leaves negative remaining days, the duration is normalised to non-negative years/months/days with the same total fixed-scale elapsed time (e.g. `2025/01/32` to `2025/03/01` is 29 days); normalisation never changes `timeInMonths`, interest or total, and nothing is rounded. The 01-32 day range, absence of real-calendar validation and the fixed 30/12 model are unchanged. Both rules are covered by regression tests. The Age Calculator will need the same normalisation if it allows day 32.
+- Blocker / owner decision: review and merge the Issue #27 PR. Issue #26 (UI) must not start until it is merged.
+- Next action: after the Issue #27 PR is merged, implement Issue #26 against the exported API above (request approval before adding any clipboard or image-share dependency).
