@@ -96,6 +96,8 @@ export const en = {
   'resultActions.saveImage': 'Save Image',
   'resultActions.copied': 'Copied to clipboard',
   'resultActions.copyFailed': "Couldn't copy. Please try again.",
+  'resultActions.shareTitle': 'Share result',
+  'resultActions.shareFailed': "Couldn't share. Please try again.",
 
   'calculatorSettings.title': 'Calculator Settings',
   'calculatorSettings.entry.description':

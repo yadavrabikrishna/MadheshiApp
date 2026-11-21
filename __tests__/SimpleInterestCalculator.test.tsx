@@ -9,8 +9,11 @@ import {
   render,
   screen,
   userEvent,
+  within,
 } from '@testing-library/react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
+import Share from 'react-native-share';
+import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppBootstrap, AppRoot } from '../src/app';
@@ -1066,17 +1069,14 @@ describe('Simple Interest calculator: result actions (Issue #30)', () => {
     }
   });
 
-  it('does not change the result or show any message when Share or Save Image is pressed (not wired up yet)', async () => {
+  it('does not change the result or show any message when Save Image is pressed (not wired up yet)', async () => {
     const user = await launchSimpleInterest();
     await fillForm(validForm);
     await calculate(user);
 
-    for (const label of [
-      en['resultActions.share'],
-      en['resultActions.saveImage'],
-    ]) {
-      await user.press(screen.getByRole('button', { name: label }));
-    }
+    await user.press(
+      screen.getByRole('button', { name: en['resultActions.saveImage'] }),
+    );
 
     expect(screen.getByText('Rs. 6,000')).toBeOnTheScreen();
     expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
@@ -1282,5 +1282,181 @@ describe('Simple Interest calculator: copy result summary (Issue #35)', () => {
 
     expect(screen.queryByText(en['resultActions.copied'])).toBeNull();
     expect(copyButton()).toBeOnTheScreen();
+  });
+});
+
+describe('Simple Interest calculator: share result as image (Issue #36)', () => {
+  const validForm = {
+    principal: '100000',
+    rate: '2',
+    start: '20250101',
+    end: '20250401',
+  };
+  const shareButton = (label: string = en['resultActions.share']) =>
+    screen.getByRole('button', { name: label });
+  const calculated = async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+    return user;
+  };
+
+  /** The view that was handed to the capture call (a class instance). */
+  const capturedView = (call = 0) =>
+    (
+      jest.mocked(captureRef).mock.calls[call][0] as unknown as {
+        current: { props: { testID: string; style: unknown } };
+      }
+    ).current;
+  /** The host element of the card image, checked to be what was captured. */
+  const cardImage = (call = 0) => {
+    expect(capturedView(call).props.testID).toBe('result-card-image');
+    return screen.getByTestId('result-card-image');
+  };
+
+  beforeEach(() => {
+    jest
+      .mocked(captureRef)
+      .mockReset()
+      .mockResolvedValue('file:///cache/a.png');
+    jest.mocked(releaseCapture).mockReset();
+    jest
+      .mocked(Share.open)
+      .mockReset()
+      .mockResolvedValue({ success: true, message: 'ok' });
+  });
+
+  it('is not offered until a valid result is shown', async () => {
+    const user = await launchSimpleInterest();
+    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
+
+    await calculate(user); // empty form: invalid
+    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
+
+    await fillForm(validForm);
+    await calculate(user);
+    expect(shareButton()).toBeOnTheScreen();
+
+    await fillForm({ principal: '2000' });
+    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
+    expect(captureRef).not.toHaveBeenCalled();
+  });
+
+  it('captures only the result card content as a PNG and opens the share sheet with it', async () => {
+    const user = await calculated();
+
+    await user.press(shareButton());
+
+    expect(captureRef).toHaveBeenCalledTimes(1);
+    const [, options] = jest.mocked(captureRef).mock.calls[0];
+    expect(options).toMatchObject({ format: 'png', result: 'tmpfile' });
+
+    // The captured view holds the result, not the inputs or the action row.
+    const captured = cardImage();
+    expect(within(captured).getByText('Simple Interest result')).toBeTruthy();
+    expect(within(captured).getByText('Rs. 6,000')).toBeTruthy();
+    expect(within(captured).getByText('Rs. 1,06,000')).toBeTruthy();
+    expect(within(captured).queryByRole('button')).toBeNull();
+    expect(
+      within(captured).queryByText(en['simpleInterest.calculate']),
+    ).toBeNull();
+    expect(
+      within(captured).queryByText(en['simpleInterest.principal.label']),
+    ).toBeNull();
+
+    expect(Share.open).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'file:///cache/a.png',
+        type: 'image/png',
+        title: en['resultActions.shareTitle'],
+        failOnCancel: false,
+      }),
+    );
+    // Opening the sheet is the feedback: no extra message.
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/shared|success/i)).toBeNull();
+  });
+
+  it('captures the Nepali card in Nepali and uses a Nepali share title', async () => {
+    const user = await calculated();
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+
+    await user.press(shareButton(np['resultActions.share']));
+
+    const captured = cardImage();
+    expect(within(captured).getByText('घरेलु ब्याजको नतिजा')).toBeTruthy();
+    expect(Share.open).toHaveBeenCalledWith(
+      expect.objectContaining({ title: np['resultActions.shareTitle'] }),
+    );
+  });
+
+  it('gives the captured card its own themed background in light and dark', async () => {
+    const user = await calculated();
+    await user.press(shareButton());
+    expect(cardImage(0)).toHaveStyle({
+      backgroundColor: themes.light.colors.surface,
+    });
+
+    await user.press(screen.getByRole('button', { name: /theme/i }));
+    await user.press(shareButton());
+    expect(cardImage(1)).toHaveStyle({
+      backgroundColor: themes.dark.colors.surface,
+    });
+  });
+
+  it('shows no message when the user closes the share sheet, and removes the temporary file', async () => {
+    jest.mocked(Share.open).mockResolvedValue({
+      success: false,
+      message: 'cancel',
+      dismissedAction: true,
+    });
+    const user = await calculated();
+
+    await user.press(shareButton());
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(en['resultActions.shareFailed'])).toBeNull();
+    expect(releaseCapture).toHaveBeenCalledWith('file:///cache/a.png');
+  });
+
+  it('shows a localized error, never success, when the capture fails', async () => {
+    jest.mocked(captureRef).mockRejectedValue(new Error('capture failed'));
+    const user = await calculated();
+
+    await user.press(shareButton());
+
+    expect(
+      await screen.findByText(en['resultActions.shareFailed']),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('alert')).toBeOnTheScreen();
+    expect(Share.open).not.toHaveBeenCalled();
+    expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
+  });
+
+  it('shows the error when the share sheet fails, and keeps the card usable', async () => {
+    jest.mocked(Share.open).mockRejectedValue(new Error('no activity'));
+    const user = await calculated();
+
+    await user.press(shareButton());
+
+    expect(
+      await screen.findByText(en['resultActions.shareFailed']),
+    ).toBeOnTheScreen();
+    expect(releaseCapture).toHaveBeenCalledWith('file:///cache/a.png');
+    expect(shareButton()).toBeOnTheScreen();
+  });
+
+  it('does not touch Copy: copying still works while sharing is wired up', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await calculated();
+
+    await user.press(
+      screen.getByRole('button', { name: en['resultActions.copy'] }),
+    );
+
+    expect(clipboard.content).toContain('Principal: Rs. 1,00,000');
+    expect(captureRef).not.toHaveBeenCalled();
+    expect(Share.open).not.toHaveBeenCalled();
   });
 });
