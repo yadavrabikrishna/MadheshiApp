@@ -98,6 +98,10 @@ export const en = {
   'resultActions.copyFailed': "Couldn't copy. Please try again.",
   'resultActions.shareTitle': 'Share result',
   'resultActions.shareFailed': "Couldn't share. Please try again.",
+  'resultActions.saved': 'Image saved to gallery',
+  'resultActions.saveFailed': "Couldn't save the image. Please try again.",
+  'resultActions.savePermissionDenied':
+    'Allow storage access to save the image.',
 
   'calculatorSettings.title': 'Calculator Settings',
   'calculatorSettings.entry.description':

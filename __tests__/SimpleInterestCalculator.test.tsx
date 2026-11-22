@@ -12,6 +12,7 @@ import {
   within,
 } from '@testing-library/react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import Share from 'react-native-share';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -1068,21 +1069,6 @@ describe('Simple Interest calculator: result actions (Issue #30)', () => {
       });
     }
   });
-
-  it('does not change the result or show any message when Save Image is pressed (not wired up yet)', async () => {
-    const user = await launchSimpleInterest();
-    await fillForm(validForm);
-    await calculate(user);
-
-    await user.press(
-      screen.getByRole('button', { name: en['resultActions.saveImage'] }),
-    );
-
-    expect(screen.getByText('Rs. 6,000')).toBeOnTheScreen();
-    expect(screen.getByText('Rs. 1,06,000')).toBeOnTheScreen();
-    expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.queryByText(/copied|shared|saved|success/i)).toBeNull();
-  });
 });
 
 describe('Simple Interest calculator: copy result summary (Issue #35)', () => {
@@ -1462,5 +1448,143 @@ describe('Simple Interest calculator: share result as image (Issue #36)', () => 
     expect(clipboard.content).toContain('Principal: Rs. 1,00,000');
     expect(captureRef).not.toHaveBeenCalled();
     expect(Share.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('Simple Interest calculator: save result image to gallery (Issue #37)', () => {
+  const validForm = {
+    principal: '100000',
+    rate: '2',
+    start: '20250101',
+    end: '20250401',
+  };
+  const saveButton = (label: string = en['resultActions.saveImage']) =>
+    screen.getByRole('button', { name: label });
+  const calculated = async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+    return user;
+  };
+
+  beforeEach(() => {
+    jest
+      .mocked(captureRef)
+      .mockReset()
+      .mockResolvedValue('file:///cache/s.png');
+    jest.mocked(releaseCapture).mockReset();
+    jest.mocked(Share.open).mockReset();
+    jest
+      .mocked(CameraRoll.saveAsset)
+      .mockReset()
+      .mockResolvedValue({} as never);
+  });
+
+  it('is not offered until a valid result is shown', async () => {
+    const user = await launchSimpleInterest();
+    expect(screen.queryByRole('button', { name: 'Save Image' })).toBeNull();
+    await calculate(user); // empty form: invalid
+    expect(screen.queryByRole('button', { name: 'Save Image' })).toBeNull();
+
+    await fillForm(validForm);
+    await calculate(user);
+    expect(saveButton()).toBeOnTheScreen();
+
+    await fillForm({ principal: '2000' });
+    expect(screen.queryByRole('button', { name: 'Save Image' })).toBeNull();
+    expect(CameraRoll.saveAsset).not.toHaveBeenCalled();
+  });
+
+  it('captures only the result card, saves it to the gallery, then shows success', async () => {
+    const user = await calculated();
+
+    await user.press(saveButton());
+
+    expect(captureRef).toHaveBeenCalledTimes(1);
+    const [target, options] = jest.mocked(captureRef).mock.calls[0];
+    expect(options).toMatchObject({
+      format: 'png',
+      result: 'tmpfile',
+      fileName: 'simple-interest-result-',
+    });
+    expect(
+      (target as unknown as { current: { props: { testID: string } } }).current
+        .props.testID,
+    ).toBe('result-card-image');
+    expect(CameraRoll.saveAsset).toHaveBeenCalledWith('file:///cache/s.png', {
+      type: 'photo',
+      album: 'MadheshiApp',
+    });
+    expect(
+      await screen.findByText(en['resultActions.saved']),
+    ).toBeOnTheScreen();
+    expect(releaseCapture).toHaveBeenCalledWith('file:///cache/s.png');
+    expect(Share.open).not.toHaveBeenCalled();
+  });
+
+  it('shows the success message in Nepali after a language change', async () => {
+    const user = await calculated();
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+
+    await user.press(saveButton(np['resultActions.saveImage']));
+
+    expect(
+      await screen.findByText(np['resultActions.saved']),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows no success message until the gallery save has finished', async () => {
+    let finish: (value: never) => void = () => {};
+    jest
+      .mocked(CameraRoll.saveAsset)
+      .mockImplementation(() => new Promise(resolve => (finish = resolve)));
+    const user = await calculated();
+
+    await user.press(saveButton());
+    expect(screen.queryByText(en['resultActions.saved'])).toBeNull();
+
+    await act(async () => finish({} as never));
+    expect(
+      await screen.findByText(en['resultActions.saved']),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows an error, never success, when the gallery save fails', async () => {
+    jest.mocked(CameraRoll.saveAsset).mockRejectedValue(new Error('disk full'));
+    const user = await calculated();
+
+    await user.press(saveButton());
+
+    expect(
+      await screen.findByText(en['resultActions.saveFailed']),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('alert')).toBeOnTheScreen();
+    expect(screen.queryByText(en['resultActions.saved'])).toBeNull();
+    expect(releaseCapture).toHaveBeenCalledWith('file:///cache/s.png');
+  });
+
+  it('shows an error, never success, when the capture fails', async () => {
+    jest.mocked(captureRef).mockRejectedValue(new Error('capture failed'));
+    const user = await calculated();
+
+    await user.press(saveButton());
+
+    expect(
+      await screen.findByText(en['resultActions.saveFailed']),
+    ).toBeOnTheScreen();
+    expect(CameraRoll.saveAsset).not.toHaveBeenCalled();
+  });
+
+  it('does not touch Copy or Share', async () => {
+    const clipboard = installFakeClipboard();
+    const user = await calculated();
+
+    await user.press(saveButton());
+    expect(Share.open).not.toHaveBeenCalled();
+    expect(clipboard.setString).not.toHaveBeenCalled();
+
+    await user.press(screen.getByRole('button', { name: 'Copy' }));
+    expect(clipboard.content).toContain('Principal: Rs. 1,00,000');
   });
 });

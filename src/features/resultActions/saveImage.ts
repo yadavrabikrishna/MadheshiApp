@@ -1,0 +1,115 @@
+import type { ComponentRef, RefObject } from 'react';
+import { PermissionsAndroid, Platform, type View } from 'react-native';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import { captureRef } from 'react-native-view-shot';
+
+import { releaseSharedImage } from './shareImage';
+
+/**
+ * - `saved`: the image is in the gallery.
+ * - `denied`: Android asked for storage permission and the user said no.
+ * - `failed`: the capture or the save failed.
+ */
+export type SaveImageOutcome = 'saved' | 'denied' | 'failed';
+
+/** Gallery folder the images are saved into (Android 10 and later: DCIM). */
+export const DEFAULT_GALLERY_ALBUM = 'MadheshiApp';
+
+type SaveStage = 'permission' | 'capture' | 'save' | 'cleanup';
+
+/**
+ * Development builds only: prints which stage failed and the original error
+ * (name, message, stack and the native code, when there is one) so a device
+ * failure can be diagnosed from Metro or `adb logcat -s ReactNativeJS`.
+ * Users never see this; they get the localized message.
+ */
+function logSaveFailure(
+  stage: SaveStage,
+  error: unknown,
+  details: Record<string, unknown>,
+): void {
+  if (!__DEV__) {
+    return;
+  }
+  const e = error as {
+    name?: unknown;
+    message?: unknown;
+    stack?: unknown;
+    code?: unknown;
+    userInfo?: unknown;
+  } | null;
+  console.warn(`[saveViewAsImage] failed at stage "${stage}"`, {
+    ...details,
+    platform: Platform.OS,
+    apiLevel: Platform.Version,
+    name: e?.name,
+    message: e?.message ?? String(error),
+    code: e?.code,
+    userInfo: e?.userInfo,
+    stack: e?.stack,
+  });
+}
+
+/**
+ * Android 10 (API 29) and later save a newly created image through
+ * MediaStore without any permission. Only Android 9 and earlier (API 24 to 28
+ * here) need WRITE_EXTERNAL_STORAGE, so that is the only case that asks.
+ */
+async function ensureSavePermission(): Promise<boolean> {
+  if (Platform.OS !== 'android' || Number(Platform.Version) >= 29) {
+    return true;
+  }
+  const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
+  if (await PermissionsAndroid.check(permission)) {
+    return true;
+  }
+  return (
+    (await PermissionsAndroid.request(permission)) ===
+    PermissionsAndroid.RESULTS.GRANTED
+  );
+}
+
+/**
+ * Captures one view (and only that view) as a PNG and saves it to the device
+ * gallery. Never throws. Resolves `saved` only after the gallery save itself
+ * has resolved.
+ *
+ * The temporary capture is always deleted: the gallery save copies it before
+ * it resolves, so nothing else needs the file.
+ */
+export async function saveViewAsImage(
+  target: RefObject<ComponentRef<typeof View> | null>,
+  options: { fileName?: string; album?: string } = {},
+): Promise<SaveImageOutcome> {
+  let stage: SaveStage = 'permission';
+  let uri: string | undefined;
+  const album = options.album ?? DEFAULT_GALLERY_ALBUM;
+  try {
+    if (!(await ensureSavePermission())) {
+      return 'denied';
+    }
+    stage = 'capture';
+    uri = await captureRef(target, {
+      format: 'png',
+      quality: 1,
+      result: 'tmpfile',
+      ...(options.fileName ? { fileName: options.fileName } : {}),
+    });
+    if (!uri) {
+      throw new Error('captureRef returned no file');
+    }
+    stage = 'save';
+    await CameraRoll.saveAsset(uri, { type: 'photo', album });
+    return 'saved';
+  } catch (error) {
+    logSaveFailure(stage, error, { uri, album });
+    return 'failed';
+  } finally {
+    // A cleanup problem must never turn a saved image into a failure.
+    try {
+      releaseSharedImage(uri);
+    } catch (error) {
+      logSaveFailure('cleanup', error, { uri });
+    }
+  }
+}

@@ -27,8 +27,11 @@ src/
                                auto-hiding localized feedback), shareImage.ts (captures one view
                                as a PNG with react-native-view-shot and opens the share sheet with
                                react-native-share) and useShareResultImage.ts (hook: ref to the
-                               view to capture + share + error-only feedback); public API via
-                               index.ts
+                               view to capture + share + error-only feedback), saveImage.ts (captures
+                               one view and saves it to the Android gallery with
+                               @react-native-camera-roll/camera-roll; asks for storage permission
+                               only on Android 9 and earlier) and useSaveResultImage.ts (hook:
+                               save + success/error feedback); public API via index.ts
     interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
                                decimal.ts (cloned Decimal, input parsing), neutralDate.ts
                                (YYYY/MM/DD validation + fixed 30-day/12-month duration),

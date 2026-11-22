@@ -1,12 +1,13 @@
 import { Text, View } from 'react-native';
 
-import { ResultActions, type ResultActionsProps } from '../../../components';
+import { ResultActions } from '../../../components';
 import type {
   RateEntryMode,
   SimpleInterestResult,
 } from '../../../features/interest';
 import {
   useCopyResult,
+  useSaveResultImage,
   useShareResultImage,
 } from '../../../features/resultActions';
 import { useTranslation } from '../../../i18n';
@@ -20,12 +21,10 @@ export const SHARE_IMAGE_FILE_NAME = 'simple-interest-result-';
 export { formatNeutralDate } from './simpleInterestDisplay';
 
 /**
- * Copy (a text summary) and Share (the card as an image) are handled here.
- * `onSaveImage` is still an integration point that is passed straight to the
- * action row; it is not wired up yet.
+ * Copy (a text summary), Share and Save Image (the card as an image) are all
+ * handled here, so the action row gets no handlers from outside.
  */
-interface SimpleInterestResultCardProps
-  extends Omit<ResultActionsProps, 'onCopy' | 'onShare' | 'feedback'> {
+interface SimpleInterestResultCardProps {
   result: SimpleInterestResult;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
@@ -36,7 +35,6 @@ export function SimpleInterestResultCard({
   result,
   enteredRate,
   rateMode,
-  onSaveImage,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
@@ -49,6 +47,10 @@ export function SimpleInterestResultCard({
     share,
     feedback: shareFeedback,
   } = useShareResultImage(SHARE_IMAGE_FILE_NAME);
+  const { save, feedback: saveFeedback } = useSaveResultImage(
+    captureRef,
+    SHARE_IMAGE_FILE_NAME,
+  );
 
   const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
   const dateRangeText = `${display.startDate} – ${display.endDate}`;
@@ -117,8 +119,8 @@ export function SimpleInterestResultCard({
         <ResultActions
           onCopy={copy}
           onShare={share}
-          onSaveImage={onSaveImage}
-          feedback={shareFeedback ?? feedback}
+          onSaveImage={save}
+          feedback={shareFeedback ?? saveFeedback ?? feedback}
         />
       </View>
     </View>

@@ -16,3 +16,7 @@ jest.mock('react-native-share', () => ({
   __esModule: true,
   default: { open: jest.fn() },
 }));
+
+jest.mock('@react-native-camera-roll/camera-roll', () => ({
+  CameraRoll: { saveAsset: jest.fn() },
+}));
