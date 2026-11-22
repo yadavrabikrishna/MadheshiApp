@@ -2,7 +2,13 @@
  * Simple Interest calculator UI (Issue #26): the real app tree, Redux store, i18n
  * and the real calculation engine, on a Node SQLite database.
  */
-import { Keyboard, ScrollView, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   act,
   fireEvent,
@@ -231,7 +237,7 @@ describe('Simple Interest calculator', () => {
     expect(screen.queryByText(en['simpleInterest.result.title'])).toBeNull();
   });
 
-  it('shows a field-level message beside each invalid field', async () => {
+  it('shows a message for each invalid field (the two dates share one)', async () => {
     const user = await launchSimpleInterest();
 
     await calculate(user);
@@ -245,9 +251,10 @@ describe('Simple Interest calculator', () => {
     expect(
       screen.getByText(en['simpleInterest.error.startDateInvalid']),
     ).toBeOnTheScreen();
+    // Both dates are empty: only the first date problem is shown.
     expect(
-      screen.getByText(en['simpleInterest.error.endDateInvalid']),
-    ).toBeOnTheScreen();
+      screen.queryByText(en['simpleInterest.error.endDateInvalid']),
+    ).toBeNull();
     expect(
       screen.getByText(en['simpleInterest.error.summary']),
     ).toBeOnTheScreen();
@@ -273,7 +280,7 @@ describe('Simple Interest calculator', () => {
     ).toBeNull();
   });
 
-  it('shows the reversed-range error beside End Date only', async () => {
+  it('shows the reversed-range error under the date row, marking End Date only', async () => {
     const user = await launchSimpleInterest();
     await fillForm({
       principal: '1000',
@@ -1587,4 +1594,220 @@ describe('Simple Interest calculator: save result image to gallery (Issue #37)',
     await user.press(screen.getByRole('button', { name: 'Copy' }));
     expect(clipboard.content).toContain('Principal: Rs. 1,00,000');
   });
+});
+
+describe('Simple Interest calculator: date row (Issue #43)', () => {
+  const validForm = {
+    principal: '1000',
+    rate: '2',
+    start: '20250101',
+    end: '20250201',
+  };
+  const dateRow = () => screen.getByTestId('simple-interest-date-row');
+  const startField = () => field(en['simpleInterest.startDate.label']);
+  const endField = () => field(en['simpleInterest.endDate.label']);
+  const dateMessages = () =>
+    ['startDateInvalid', 'endDateInvalid', 'endBeforeStart'].filter(
+      code =>
+        screen.queryByText(
+          en[`simpleInterest.error.${code}` as keyof typeof en],
+        ) !== null,
+    );
+  const borderWidth = (input: ReturnType<typeof startField>) =>
+    // The bordered row is the input's parent.
+    StyleSheet.flatten(input.parent!.props.style).borderWidth;
+
+  it('puts Start Date and End Date side by side in one row, with equal widths', async () => {
+    await launchSimpleInterest();
+
+    expect(
+      within(dateRow()).getByLabelText(en['simpleInterest.startDate.label']),
+    ).toBeOnTheScreen();
+    expect(
+      within(dateRow()).getByLabelText(en['simpleInterest.endDate.label']),
+    ).toBeOnTheScreen();
+    expect(StyleSheet.flatten(dateRow().props.style)).toMatchObject({
+      flexDirection: 'row',
+    });
+    const start = StyleSheet.flatten(
+      screen.getByTestId('simple-interest-start-date').props.style,
+    );
+    const end = StyleSheet.flatten(
+      screen.getByTestId('simple-interest-end-date').props.style,
+    );
+    expect(start.flex).toBe(1);
+    expect(end).toEqual(start);
+    // No fixed sizes that would make the widths differ.
+    expect(start.width).toBeUndefined();
+    expect(start.minWidth).toBe(0);
+  });
+
+  it('keeps the labels, placeholders and masked input behavior', async () => {
+    await launchSimpleInterest();
+
+    expect(
+      screen.getByText(en['simpleInterest.startDate.label']),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(en['simpleInterest.endDate.label']),
+    ).toBeOnTheScreen();
+    expect(startField().props.placeholder).toBe(
+      en['simpleInterest.date.placeholder'],
+    );
+    expect(endField().props.placeholder).toBe(
+      en['simpleInterest.date.placeholder'],
+    );
+
+    await fillForm({ start: '20250101', end: '20250201' });
+    expect(startField().props.value).toBe('2025/01/01');
+    expect(endField().props.value).toBe('2025/02/01');
+  });
+
+  it('shows the date format hint once, below the row, not under each field', async () => {
+    await launchSimpleInterest();
+
+    expect(screen.getAllByText(en['simpleInterest.date.hint'])).toHaveLength(1);
+    expect(
+      within(dateRow()).queryByText(en['simpleInterest.date.hint']),
+    ).toBeNull();
+    // It is still the spoken hint of both inputs.
+    expect(startField().props.accessibilityHint).toBe(
+      en['simpleInterest.date.hint'],
+    );
+    expect(endField().props.accessibilityHint).toBe(
+      en['simpleInterest.date.hint'],
+    );
+  });
+
+  it('shows no date message before Calculate', async () => {
+    await launchSimpleInterest();
+    await fillForm({ start: '2025', end: '2' });
+
+    expect(dateMessages()).toEqual([]);
+  });
+
+  it('shows one message below the row for an invalid Start Date, marking only Start Date', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, start: '2025' });
+    await calculate(user);
+
+    expect(dateMessages()).toEqual(['startDateInvalid']);
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(borderWidth(startField())).toBe(2);
+    expect(borderWidth(endField())).toBe(1);
+    // The message is not inside the row (below it, not beside a field).
+    expect(
+      within(dateRow()).queryByText(
+        en['simpleInterest.error.startDateInvalid'],
+      ),
+    ).toBeNull();
+  });
+
+  it('shows one message for an invalid End Date, marking only End Date', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, end: '2025' });
+    await calculate(user);
+
+    expect(dateMessages()).toEqual(['endDateInvalid']);
+    expect(borderWidth(startField())).toBe(1);
+    expect(borderWidth(endField())).toBe(2);
+  });
+
+  it('shows one message when End Date is before Start Date', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, end: '20241231' });
+    await calculate(user);
+
+    expect(dateMessages()).toEqual(['endBeforeStart']);
+    expect(borderWidth(endField())).toBe(2);
+  });
+
+  it('shows only the first problem when both dates are invalid, then the next after it is fixed', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, start: '2025', end: '2025' });
+    await calculate(user);
+    expect(dateMessages()).toEqual(['startDateInvalid']);
+    expect(borderWidth(endField())).toBe(1);
+
+    await fillForm({ start: '20250101' });
+    expect(dateMessages()).toEqual([]);
+    await calculate(user);
+    expect(dateMessages()).toEqual(['endDateInvalid']);
+  });
+
+  it('clears the message and the marking as soon as a date changes', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, end: '20241231' });
+    await calculate(user);
+    expect(dateMessages()).toEqual(['endBeforeStart']);
+
+    await fillForm({ end: '20250301' });
+
+    expect(dateMessages()).toEqual([]);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(borderWidth(endField())).toBe(1);
+  });
+
+  it('updates the message when the state changes between Calculate presses', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, end: '20241231' });
+    await calculate(user);
+    expect(dateMessages()).toEqual(['endBeforeStart']);
+
+    await fillForm({ end: '2024' });
+    await calculate(user);
+
+    expect(dateMessages()).toEqual(['endDateInvalid']);
+  });
+
+  it('still calculates with valid dates and shows no date message', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm(validForm);
+    await calculate(user);
+
+    expect(dateMessages()).toEqual([]);
+    expect(
+      screen.getByText(en['simpleInterest.result.title']),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows the single message in Nepali', async () => {
+    const user = await launchSimpleInterest();
+    await fillForm({ ...validForm, end: '20241231' });
+    await user.press(screen.getByRole('button', { name: /^Change language$/ }));
+    await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
+    await user.press(
+      screen.getByRole('button', { name: np['simpleInterest.calculate'] }),
+    );
+
+    expect(
+      screen.getByText(np['simpleInterest.error.endBeforeStart']),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getAllByText(np['simpleInterest.date.hint'])).toHaveLength(1);
+  });
+
+  it.each(['light', 'dark'] as const)(
+    'marks the invalid date with the %s error color',
+    async mode => {
+      const user = await launchSimpleInterest();
+      if (mode === 'dark') {
+        await user.press(
+          screen.getByRole('button', { name: 'Switch to dark theme' }),
+        );
+      }
+      await fillForm({ ...validForm, end: '20241231' });
+      await calculate(user);
+
+      const border = StyleSheet.flatten(
+        endField().parent!.props.style,
+      ).borderColor;
+      expect(border).toBe(themes[mode].colors.error);
+      expect(
+        screen.getByText(en['simpleInterest.error.endBeforeStart']),
+      ).toHaveStyle({
+        color: themes[mode].colors.error,
+      });
+    },
+  );
 });

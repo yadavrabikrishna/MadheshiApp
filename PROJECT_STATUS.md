@@ -107,6 +107,17 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #43 (Simple Interest date row), 2026-11-22 (branch `feature/simple-interest-date-row` from `develop` at `6682498`; PR to `develop` with `Closes #43`, owner review and manual merge required)
+
+- Completed (UI only): Start Date and End Date are now side by side in one row with equal widths (`flex: 1` cells, 12 px gap), same labels, placeholders, masking and keyboard chain. One shared message is shown directly below the row (the date format hint follows it, once, instead of under Start Date only; it stays the spoken hint of both inputs). The shown message follows the engine error codes with the earliest problem first: Start Date invalid, then End Date invalid, then End Date before Start Date. Only the field the message belongs to gets the invalid border. As before, errors appear after Calculate and clear on any edit; validation rules, the calculation engine and its API, localization keys and theme tokens are unchanged.
+- Shared components: new `FieldError` (the icon + alert/live-region message, extracted from `TextField` with identical output); `TextField` gained optional `invalid`, `hintVisible` and `containerStyle` props (defaults keep every other field unchanged). New helper `getDateError` in `simpleInterestMessages.ts`.
+- Files: new `src/components/common/FieldError.tsx` (+ `__tests__/FieldError.test.tsx`, `__tests__/TextField.test.tsx`); modified `src/components/common/TextField.tsx`, `src/components/index.ts`, `SimpleInterestView.tsx`, `simpleInterestMessages.ts`, `__tests__/SimpleInterestCalculator.test.tsx` (two existing tests adjusted for the single message; 14 new date-row tests), `docs/PROJECT_STRUCTURE.md`, `PROJECT_STATUS.md`. No dependency, lockfile or native changes.
+- Checks run (2026-11-22): `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx prettier --check` on changed files clean; `npm test -- --runInBand` exit 0, 31 suites, 604 tests (29 / 581 before this change).
+- NOT verified: layout on a device or emulator (Jest cannot measure widths; equal width is checked through the styles) on small screens, with large fonts and with longer Nepali text; the Android build was not run (no SDK here).
+- Note: the Save Image device failure (Issue #37, PR #42, merged) showed `'RNCCameraRoll' could not be found` in the native binary on the owner's device after the JS fix; the clean-rebuild steps were given to the owner and the result is not recorded here.
+- Owner decisions: the hint position (once under the row, after the message) and the "earliest problem first" rule when both dates are invalid.
+- Next action: owner reviews the PR and checks the row on a device.
+
 ### Checkpoint — Issue #37 (save result card image to the gallery), 2026-11-22 (branch `feature/calculator-save-result-image` from `develop` at `6aa7d8b`; PR to `develop` with `Closes #37`, owner review and manual merge required)
 
 - Approved by the owner: add `@react-native-camera-roll/camera-roll@7.10.2` (exact pin); Android required, iOS out of scope; minimum permissions.
