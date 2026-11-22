@@ -143,6 +143,85 @@ describe('saveViewAsImage', () => {
     expect(releaseCapture).toHaveBeenCalledWith(URI);
   });
 
+  describe('development diagnostics', () => {
+    let warn: jest.SpyInstance;
+    beforeEach(() => {
+      warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    const lastLog = () => warn.mock.calls[0][1];
+
+    it('logs the permission stage with the original error', async () => {
+      setPlatform('android', 28);
+      request.mockRejectedValue(new Error('no activity'));
+
+      await saveViewAsImage(target);
+
+      expect(warn.mock.calls[0][0]).toContain('"permission"');
+      expect(lastLog()).toMatchObject({
+        name: 'Error',
+        message: 'no activity',
+        apiLevel: 28,
+      });
+      expect(lastLog().stack).toEqual(expect.any(String));
+    });
+
+    it('logs the capture stage', async () => {
+      jest.mocked(captureRef).mockRejectedValueOnce(new Error('boom'));
+
+      await saveViewAsImage(target);
+
+      expect(warn.mock.calls[0][0]).toContain('"capture"');
+      expect(lastLog()).toMatchObject({ message: 'boom' });
+    });
+
+    it('logs a capture that returns no file as a capture failure', async () => {
+      jest.mocked(captureRef).mockResolvedValueOnce('');
+
+      await saveViewAsImage(target);
+
+      expect(warn.mock.calls[0][0]).toContain('"capture"');
+    });
+
+    it('logs the save stage with the uri, album and the native error code', async () => {
+      jest.mocked(CameraRoll.saveAsset).mockRejectedValue(
+        Object.assign(new Error('insert failed'), {
+          code: 'E_UNABLE_TO_LOAD',
+        }),
+      );
+
+      await saveViewAsImage(target, { album: 'Album' });
+
+      expect(warn.mock.calls[0][0]).toContain('"save"');
+      expect(lastLog()).toMatchObject({
+        uri: URI,
+        album: 'Album',
+        code: 'E_UNABLE_TO_LOAD',
+        message: 'insert failed',
+      });
+    });
+
+    it('does not log or fail when deleting the capture throws', async () => {
+      jest.mocked(releaseCapture).mockImplementation(() => {
+        throw new Error('cannot delete');
+      });
+
+      // releaseSharedImage swallows this itself, so nothing is logged and the
+      // result is still saved.
+      await expect(saveViewAsImage(target)).resolves.toBe('saved');
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('logs nothing on success or on permission denial', async () => {
+      await saveViewAsImage(target);
+      setPlatform('android', 28);
+      request.mockResolvedValue(PermissionsAndroid.RESULTS.DENIED);
+      await saveViewAsImage(target);
+
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
+
   it('still reports saved when deleting the capture throws', async () => {
     jest.mocked(releaseCapture).mockImplementation(() => {
       throw new Error('cannot delete');

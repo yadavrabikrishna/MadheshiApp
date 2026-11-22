@@ -15,6 +15,41 @@ export type SaveImageOutcome = 'saved' | 'denied' | 'failed';
 /** Gallery folder the images are saved into (Android 10 and later: DCIM). */
 export const DEFAULT_GALLERY_ALBUM = 'MadheshiApp';
 
+type SaveStage = 'permission' | 'capture' | 'save' | 'cleanup';
+
+/**
+ * Development builds only: prints which stage failed and the original error
+ * (name, message, stack and the native code, when there is one) so a device
+ * failure can be diagnosed from Metro or `adb logcat -s ReactNativeJS`.
+ * Users never see this; they get the localized message.
+ */
+function logSaveFailure(
+  stage: SaveStage,
+  error: unknown,
+  details: Record<string, unknown>,
+): void {
+  if (!__DEV__) {
+    return;
+  }
+  const e = error as {
+    name?: unknown;
+    message?: unknown;
+    stack?: unknown;
+    code?: unknown;
+    userInfo?: unknown;
+  } | null;
+  console.warn(`[saveViewAsImage] failed at stage "${stage}"`, {
+    ...details,
+    platform: Platform.OS,
+    apiLevel: Platform.Version,
+    name: e?.name,
+    message: e?.message ?? String(error),
+    code: e?.code,
+    userInfo: e?.userInfo,
+    stack: e?.stack,
+  });
+}
+
 /**
  * Android 10 (API 29) and later save a newly created image through
  * MediaStore without any permission. Only Android 9 and earlier (API 24 to 28
@@ -46,11 +81,14 @@ export async function saveViewAsImage(
   target: RefObject<ComponentRef<typeof View> | null>,
   options: { fileName?: string; album?: string } = {},
 ): Promise<SaveImageOutcome> {
+  let stage: SaveStage = 'permission';
   let uri: string | undefined;
+  const album = options.album ?? DEFAULT_GALLERY_ALBUM;
   try {
     if (!(await ensureSavePermission())) {
       return 'denied';
     }
+    stage = 'capture';
     uri = await captureRef(target, {
       format: 'png',
       quality: 1,
@@ -58,16 +96,20 @@ export async function saveViewAsImage(
       ...(options.fileName ? { fileName: options.fileName } : {}),
     });
     if (!uri) {
-      return 'failed';
+      throw new Error('captureRef returned no file');
     }
-    await CameraRoll.saveAsset(uri, {
-      type: 'photo',
-      album: options.album ?? DEFAULT_GALLERY_ALBUM,
-    });
+    stage = 'save';
+    await CameraRoll.saveAsset(uri, { type: 'photo', album });
     return 'saved';
-  } catch {
+  } catch (error) {
+    logSaveFailure(stage, error, { uri, album });
     return 'failed';
   } finally {
-    releaseSharedImage(uri);
+    // A cleanup problem must never turn a saved image into a failure.
+    try {
+      releaseSharedImage(uri);
+    } catch (error) {
+      logSaveFailure('cleanup', error, { uri });
+    }
   }
 }
