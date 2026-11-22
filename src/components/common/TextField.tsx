@@ -4,12 +4,14 @@ import {
   TextInput,
   View,
   type ReturnKeyTypeOptions,
+  type StyleProp,
+  type ViewStyle,
   type TextInputInstance,
   type TextInputSelectionChangeEvent,
 } from 'react-native';
 
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
-import { Icon } from './Icon';
+import { FieldError } from './FieldError';
 
 export interface TextFieldProps {
   label: string;
@@ -23,6 +25,20 @@ export interface TextFieldProps {
   errors?: readonly string[];
   /** Spoken before each error, e.g. "Error". Errors also show an icon, not just color. */
   errorPrefix?: string;
+  /**
+   * Shows the invalid border and icon-free styling without rendering any
+   * message, for a field whose message is shown elsewhere (for example one
+   * shared message under a row of fields). Fields with `errors` are invalid
+   * anyway.
+   */
+  invalid?: boolean;
+  /**
+   * Set to false to keep `hint` as the spoken accessibility hint only, when the
+   * visible text is shown elsewhere. Defaults to true.
+   */
+  hintVisible?: boolean;
+  /** Overrides the outer wrapper style (for example the bottom margin). */
+  containerStyle?: StyleProp<ViewStyle>;
   /** A short symbol shown before the input, e.g. "Rs.". */
   prefix?: string;
   maxLength?: number;
@@ -60,6 +76,9 @@ export function TextField({
   hint,
   errors = NO_ERRORS,
   errorPrefix,
+  invalid: invalidProp = false,
+  hintVisible = true,
+  containerStyle,
   prefix,
   maxLength,
   ref,
@@ -73,10 +92,10 @@ export function TextField({
 }: TextFieldProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
-  const invalid = errors.length > 0;
+  const invalid = invalidProp || errors.length > 0;
 
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, containerStyle]}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputRow, invalid && styles.inputRowInvalid]}>
         {prefix ? (
@@ -111,25 +130,9 @@ export function TextField({
           accessibilityHint={hint}
         />
       </View>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint && hintVisible ? <Text style={styles.hint}>{hint}</Text> : null}
       {errors.map(message => (
-        <View
-          key={message}
-          style={styles.errorRow}
-          accessible
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={
-            errorPrefix ? `${errorPrefix}: ${message}` : message
-          }
-        >
-          <Icon
-            name="alert-circle-outline"
-            size={18}
-            color={theme.colors.error}
-          />
-          <Text style={styles.errorText}>{message}</Text>
-        </View>
+        <FieldError key={message} message={message} prefix={errorPrefix} />
       ))}
     </View>
   );
@@ -171,17 +174,5 @@ const createStyles = (theme: AppTheme) => ({
     lineHeight: 19,
     color: theme.colors.textSecondary,
     marginTop: 6,
-  },
-  errorRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    gap: 6,
-    marginTop: 6,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: theme.colors.error,
   },
 });

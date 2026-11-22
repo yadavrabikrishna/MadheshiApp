@@ -9,6 +9,7 @@ import {
 
 import {
   Button,
+  FieldError,
   MaskedField,
   SegmentedControl,
   useKeyboardAwareForm,
@@ -24,6 +25,7 @@ import {
   simpleInterestFormReducer,
 } from './simpleInterestForm';
 import {
+  getDateError,
   groupErrorsByField,
   type SimpleInterestField,
 } from './simpleInterestMessages';
@@ -80,6 +82,8 @@ export function SimpleInterestView() {
   const errorsFor = (field: SimpleInterestField) =>
     (errorKeys[field] ?? []).map(key => t(key));
   const errorPrefix = t('simpleInterest.error.prefix');
+  // Both dates share one message under their row; only its own field is marked.
+  const dateError = getDateError(form.errors);
 
   const modeOptions: SegmentOption<RateEntryMode>[] = [
     { value: 'percentPerMonth', label: t('simpleInterest.rateMode.percent') },
@@ -155,33 +159,51 @@ export function SimpleInterestView() {
           errorPrefix={errorPrefix}
         />
 
-        <MaskedField
-          {...chain(startDateRef, endDateRef)}
-          mask={dateMask}
-          label={t('simpleInterest.startDate.label')}
-          hint={t('simpleInterest.date.hint')}
-          placeholder={t('simpleInterest.date.placeholder')}
-          keyboardType="number-pad"
-          value={form.startDate}
-          onChangeValue={value =>
-            dispatch({ type: 'edit', field: 'startDate', value })
-          }
-          errors={errorsFor('startDate')}
-          errorPrefix={errorPrefix}
-        />
-        <MaskedField
-          {...chain(endDateRef)}
-          mask={dateMask}
-          label={t('simpleInterest.endDate.label')}
-          placeholder={t('simpleInterest.date.placeholder')}
-          keyboardType="number-pad"
-          value={form.endDate}
-          onChangeValue={value =>
-            dispatch({ type: 'edit', field: 'endDate', value })
-          }
-          errors={errorsFor('endDate')}
-          errorPrefix={errorPrefix}
-        />
+        <View style={styles.dateGroup}>
+          <View style={styles.dateRow} testID="simple-interest-date-row">
+            <View style={styles.dateCell} testID="simple-interest-start-date">
+              <MaskedField
+                {...chain(startDateRef, endDateRef)}
+                mask={dateMask}
+                label={t('simpleInterest.startDate.label')}
+                hint={t('simpleInterest.date.hint')}
+                hintVisible={false}
+                placeholder={t('simpleInterest.date.placeholder')}
+                keyboardType="number-pad"
+                value={form.startDate}
+                onChangeValue={value =>
+                  dispatch({ type: 'edit', field: 'startDate', value })
+                }
+                invalid={dateError?.field === 'startDate'}
+                containerStyle={styles.dateField}
+              />
+            </View>
+            <View style={styles.dateCell} testID="simple-interest-end-date">
+              <MaskedField
+                {...chain(endDateRef)}
+                mask={dateMask}
+                label={t('simpleInterest.endDate.label')}
+                hint={t('simpleInterest.date.hint')}
+                hintVisible={false}
+                placeholder={t('simpleInterest.date.placeholder')}
+                keyboardType="number-pad"
+                value={form.endDate}
+                onChangeValue={value =>
+                  dispatch({ type: 'edit', field: 'endDate', value })
+                }
+                invalid={dateError?.field === 'endDate'}
+                containerStyle={styles.dateField}
+              />
+            </View>
+          </View>
+          {dateError ? (
+            <FieldError
+              message={t(dateError.messageKey)}
+              prefix={errorPrefix}
+            />
+          ) : null}
+          <Text style={styles.dateHint}>{t('simpleInterest.date.hint')}</Text>
+        </View>
 
         <Button
           variant="primary"
@@ -212,4 +234,15 @@ const createStyles = (theme: AppTheme) => ({
   },
   gap: { height: 16 },
   summary: { fontSize: 14, marginBottom: 12 },
+  dateGroup: { marginBottom: 16 },
+  dateRow: { flexDirection: 'row' as const, gap: 12 },
+  // Equal widths: both cells share the row; minWidth 0 lets a long value shrink.
+  dateCell: { flex: 1, minWidth: 0 },
+  dateField: { marginBottom: 0 },
+  dateHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.colors.textSecondary,
+    marginTop: 6,
+  },
 });

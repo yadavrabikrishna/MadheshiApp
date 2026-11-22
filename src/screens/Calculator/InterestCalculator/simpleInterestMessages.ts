@@ -66,3 +66,25 @@ export function groupErrorsByField(
   }
   return grouped;
 }
+
+/**
+ * The one date message to show under the Start Date / End Date row, and the
+ * date field it belongs to. When several date errors exist, the earliest
+ * problem wins: an invalid Start Date, then an invalid End Date, then an End
+ * Date before the Start Date. Null when no date error exists.
+ */
+export function getDateError(
+  codes: readonly SimpleInterestErrorCode[],
+): { field: 'startDate' | 'endDate'; messageKey: TranslationKey } | null {
+  const priority: SimpleInterestErrorCode[] = [
+    'startDateInvalid',
+    'endDateInvalid',
+    'endBeforeStart',
+  ];
+  const code = priority.find(candidate => codes.includes(candidate));
+  if (!code) {
+    return null;
+  }
+  const { field, messageKey } = ERROR_PRESENTATION[code];
+  return { field: field as 'startDate' | 'endDate', messageKey };
+}
