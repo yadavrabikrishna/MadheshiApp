@@ -11,3 +11,9 @@ export {
   type ShareImageResult,
 } from './shareImage';
 export { SHARE_FEEDBACK_MS, useShareResultImage } from './useShareResultImage';
+export {
+  DEFAULT_GALLERY_ALBUM,
+  saveViewAsImage,
+  type SaveImageOutcome,
+} from './saveImage';
+export { SAVE_FEEDBACK_MS, useSaveResultImage } from './useSaveResultImage';

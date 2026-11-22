@@ -98,6 +98,11 @@ export const np: Translations = {
   'resultActions.copyFailed': 'कपी गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।',
   'resultActions.shareTitle': 'नतिजा सेयर गर्नुहोस्',
   'resultActions.shareFailed': 'सेयर गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।',
+  'resultActions.saved': 'तस्बिर ग्यालरीमा सुरक्षित गरियो',
+  'resultActions.saveFailed':
+    'तस्बिर सुरक्षित गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।',
+  'resultActions.savePermissionDenied':
+    'तस्बिर सुरक्षित गर्न भण्डारण पहुँचको अनुमति दिनुहोस्।',
 
   'calculatorSettings.title': 'क्यालकुलेटर सेटिङ',
   'calculatorSettings.entry.description':
