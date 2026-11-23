@@ -107,6 +107,13 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #49 (interest rate configuration), 2026-11-23 (branch `feature/interest-rate-configuration` from `develop` @ `b5d823b`; PR to `develop` with `Closes #49`, owner review and manual merge required)
+
+- Completed (data layer only; no Settings/form UI, no rate conversion or formula change): pure model `src/types/interestRateConfig.ts` (modes, six periods, denominator modes, defaults, validation, `restoreInterestRateConfig`, atomic `updateInterestRateConfig`); repository `loadInterestRateConfigs` / `saveInterestRateConfig` (one JSON row per calculator in the existing `preferences` table, no migration); Redux slice `interestRateConfig` (hydrate + update thunks, per-calculator save errors) wired into the store and `AppBootstrap`.
+- Behavior: defaults Percentage / Yearly, Rupees / Monthly, Per 100 for both calculators; each mode remembers its own period; custom denominator is a plain positive decimal string, preserved when another denominator mode is chosen; invalid or outdated stored data is repaired field by field (Custom without a valid value becomes Per 100); unreadable storage falls back to defaults with `loadError`.
+- Checks run: `npx tsc --noEmit` exit 0; `npm run lint` exit 0; Prettier clean on changed files; `npx jest --runInBand` 38 suites, 726 tests passed. Android build / device not run (no SDK).
+- Next action: owner reviews the PR; Settings UI and form issues consume `selectInterestRateConfig`.
+
 ### Checkpoint — Issue #47 (Compound Interest engine), 2026-11-23 (branch `feature/compound-interest-engine`, from `develop` @ `ce2d77e`)
 
 - Completed: `calculateCompoundInterest` (`src/features/interest/compoundInterest.ts`). Validation moved unchanged into `interestInput.ts` (`validateInterestInput`), used by both engines; Simple behavior unchanged. Each completed 12-month period multiplies the balance by `1 + monthlyRate × 12` (Decimal, no rounding); the remaining months/days earn simple interest on that balance (multiply first, one division) and are not capitalised. Result adds `completedPeriods`, `remaining {months, days}`, `capitalizedBalance`. `INTEREST_CALCULATOR_CONFIGS.compound.engine` is the new engine; the form, result card, copy summary and share/save file name are mode-aware (`interestModeText.ts`; Compound file prefix `compound-interest-result-`). New en/np keys `compoundInterest.result.title` and `.interest`. The card and copied summary show Duration only (no separate periods / remaining-period rows).

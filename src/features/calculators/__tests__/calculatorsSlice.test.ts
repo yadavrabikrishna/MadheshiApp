@@ -41,6 +41,10 @@ function fakeRepository(
       .mockResolvedValue({ enabled: null, active: null }),
     saveCalculatorSettings: jest.fn().mockResolvedValue(undefined),
     saveActiveCalculator: jest.fn().mockResolvedValue(undefined),
+    loadInterestRateConfigs: jest
+      .fn()
+      .mockResolvedValue({ simple: null, compound: null }),
+    saveInterestRateConfig: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

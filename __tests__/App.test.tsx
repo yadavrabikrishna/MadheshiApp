@@ -340,6 +340,8 @@ describe('storage problems', () => {
       loadCalculators: async () => ({ enabled: null, active: null }),
       saveCalculatorSettings: async () => {},
       saveActiveCalculator: async () => {},
+      loadInterestRateConfigs: async () => ({ simple: null, compound: null }),
+      saveInterestRateConfig: async () => {},
     }));
 
     await user.press(darkToggle());

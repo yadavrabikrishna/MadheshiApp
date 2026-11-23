@@ -9,6 +9,7 @@ import {
 import { Provider } from 'react-redux';
 
 import { hydrateCalculators } from '../features/calculators';
+import { hydrateInterestRateConfig } from '../features/interestRateConfig';
 import { hydratePreferences } from '../features/preferences';
 import {
   createUnavailablePreferencesRepository,
@@ -59,6 +60,7 @@ export function AppBootstrap({
       await Promise.all([
         appStore.dispatch(hydratePreferences()),
         appStore.dispatch(hydrateCalculators()),
+        appStore.dispatch(hydrateInterestRateConfig()),
       ]);
       if (!cancelled) {
         setStore(appStore);
