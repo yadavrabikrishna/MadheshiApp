@@ -47,10 +47,16 @@ src/
                                settings in Redux and sets the header title (calculatorLabels.ts),
                                CalculatorGroupView = a group's selector (only when 2+ are enabled),
                                + one folder per calculator
-      InterestCalculator/        InterestCalculatorView, SimpleInterestView (+ ResultCard, form reducer,
-                                 error-message mapping, simpleInterestDisplay.ts = the displayed
-                                 text shared by the card and the copied summary,
-                                 simpleInterestSummary.ts = plain-text summary), CompoundInterestView
+      InterestCalculator/        InterestCalculatorView (Simple / Compound selector),
+                                 InterestCalculatorForm = the ONE Interest UI used by both types,
+                                 interestCalculatorConfig.ts (InterestType, the InterestEngine
+                                 boundary and INTEREST_CALCULATOR_CONFIGS: Simple has the Simple
+                                 Interest engine, Compound has none yet), interestForm.ts
+                                 (engine-injected form reducer), SimpleInterestView and
+                                 CompoundInterestView (thin wrappers that pick a config),
+                                 SimpleInterestResultCard, error-message mapping,
+                                 simpleInterestDisplay.ts = the displayed text shared by the card
+                                 and the copied summary, simpleInterestSummary.ts = plain-text summary
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
       BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)

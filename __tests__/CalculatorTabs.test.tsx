@@ -183,8 +183,14 @@ describe('Interest type selector', () => {
 
     await user.press(interestOption('Compound Interest'));
     expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
+    // Compound uses the same form as Simple; its own marker is the note that
+    // the calculation is not implemented yet.
     expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+
+    await user.press(interestOption('Simple Interest'));
+    expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull();
   });
 
   it('updates both labels immediately when the language changes', async () => {
