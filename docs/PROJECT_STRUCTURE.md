@@ -21,6 +21,8 @@ src/
     preferences/               Theme + language state and persistence thunks
     calculators/               Which calculators are enabled + the active one (saved state),
                                calculatorModel.ts = pure navigation/fallback rules
+    interestRateConfig/        Per-calculator (Simple / Compound) rate-entry configuration: state,
+                               selectors, persistence thunks (model: types/interestRateConfig.ts)
     resultActions/             Copy-to-clipboard for result summaries: clipboard.ts
                                (copyTextToClipboard, verifies by reading back because Android
                                swallows native write errors), useCopyResult.ts (hook: copy +

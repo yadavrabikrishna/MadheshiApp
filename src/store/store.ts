@@ -1,6 +1,7 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 
 import { calculatorsReducer } from '../features/calculators';
+import { interestRateConfigReducer } from '../features/interestRateConfig';
 import {
   preferencesReducer,
   type PreferencesThunkExtra,
@@ -9,6 +10,7 @@ import {
 const rootReducer = combineReducers({
   preferences: preferencesReducer,
   calculators: calculatorsReducer,
+  interestRateConfig: interestRateConfigReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

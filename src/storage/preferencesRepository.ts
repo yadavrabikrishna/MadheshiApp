@@ -5,6 +5,11 @@ import {
   type EnabledCalculators,
 } from '../types/calculators';
 import {
+  restoreInterestRateConfig,
+  type InterestCalculatorKind,
+  type InterestRateConfig,
+} from '../types/interestRateConfig';
+import {
   isLanguage,
   isThemeMode,
   type Language,
@@ -28,6 +33,12 @@ export interface StoredCalculators {
   active: CalculatorId | null;
 }
 
+/** What is saved per interest calculator; `null` means "never saved / unreadable". */
+export type StoredInterestRateConfigs = Record<
+  InterestCalculatorKind,
+  InterestRateConfig | null
+>;
+
 /** Durable preference storage. Redux owns the live values; this only persists them. */
 export interface PreferencesRepository {
   load(): Promise<StoredPreferences>;
@@ -42,6 +53,12 @@ export interface PreferencesRepository {
     active: CalculatorId;
   }): Promise<void>;
   saveActiveCalculator(active: CalculatorId): Promise<void>;
+  /** Simple and Compound are separate rows, loaded and saved independently. */
+  loadInterestRateConfigs(): Promise<StoredInterestRateConfigs>;
+  saveInterestRateConfig(
+    calculator: InterestCalculatorKind,
+    config: InterestRateConfig,
+  ): Promise<void>;
 }
 
 type PreferenceKey =
@@ -50,7 +67,9 @@ type PreferenceKey =
   | 'showThemeShortcut'
   | 'showLanguageShortcut'
   | 'calculatorsEnabled'
-  | 'calculatorActive';
+  | 'calculatorActive'
+  | 'interestRateConfigSimple'
+  | 'interestRateConfigCompound';
 
 /**
  * The seven switches are one JSON value in one row, so the complete selection is
@@ -75,6 +94,29 @@ function parseEnabledCalculators(
       }
     }
     return Object.keys(enabled).length > 0 ? enabled : null;
+  } catch {
+    return null;
+  }
+}
+
+const INTEREST_RATE_CONFIG_KEYS = {
+  simple: 'interestRateConfigSimple',
+  compound: 'interestRateConfigCompound',
+} as const satisfies Record<InterestCalculatorKind, PreferenceKey>;
+
+/**
+ * A saved configuration is one JSON value. Text that is not JSON counts as
+ * never saved; JSON of any shape or age is repaired field by field, so the
+ * result is always a valid configuration.
+ */
+function parseInterestRateConfig(
+  value: string | undefined,
+): InterestRateConfig | null {
+  if (value === undefined) {
+    return null;
+  }
+  try {
+    return restoreInterestRateConfig(JSON.parse(value));
   } catch {
     return null;
   }
@@ -152,5 +194,21 @@ export function createPreferencesRepository(
       ]);
     },
     saveActiveCalculator: active => save('calculatorActive', active),
+    async loadInterestRateConfigs() {
+      const result = await db.executeAsync<{ key: string; value: string }>(
+        'SELECT key, value FROM preferences',
+      );
+      const values = new Map(result.rows._array.map(r => [r.key, r.value]));
+      return {
+        simple: parseInterestRateConfig(
+          values.get(INTEREST_RATE_CONFIG_KEYS.simple),
+        ),
+        compound: parseInterestRateConfig(
+          values.get(INTEREST_RATE_CONFIG_KEYS.compound),
+        ),
+      };
+    },
+    saveInterestRateConfig: (calculator, config) =>
+      save(INTEREST_RATE_CONFIG_KEYS[calculator], JSON.stringify(config)),
   };
 }
