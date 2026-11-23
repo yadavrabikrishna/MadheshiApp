@@ -68,18 +68,6 @@ export function SimpleInterestResultCard({
       label: t('simpleInterest.result.interestRate'),
       value: display.interestRate,
     },
-    ...(display.completedPeriods !== undefined
-      ? [
-          {
-            label: t('compoundInterest.result.periods'),
-            value: display.completedPeriods,
-          },
-          {
-            label: t('compoundInterest.result.remaining'),
-            value: display.remainingPeriod ?? '',
-          },
-        ]
-      : []),
     {
       label: t(mode.interestKey),
       value: display.interest,

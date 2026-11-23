@@ -216,10 +216,14 @@ describe('InterestCalculatorForm: Compound Interest', () => {
     expect(calculateSimpleInterest).not.toHaveBeenCalled();
     expect(screen.getByText(C.title)).toBeOnTheScreen();
     expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
-    expect(screen.getByLabelText(`${C.periods}: 1`)).toBeOnTheScreen();
+    // Duration shows the whole elapsed time; there are no extra period rows.
     expect(
-      screen.getByLabelText(`${C.remaining}: 3 Months, 0 Days`),
+      screen.getByText(
+        `${L['simpleInterest.result.duration']}: 1 Years, 3 Months, 0 Days`,
+      ),
     ).toBeOnTheScreen();
+    expect(screen.queryByText(C.periods)).toBeNull();
+    expect(screen.queryByText(C.remaining)).toBeNull();
     expect(
       screen.getByLabelText(`${C.interest}: Rs. 31,440`),
     ).toBeOnTheScreen();
@@ -263,11 +267,11 @@ describe('InterestCalculatorForm: Compound Interest', () => {
       screen.getByText(np['compoundInterest.result.title']),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText(np['compoundInterest.result.periods']),
-    ).toBeOnTheScreen();
+      screen.queryByText(np['compoundInterest.result.periods']),
+    ).toBeNull();
     expect(
-      screen.getByText(np['compoundInterest.result.remaining']),
-    ).toBeOnTheScreen();
+      screen.queryByText(np['compoundInterest.result.remaining']),
+    ).toBeNull();
     expect(
       screen.getByText(np['compoundInterest.result.interest']),
     ).toBeOnTheScreen();
