@@ -9,6 +9,8 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary';
   /** Fill the available width (e.g. in a row of buttons). */
   fill?: boolean;
+  /** Unavailable: dimmed, announced as disabled, and pressing does nothing. */
+  disabled?: boolean;
 }
 
 export function Button({
@@ -16,6 +18,7 @@ export function Button({
   onPress,
   variant = 'secondary',
   fill = false,
+  disabled = false,
 }: ButtonProps) {
   const styles = useThemedStyles(createStyles);
   const primary = variant === 'primary';
@@ -23,12 +26,15 @@ export function Button({
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       accessibilityLabel={label}
       style={[
         styles.button,
         primary ? styles.primary : styles.secondary,
         fill && styles.fill,
+        disabled && styles.disabled,
       ]}
     >
       <Text
@@ -55,6 +61,7 @@ const createStyles = (theme: AppTheme) => ({
     borderWidth: 1,
   },
   fill: { flex: 1 },
+  disabled: { opacity: 0.5 },
   primary: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,

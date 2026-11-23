@@ -421,7 +421,9 @@ describe('dynamic Calculator navigation', () => {
     await launchOnCalculator(device);
 
     expect(topTabLabels()).toEqual([]);
-    expect(radioLabels()).toEqual([]);
+    // No Simple / Compound selector: only the shared form's rate-entry radios.
+    expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
+    // The shared form, with Calculate unavailable until the engine exists.
     expect(screen.getByText(PLACEHOLDER.compound)).toBeOnTheScreen();
     expect(headerTitle()).toBe('Compound Interest');
   });
@@ -432,7 +434,7 @@ describe('dynamic Calculator navigation', () => {
     const user = await launchOnCalculator(device);
 
     expect(topTabLabels()).toEqual(['Interest', 'Age']);
-    expect(radioLabels()).toEqual([]);
+    expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
     expect(screen.getByText(PLACEHOLDER.compound)).toBeOnTheScreen();
 
     await user.press(topTab('Age'));
@@ -468,7 +470,7 @@ describe('dynamic Calculator navigation', () => {
 
     expect(topTabLabels()).toEqual(['Interest', 'Basic Calculator']);
     // Basic Calculator is never inside the Interest selector.
-    expect(radioLabels()).toEqual([]);
+    expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
 
     await user.press(topTab('Basic Calculator'));
     expect(screen.getByText(PLACEHOLDER.basic)).toBeOnTheScreen();

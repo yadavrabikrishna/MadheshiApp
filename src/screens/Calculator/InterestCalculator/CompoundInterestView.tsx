@@ -1,15 +1,12 @@
-import { ScreenPlaceholder } from '../../../components';
-import { useTranslation } from '../../../i18n';
+import { InterestCalculatorForm } from './InterestCalculatorForm';
+import { INTEREST_CALCULATOR_CONFIGS } from './interestCalculatorConfig';
 
-/** Compound interest calculator. Placeholder until the calculation is implemented. */
+/**
+ * Compound Interest: the same shared Interest UI. It has no engine yet (a
+ * separate issue), so Calculate is unavailable and nothing is calculated.
+ */
 export function CompoundInterestView() {
-  const { t } = useTranslation();
-
   return (
-    <ScreenPlaceholder
-      title={t('calculator.interest.type.compound')}
-      description={t('calculator.interest.compound.description')}
-      iconName="layers-outline"
-    />
+    <InterestCalculatorForm config={INTEREST_CALCULATOR_CONFIGS.compound} />
   );
 }
