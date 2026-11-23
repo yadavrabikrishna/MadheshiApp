@@ -100,6 +100,30 @@ export function parseCustomDenominator(value: unknown): string | null {
   return text;
 }
 
+export type CustomDenominatorTextError = 'empty' | 'notNumber' | 'notPositive';
+
+/**
+ * Why entered text is not a usable custom denominator, for validation
+ * messages; `null` when it is valid (exactly when `parseCustomDenominator`
+ * accepts it). Zero and negative numbers are "not positive"; anything that is
+ * not a plain number is "not a number".
+ */
+export function validateCustomDenominatorText(
+  value: string,
+): CustomDenominatorTextError | null {
+  const text = value.trim();
+  if (text.length === 0) {
+    return 'empty';
+  }
+  if (parseCustomDenominator(text) !== null) {
+    return null;
+  }
+  if (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(text) && Number(text) <= 0) {
+    return 'notPositive';
+  }
+  return 'notNumber';
+}
+
 /** The period of the currently selected rate-entry mode. */
 export function selectedRatePeriod(config: InterestRateConfig): RatePeriod {
   return config.rateInputMode === 'percentage'
