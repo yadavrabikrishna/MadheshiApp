@@ -62,7 +62,8 @@ src/
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
       BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)
-    Settings/                  SettingsScreen, CalculatorSettingsScreen (draft until Save)
+    Settings/                  SettingsScreen, CalculatorSettingsScreen (draft until Save),
+                               InterestRateSettingsSection (per-calculator rate entry; applies at once)
   storage/                   SQLite: connection, versioned migrations, repositories
   store/                     Redux store factory and typed hooks
   test-utils/                Jest helpers (real SQLite via node:sqlite, fakeClipboard); not shipped

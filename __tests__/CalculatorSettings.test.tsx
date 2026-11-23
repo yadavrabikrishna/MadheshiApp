@@ -226,6 +226,10 @@ describe('Calculator Settings screen', () => {
       'Age',
       'Land',
       'Basic Calculator',
+      // The interest rate-entry section (Issue #50) follows the switches.
+      'Interest rate entry',
+      'Simple Interest',
+      'Compound Interest',
     ]);
     expect(screen.getAllByRole('switch')).toHaveLength(7);
     expect(button('Select All')).toBeOnTheScreen();

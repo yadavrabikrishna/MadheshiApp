@@ -107,6 +107,14 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #50 (interest rate settings UI), 2026-11-23 (branch `feature/interest-rate-settings-ui` from `develop` @ `cf22322`; PR to `develop` with `Closes #50`, owner review and manual merge required)
+
+- Completed (Settings UI only; calculator form, rate conversion and engines untouched): `InterestRateSettingsSection` (one per calculator, Simple and Compound, each editing only its own configuration) shown under Calculator Settings; rate-entry mode selector, period dropdown (new shared `Dropdown` component, same six periods in both modes), Rupees denominator options (Per 100 / Per 1,000 / Custom) and a custom-amount input with empty / not-a-number / not-positive messages (`validateCustomDenominatorText` added to the model). All strings in en/np (`interestRate.*`), light/dark theme tokens.
+- Behavior: interest controls apply immediately through `updateInterestRateConfigFor` and are saved by the Issue #49 layer; they are NOT part of the Calculator Settings Save/Cancel draft (Cancel does not undo them; the screen says so). An invalid custom amount is never saved; while an edit is invalid the last valid saved amount stays in use and the error is shown.
+- Checks run: `npx tsc --noEmit` exit 0; `npm run lint` exit 0; Prettier clean on changed files; `npx jest --runInBand` 39 suites, 780 tests passed. Android build / device not run (no SDK).
+- Owner decisions: Nepali wording and the helper-text wording are mine; interest settings apply immediately rather than on Save.
+- Next action: owner reviews the PR; the calculator form issue will read the configuration.
+
 ### Checkpoint — Issue #49 (interest rate configuration), 2026-11-23 (branch `feature/interest-rate-configuration` from `develop` @ `b5d823b`; PR to `develop` with `Closes #49`, owner review and manual merge required)
 
 - Completed (data layer only; no Settings/form UI, no rate conversion or formula change): pure model `src/types/interestRateConfig.ts` (modes, six periods, denominator modes, defaults, validation, `restoreInterestRateConfig`, atomic `updateInterestRateConfig`); repository `loadInterestRateConfigs` / `saveInterestRateConfig` (one JSON row per calculator in the existing `preferences` table, no migration); Redux slice `interestRateConfig` (hydrate + update thunks, per-calculator save errors) wired into the store and `AppBootstrap`.

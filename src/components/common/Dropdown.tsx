@@ -1,0 +1,167 @@
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+
+import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
+import { Icon } from './Icon';
+
+export interface DropdownOption<Value extends string> {
+  value: Value;
+  label: string;
+}
+
+interface DropdownProps<Value extends string> {
+  label: string;
+  options: DropdownOption<Value>[];
+  value: Value;
+  onChange: (value: Value) => void;
+  /** Accessible name of the dismiss area behind the list (already localized). */
+  closeLabel: string;
+}
+
+/**
+ * A single-choice dropdown: a field showing the current choice that opens a
+ * list of options. The list is a modal, so it works on every screen size and
+ * does not depend on the field's position.
+ */
+export function Dropdown<Value extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  closeLabel,
+}: DropdownProps<Value>) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const [open, setOpen] = useState(false);
+  const selected = options.find(option => option.value === value);
+
+  const choose = (next: Value) => {
+    setOpen(false);
+    if (next !== value) {
+      onChange(next);
+    }
+  };
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <Pressable
+        style={styles.button}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${selected?.label ?? ''}`}
+        accessibilityState={{ expanded: open }}
+      >
+        <Text style={styles.value}>{selected?.label ?? ''}</Text>
+        <Icon
+          name="chevron-down"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
+      </Pressable>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <View style={styles.backdrop}>
+          <Pressable
+            style={styles.dismiss}
+            onPress={() => setOpen(false)}
+            accessibilityLabel={closeLabel}
+          />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle} accessibilityRole="header">
+              {label}
+            </Text>
+            <ScrollView>
+              {options.map(option => {
+                const isSelected = option.value === value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    style={styles.item}
+                    onPress={() => choose(option.value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={option.label}
+                  >
+                    <Text style={styles.itemLabel}>{option.label}</Text>
+                    {isSelected ? (
+                      <Icon
+                        name="checkmark"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const createStyles = (theme: AppTheme) => ({
+  field: { gap: 6 },
+  label: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: theme.colors.text,
+  },
+  button: {
+    minHeight: 48,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  value: { flex: 1, fontSize: 16, color: theme.colors.text },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    padding: 24,
+    backgroundColor: theme.colors.overlay,
+  },
+  dismiss: {
+    position: 'absolute' as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  sheet: {
+    maxHeight: '80%' as const,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingVertical: 8,
+  },
+  sheetTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: theme.colors.textSecondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  item: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: 16,
+  },
+  itemLabel: { flex: 1, fontSize: 16, color: theme.colors.text },
+});

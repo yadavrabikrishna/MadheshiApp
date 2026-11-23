@@ -7,6 +7,7 @@ import {
   restoreInterestRateConfig,
   selectedRatePeriod,
   updateInterestRateConfig,
+  validateCustomDenominatorText,
   type InterestRateConfig,
   type InterestRateConfigPatch,
 } from '../interestRateConfig';
@@ -287,6 +288,45 @@ describe('restoring saved data', () => {
       const config = restoreInterestRateConfig(value);
       expect(resolveDenominator(config)).not.toBeNull();
       expect(RATE_PERIODS).toContain(selectedRatePeriod(config));
+    }
+  });
+});
+
+describe('validateCustomDenominatorText', () => {
+  it.each(['', '   '])('reports %j as empty', text => {
+    expect(validateCustomDenominatorText(text)).toBe('empty');
+  });
+
+  it.each([
+    'abc',
+    '1e3',
+    '1,000',
+    '.5',
+    '5.',
+    '+5',
+    '1 0',
+    'NaN',
+    '1'.repeat(19),
+  ])('reports %j as not a number', text => {
+    expect(validateCustomDenominatorText(text)).toBe('notNumber');
+  });
+
+  it.each(['0', '0.0', '-1', '-0.5', '-0'])(
+    'reports %j as not positive',
+    text => {
+      expect(validateCustomDenominatorText(text)).toBe('notPositive');
+    },
+  );
+
+  it.each(['1', '250', '12.5', ' 7 ', '0.001'])('accepts %j', text => {
+    expect(validateCustomDenominatorText(text)).toBeNull();
+  });
+
+  it('agrees with parseCustomDenominator', () => {
+    for (const text of ['', 'x', '0', '-3', '5', '2.5', '.5', '1e2']) {
+      expect(validateCustomDenominatorText(text) === null).toBe(
+        parseCustomDenominator(text) !== null,
+      );
     }
   });
 });

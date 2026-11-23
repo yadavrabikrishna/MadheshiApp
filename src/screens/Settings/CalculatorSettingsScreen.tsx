@@ -21,6 +21,7 @@ import {
   type CalculatorId,
   type EnabledCalculators,
 } from '../../types/calculators';
+import { InterestRateSettingsSection } from './InterestRateSettingsSection';
 import {
   CALCULATOR_NAME_KEYS,
   GROUP_LABEL_KEYS,
@@ -137,6 +138,15 @@ export function CalculatorSettingsScreen() {
             {t(GROUP_LABEL_KEYS.basic)}
           </Text>
           {calculatorsOf('basic').map(renderRow)}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">
+            {t('interestRate.title')}
+          </Text>
+          <Text style={styles.intro}>{t('interestRate.intro')}</Text>
+          <InterestRateSettingsSection calculator="simple" />
+          <InterestRateSettingsSection calculator="compound" />
         </View>
       </ScrollView>
 

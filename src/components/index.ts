@@ -1,4 +1,5 @@
 export { Button } from './common/Button';
+export { Dropdown, type DropdownOption } from './common/Dropdown';
 export { FieldError, type FieldErrorProps } from './common/FieldError';
 export { Icon, type IconName } from './common/Icon';
 export { MaskedField } from './common/MaskedField';
