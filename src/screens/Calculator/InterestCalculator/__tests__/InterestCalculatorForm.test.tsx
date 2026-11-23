@@ -181,8 +181,8 @@ describe('InterestCalculatorForm: Compound Interest', () => {
   const C = {
     title: en['compoundInterest.result.title'],
     interest: en['compoundInterest.result.interest'],
-    periods: en['compoundInterest.result.periods'],
-    remaining: en['compoundInterest.result.remaining'],
+    periods: 'Completed 12-month periods',
+    remaining: 'Remaining period',
   };
 
   async function calculateYearAndQuarter(
@@ -266,12 +266,8 @@ describe('InterestCalculatorForm: Compound Interest', () => {
     expect(
       screen.getByText(np['compoundInterest.result.title']),
     ).toBeOnTheScreen();
-    expect(
-      screen.queryByText(np['compoundInterest.result.periods']),
-    ).toBeNull();
-    expect(
-      screen.queryByText(np['compoundInterest.result.remaining']),
-    ).toBeNull();
+    expect(screen.queryByText('पूरा भएका १२ महिनाका अवधि')).toBeNull();
+    expect(screen.queryByText('बाँकी अवधि')).toBeNull();
     expect(
       screen.getByText(np['compoundInterest.result.interest']),
     ).toBeOnTheScreen();

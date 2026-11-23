@@ -137,7 +137,7 @@ describe('buildSimpleInterestSummary', () => {
 });
 
 describe('buildSimpleInterestSummary: Compound Interest', () => {
-  it('uses Compound wording and adds periods and remaining period', () => {
+  const compoundSummary = (language: Language) => {
     const outcome = calculateCompoundInterest({
       principal: '100000',
       rate: '2',
@@ -148,16 +148,18 @@ describe('buildSimpleInterestSummary: Compound Interest', () => {
     if (!outcome.ok) {
       throw new Error('expected ok');
     }
-    const t = (key: TranslationKey) => translate('en', key);
-    expect(
-      buildSimpleInterestSummary(
-        outcome.value,
-        '2',
-        'percentPerMonth',
-        t,
-        'compound',
-      ),
-    ).toBe(
+    const t = (key: TranslationKey) => translate(language, key);
+    return buildSimpleInterestSummary(
+      outcome.value,
+      '2',
+      'percentPerMonth',
+      t,
+      'compound',
+    );
+  };
+
+  it('uses Compound wording and keeps Duration, in English', () => {
+    expect(compoundSummary('en')).toBe(
       [
         'Compound Interest result',
         '',
@@ -166,12 +168,26 @@ describe('buildSimpleInterestSummary: Compound Interest', () => {
         'Start Date: 2025/01/01',
         'End Date: 2026/04/01',
         'Duration: 1 Years, 3 Months, 0 Days',
-        'Completed 12-month periods: 1',
-        'Remaining period: 3 Months, 0 Days',
         '',
         'Total Interest: Rs. 31,440',
         'Total Amount: Rs. 1,31,440',
       ].join('\n'),
     );
   });
+
+  it.each([
+    ['en', 'Duration: 1 Years, 3 Months, 0 Days'],
+    ['np', 'अवधि: 1 वर्ष, 3 महिना, 0 दिन'],
+  ] as const)(
+    'has Duration but no periods or remaining-period line in %s',
+    (language, durationLine) => {
+      const text = compoundSummary(language);
+
+      expect(text).toContain(durationLine);
+      expect(text).not.toContain('Completed 12-month periods');
+      expect(text).not.toContain('Remaining period');
+      expect(text).not.toContain('पूरा भएका १२ महिनाका अवधि');
+      expect(text).not.toContain('बाँकी अवधि');
+    },
+  );
 });

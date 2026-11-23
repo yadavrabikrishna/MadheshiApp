@@ -10,7 +10,7 @@ import { getSimpleInterestDisplay } from './simpleInterestDisplay';
 
 /**
  * The plain-text summary of a valid Simple or Compound Interest result, for
- * the clipboard (Compound adds completed periods and remaining period rows).
+ * the clipboard.
  * It uses the active language and the same formatting as the result card:
  *
  *   Simple Interest result
@@ -41,16 +41,6 @@ export function buildSimpleInterestSummary(
     `${t('simpleInterest.startDate.label')}: ${display.startDate}`,
     `${t('simpleInterest.endDate.label')}: ${display.endDate}`,
     `${t('simpleInterest.result.duration')}: ${display.duration}`,
-    ...(display.completedPeriods !== undefined
-      ? [
-          `${t('compoundInterest.result.periods')}: ${
-            display.completedPeriods
-          }`,
-          `${t('compoundInterest.result.remaining')}: ${
-            display.remainingPeriod
-          }`,
-        ]
-      : []),
     '',
     `${t(mode.interestKey)}: ${display.interest}`,
     `${t('simpleInterest.result.total')}: ${display.total}`,

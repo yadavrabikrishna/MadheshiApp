@@ -1,5 +1,4 @@
 import type {
-  CompoundInterestResult,
   NeutralDate,
   RateEntryMode,
   SimpleInterestResult,
@@ -29,39 +28,21 @@ export interface SimpleInterestDisplay {
   duration: string;
   interest: string;
   total: string;
-  /** Compound Interest only: completed 12-month periods, e.g. "2". */
-  completedPeriods?: string;
-  /** Compound Interest only, e.g. "0 Years, 3 Months, 10 Days". */
-  remainingPeriod?: string;
 }
-
-const isCompound = (
-  result: SimpleInterestResult | CompoundInterestResult,
-): result is CompoundInterestResult => 'completedPeriods' in result;
 
 /**
  * The single place where a Simple Interest result becomes display text. The
  * result card and the copied summary both use it, so they always agree.
  */
 export function getSimpleInterestDisplay(
-  result: SimpleInterestResult | CompoundInterestResult,
+  result: SimpleInterestResult,
   enteredRate: string,
   rateMode: RateEntryMode,
   t: Translate,
 ): SimpleInterestDisplay {
   const rs = t('simpleInterest.currency');
   const { years, months, days } = result.duration;
-  const compound = isCompound(result)
-    ? {
-        completedPeriods: String(result.completedPeriods),
-        remainingPeriod: [
-          `${result.remaining.months} ${t('simpleInterest.unit.months')}`,
-          `${result.remaining.days} ${t('simpleInterest.unit.days')}`,
-        ].join(', '),
-      }
-    : {};
   return {
-    ...compound,
     principal: `${rs} ${formatMoney(result.principal)}`,
     interestRate: fillTemplate(
       t(
