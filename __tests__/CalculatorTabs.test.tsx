@@ -183,9 +183,9 @@ describe('Interest type selector', () => {
 
     await user.press(interestOption('Compound Interest'));
     expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
-    // Compound uses the same form as Simple; its own marker is the note that
-    // the calculation is not implemented yet.
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    // Compound uses the same form as Simple and now has a working engine, so
+    // the old "not implemented yet" note is gone.
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull(); // no \"not implemented\" note
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
 
     await user.press(interestOption('Simple Interest'));
@@ -231,7 +231,7 @@ describe('Interest type selector', () => {
     await changeLanguage(user, 'English');
     expect(interestOption('Compound Interest', true)).toBeOnTheScreen();
     expect(interestOption('Simple Interest', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull(); // no \"not implemented\" note
   });
 
   it('is shown only on the Interest tab, and the other Calculator tabs still work', async () => {
@@ -383,7 +383,7 @@ describe('Age date system selector', () => {
     expect(dateSystemOption('Simple Interest', true)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
     await user.press(dateSystemOption('Compound Interest'));
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull(); // no \"not implemented\" note
   });
 });
 
@@ -473,7 +473,7 @@ describe('Land type selector', () => {
     // Interest: Simple on the first launch, then Compound.
     expect(landOption('Simple Interest', true)).toBeOnTheScreen();
     await user.press(landOption('Compound Interest'));
-    expect(screen.getByText(DESCRIPTIONS.en.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(DESCRIPTIONS.en.compound)).toBeNull(); // no \"not implemented\" note
 
     // Age: BS default, then AD.
     await user.press(topTab('Age'));

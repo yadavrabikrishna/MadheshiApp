@@ -18,7 +18,7 @@
 - The four primary bottom-navigation destinations (Home, News, Calculator and Settings) are part of the approved app shell.
 - Calculator navigation and configuration are integrated: Interest, Age and Land groups; individual calculator enable/disable settings; saved active-calculator selection; Basic Calculator fallback; and a localized header title that follows the active calculator.
 - Simple Interest is merged into `develop`: the pure engine (Issue #27, PR #29, `src/features/interest/`) and the native UI (Issue #26, PR #33: form, masked inputs, result card, en/np, light/dark). The result card now also has the Copy / Share / Save Image action row (Issue #30, UI only; see "Current handoff"). Copy copies a plain-text summary to the clipboard (Issue #35, PR #40, merged); Share shares the result card as an image (Issue #36, PR #41, merged); Save Image saves the result card image to the Android gallery (Issue #37, PR pending owner review).
-- Compound Interest shows the shared Interest UI but has no calculation engine yet (Calculate is unavailable; Issue #45). Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
+- Compound Interest uses the shared Interest UI with its own calculation engine (Issue #47, PR pending owner review). Age (AD/BS), Land (Terai/Hill-Mountain) and Basic Calculator are placeholders; their calculation behavior remains to be implemented. Do not interpret the presence of a view file or navigation destination as a completed calculator.
 - Basic Calculator is currently a placeholder; it does not provide keypad or arithmetic functionality.
 - The current calculator navigation, persistence and source layout are described in `docs/PROJECT_STRUCTURE.md`. Always inspect the current implementation before extending it.
 
@@ -106,6 +106,15 @@ At the end of substantive work, update this file with:
 Never report a check as passed unless it was executed and its output reviewed. Never put secrets, access tokens, personal credentials or private account data in repository handoff files.
 
 ## Current handoff
+
+### Checkpoint — Issue #47 (Compound Interest engine), 2026-11-23 (branch `feature/compound-interest-engine`, from `develop` @ `ce2d77e`)
+
+- Completed: `calculateCompoundInterest` (`src/features/interest/compoundInterest.ts`). Validation moved unchanged into `interestInput.ts` (`validateInterestInput`), used by both engines; Simple behavior unchanged. Each completed 12-month period multiplies the balance by `1 + monthlyRate × 12` (Decimal, no rounding); the remaining months/days earn simple interest on that balance (multiply first, one division) and are not capitalised. Result adds `completedPeriods`, `remaining {months, days}`, `capitalizedBalance`. `INTEREST_CALCULATOR_CONFIGS.compound.engine` is the new engine; the form, result card, copy summary and share/save file name are mode-aware (`interestModeText.ts`; Compound file prefix `compound-interest-result-`). New en/np keys `compoundInterest.result.title` and `.interest`. The card and copied summary show Duration only (no separate periods / remaining-period rows).
+- Tests: new `compoundInterest.test.ts` (hand-computed values, boundaries, rate modes, rounding, validation parity with Simple, never calls Simple), Compound form integration tests, Compound summary test; tests that assumed "no engine" updated.
+- Checks run: `npx tsc --noEmit` exit 0; `npm run lint` exit 0; `npx jest --runInBand` 35 suites, 650 tests passed; Prettier clean on all changed files (`prettier --check .` warns only on 11 unchanged files: README.md, ios asset JSON, etc.). Mutation check (Compound wired to the Simple engine) made 3 tests fail; reverted.
+- NOT verified: Android build / device (no SDK).
+- Owner decisions: wording is mine — "Compound Interest result", "Total Interest" and Nepali "साहु ब्याजको नतिजा", "जम्मा ब्याज" — please review. The "not implemented" note now only shows for a config without an engine.
+- Next action: owner reviews PR and checks Compound on a device.
 
 ### Checkpoint — Issue #45 (one shared Interest calculator UI), 2026-11-23 (branch `feature/shared-interest-calculator-ui` from `develop` at `3ae3c10`; PR to `develop` with `Closes #45`, owner review and manual merge required)
 

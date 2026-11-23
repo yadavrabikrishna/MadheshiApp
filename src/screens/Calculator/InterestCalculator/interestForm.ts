@@ -1,11 +1,11 @@
 import type {
+  InterestErrorCode,
   RateEntryMode,
-  SimpleInterestResult,
-  SimpleInterestErrorCode,
 } from '../../../features/interest';
 import { dateMask } from '../../../utils';
 import type {
   InterestCalculationInput,
+  InterestCalculationResult,
   InterestEngine,
 } from './interestCalculatorConfig';
 
@@ -17,8 +17,8 @@ export interface InterestFormState {
   startDate: string;
   endDate: string;
   /** Present only while the inputs are unchanged since Calculate. */
-  result: SimpleInterestResult | null;
-  errors: readonly SimpleInterestErrorCode[];
+  result: InterestCalculationResult | null;
+  errors: readonly InterestErrorCode[];
 }
 
 export type InterestFormAction =

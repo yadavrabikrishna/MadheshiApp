@@ -1,10 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { ResultActions } from '../../../components';
-import type {
-  RateEntryMode,
-  SimpleInterestResult,
-} from '../../../features/interest';
+import type { RateEntryMode } from '../../../features/interest';
 import {
   useCopyResult,
   useSaveResultImage,
@@ -12,11 +9,13 @@ import {
 } from '../../../features/resultActions';
 import { useTranslation } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
+import type {
+  InterestCalculationResult,
+  InterestType,
+} from './interestCalculatorConfig';
+import { INTEREST_MODE_TEXT } from './interestModeText';
 import { getSimpleInterestDisplay } from './simpleInterestDisplay';
 import { buildSimpleInterestSummary } from './simpleInterestSummary';
-
-/** Shared image name: this prefix + a random number + `.png`. */
-export const SHARE_IMAGE_FILE_NAME = 'simple-interest-result-';
 
 export { formatNeutralDate } from './simpleInterestDisplay';
 
@@ -25,7 +24,9 @@ export { formatNeutralDate } from './simpleInterestDisplay';
  * handled here, so the action row gets no handlers from outside.
  */
 interface SimpleInterestResultCardProps {
-  result: SimpleInterestResult;
+  result: InterestCalculationResult;
+  /** Which calculator produced it; decides title, labels and file name. */
+  type?: InterestType;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
   rateMode: RateEntryMode;
@@ -33,23 +34,25 @@ interface SimpleInterestResultCardProps {
 
 export function SimpleInterestResultCard({
   result,
+  type = 'simple',
   enteredRate,
   rateMode,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
+  const mode = INTEREST_MODE_TEXT[type];
   const styles = useThemedStyles(createStyles);
   const { copy, feedback } = useCopyResult(() =>
-    buildSimpleInterestSummary(result, enteredRate, rateMode, t),
+    buildSimpleInterestSummary(result, enteredRate, rateMode, t, type),
   );
 
   const {
     captureRef,
     share,
     feedback: shareFeedback,
-  } = useShareResultImage(SHARE_IMAGE_FILE_NAME);
+  } = useShareResultImage(mode.fileNamePrefix);
   const { save, feedback: saveFeedback } = useSaveResultImage(
     captureRef,
-    SHARE_IMAGE_FILE_NAME,
+    mode.fileNamePrefix,
   );
 
   const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
@@ -66,7 +69,7 @@ export function SimpleInterestResultCard({
       value: display.interestRate,
     },
     {
-      label: t('simpleInterest.result.interest'),
+      label: t(mode.interestKey),
       value: display.interest,
       strong: true,
     },
@@ -101,7 +104,7 @@ export function SimpleInterestResultCard({
         style={styles.capture}
       >
         <Text style={styles.title} accessibilityRole="header">
-          {t('simpleInterest.result.title')}
+          {t(mode.titleKey)}
         </Text>
         {rows.slice(0, 2).map(renderRow)}
         {/* One compact block: "Start - End", then "Duration: ..." */}

@@ -232,6 +232,7 @@ export function InterestCalculatorForm({
         {form.result ? (
           <SimpleInterestResultCard
             result={form.result}
+            type={config.type}
             enteredRate={form.rate}
             rateMode={form.rateMode}
           />

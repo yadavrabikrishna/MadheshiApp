@@ -87,6 +87,8 @@ export const np: Translations = {
   'simpleInterest.result.total': 'जम्मा रकम',
   'simpleInterest.rateText.percent': '{rate}% प्रति महिना',
   'simpleInterest.rateText.rupees': 'रु. {rate} प्रति रु. १०० प्रति महिना',
+  'compoundInterest.result.title': 'साहु ब्याजको नतिजा',
+  'compoundInterest.result.interest': 'जम्मा ब्याज',
   'simpleInterest.unit.years': 'वर्ष',
   'simpleInterest.unit.months': 'महिना',
   'simpleInterest.unit.days': 'दिन',

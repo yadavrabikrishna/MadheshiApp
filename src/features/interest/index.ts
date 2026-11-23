@@ -29,3 +29,15 @@ export {
   type SimpleInterestOutcome,
   type SimpleInterestResult,
 } from './simpleInterest';
+export {
+  calculateCompoundInterest,
+  type CompoundInterestOutcome,
+  type CompoundInterestResult,
+} from './compoundInterest';
+export {
+  validateInterestInput,
+  type InterestErrorCode,
+  type InterestInput,
+  type InterestValidation,
+  type ValidatedInterestInput,
+} from './interestInput';

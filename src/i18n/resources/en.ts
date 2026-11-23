@@ -87,6 +87,8 @@ export const en = {
   'simpleInterest.result.total': 'Total Amount',
   'simpleInterest.rateText.percent': '{rate}% per month',
   'simpleInterest.rateText.rupees': 'Rs. {rate} per Rs. 100 per month',
+  'compoundInterest.result.title': 'Compound Interest result',
+  'compoundInterest.result.interest': 'Total Interest',
   'simpleInterest.unit.years': 'Years',
   'simpleInterest.unit.months': 'Months',
   'simpleInterest.unit.days': 'Days',

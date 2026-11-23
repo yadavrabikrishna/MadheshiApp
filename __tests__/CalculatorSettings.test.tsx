@@ -424,7 +424,7 @@ describe('dynamic Calculator navigation', () => {
     // No Simple / Compound selector: only the shared form's rate-entry radios.
     expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
     // The shared form, with Calculate unavailable until the engine exists.
-    expect(screen.getByText(PLACEHOLDER.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(PLACEHOLDER.compound)).toBeNull(); // no \"not implemented\" note
     expect(headerTitle()).toBe('Compound Interest');
   });
 
@@ -435,7 +435,7 @@ describe('dynamic Calculator navigation', () => {
 
     expect(topTabLabels()).toEqual(['Interest', 'Age']);
     expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
-    expect(screen.getByText(PLACEHOLDER.compound)).toBeOnTheScreen();
+    expect(screen.queryByText(PLACEHOLDER.compound)).toBeNull(); // no \"not implemented\" note
 
     await user.press(topTab('Age'));
     expect(radioLabels()).toEqual([]);

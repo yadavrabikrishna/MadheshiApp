@@ -1,22 +1,16 @@
+import { CalcDecimal, type CalcDecimalValue } from './decimal';
 import {
-  CalcDecimal,
-  parseDecimalInput,
-  type CalcDecimalValue,
-} from './decimal';
+  validateInterestInput,
+  type InterestErrorCode,
+  type InterestInput,
+} from './interestInput';
 import {
-  calculateFixedDuration,
   DAYS_PER_MONTH,
   MONTHS_PER_YEAR,
-  parseNeutralDate,
   type FixedDuration,
   type NeutralDate,
 } from './neutralDate';
-import {
-  normalizeMonthlyRate,
-  type NormalizedRate,
-  type RateEntryMode,
-  type RateErrorCode,
-} from './rate';
+import type { NormalizedRate } from './rate';
 
 /**
  * Simple Interest calculation engine (pure, deterministic; no React, Redux,
@@ -26,27 +20,11 @@ import {
  * principal for the whole period. Unpaid interest is never capitalised.
  */
 
-/** Raw, unvalidated input as the UI holds it. */
-export interface SimpleInterestInput {
-  /** Plain decimal string, greater than zero, e.g. `"100000"` or `"2500.5"`. */
-  readonly principal: string;
-  /** Plain decimal string, zero or greater, e.g. `"2"` or `"2.5"`. */
-  readonly rate: string;
-  readonly rateMode: RateEntryMode;
-  /** Neutral date text `YYYY/MM/DD`. */
-  readonly startDate: string;
-  /** Neutral date text `YYYY/MM/DD`; must not be earlier than the start. */
-  readonly endDate: string;
-}
+/** Raw, unvalidated input as the UI holds it (shared with Compound Interest). */
+export type SimpleInterestInput = InterestInput;
 
 /** One reason the input was rejected. Map each code to a localized message. */
-export type SimpleInterestErrorCode =
-  | 'principalInvalid'
-  | 'principalNotPositive'
-  | RateErrorCode
-  | 'startDateInvalid'
-  | 'endDateInvalid'
-  | 'endBeforeStart';
+export type SimpleInterestErrorCode = InterestErrorCode;
 
 /**
  * Exact (unrounded) calculation output. Every Decimal keeps full precision;
@@ -101,45 +79,11 @@ export type SimpleInterestOutcome =
 export function calculateSimpleInterest(
   input: SimpleInterestInput,
 ): SimpleInterestOutcome {
-  const errors: SimpleInterestErrorCode[] = [];
-
-  const principal = parseDecimalInput(input.principal);
-  if (principal.kind === 'invalid') {
-    errors.push('principalInvalid');
-  } else if (principal.kind === 'negative' || principal.value.isZero()) {
-    errors.push('principalNotPositive');
+  const validated = validateInterestInput(input);
+  if (!validated.ok) {
+    return validated;
   }
-
-  const rate = normalizeMonthlyRate(input.rate, input.rateMode);
-  if (!rate.ok) {
-    errors.push(rate.error);
-  }
-
-  const startDate = parseNeutralDate(input.startDate);
-  if (!startDate) {
-    errors.push('startDateInvalid');
-  }
-  const endDate = parseNeutralDate(input.endDate);
-  if (!endDate) {
-    errors.push('endDateInvalid');
-  }
-
-  const duration =
-    startDate && endDate ? calculateFixedDuration(startDate, endDate) : null;
-  if (startDate && endDate && !duration) {
-    errors.push('endBeforeStart');
-  }
-
-  if (
-    errors.length > 0 ||
-    principal.kind !== 'ok' ||
-    !rate.ok ||
-    !startDate ||
-    !endDate ||
-    !duration
-  ) {
-    return { ok: false, errors };
-  }
+  const { principal, rate, startDate, endDate, duration } = validated.value;
 
   // Elapsed time in 1/30-month units, so the only division happens once.
   const units = new CalcDecimal(
@@ -150,23 +94,20 @@ export function calculateSimpleInterest(
   const timeInMonths = units.div(perMonth);
   // principal × monthlyRate × (units / 30), multiplying before the single
   // division so no intermediate value is rounded earlier than necessary.
-  const interest = principal.value
-    .mul(rate.value.monthlyRate)
-    .mul(units)
-    .div(perMonth);
+  const interest = principal.mul(rate.monthlyRate).mul(units).div(perMonth);
 
   return {
     ok: true,
     value: {
-      principal: principal.value,
-      monthlyRatePercent: rate.value.monthlyRatePercent,
-      monthlyRate: rate.value.monthlyRate,
+      principal,
+      monthlyRatePercent: rate.monthlyRatePercent,
+      monthlyRate: rate.monthlyRate,
       startDate,
       endDate,
       duration,
       timeInMonths,
       interest,
-      total: principal.value.plus(interest),
+      total: principal.plus(interest),
     },
   };
 }

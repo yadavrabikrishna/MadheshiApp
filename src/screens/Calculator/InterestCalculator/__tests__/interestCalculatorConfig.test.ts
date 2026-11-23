@@ -1,4 +1,7 @@
-import { calculateSimpleInterest } from '../../../../features/interest';
+import {
+  calculateCompoundInterest,
+  calculateSimpleInterest,
+} from '../../../../features/interest';
 import { INTEREST_CALCULATOR_CONFIGS } from '../interestCalculatorConfig';
 
 describe('INTEREST_CALCULATOR_CONFIGS', () => {
@@ -18,8 +21,10 @@ describe('INTEREST_CALCULATOR_CONFIGS', () => {
     );
   });
 
-  it('gives Compound Interest no engine yet, and never the Simple one', () => {
-    expect(INTEREST_CALCULATOR_CONFIGS.compound.engine).toBeNull();
+  it('gives Compound Interest the Compound engine, and never the Simple one', () => {
+    expect(INTEREST_CALCULATOR_CONFIGS.compound.engine).toBe(
+      calculateCompoundInterest,
+    );
     expect(INTEREST_CALCULATOR_CONFIGS.compound.engine).not.toBe(
       calculateSimpleInterest,
     );
