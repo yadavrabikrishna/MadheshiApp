@@ -1,4 +1,5 @@
 import {
+  calculateCompoundInterest,
   calculateSimpleInterest,
   type RateEntryMode,
 } from '../../../../features/interest';
@@ -132,5 +133,45 @@ describe('buildSimpleInterestSummary', () => {
 
     expect(text).not.toMatch(/[*_#<>]/);
     expect(text.endsWith('\n')).toBe(false);
+  });
+});
+
+describe('buildSimpleInterestSummary: Compound Interest', () => {
+  it('uses Compound wording and adds periods and remaining period', () => {
+    const outcome = calculateCompoundInterest({
+      principal: '100000',
+      rate: '2',
+      rateMode: 'percentPerMonth',
+      startDate: '2025/01/01',
+      endDate: '2026/04/01',
+    });
+    if (!outcome.ok) {
+      throw new Error('expected ok');
+    }
+    const t = (key: TranslationKey) => translate('en', key);
+    expect(
+      buildSimpleInterestSummary(
+        outcome.value,
+        '2',
+        'percentPerMonth',
+        t,
+        'compound',
+      ),
+    ).toBe(
+      [
+        'Compound Interest result',
+        '',
+        'Principal: Rs. 1,00,000',
+        'Interest Rate: 2% per month',
+        'Start Date: 2025/01/01',
+        'End Date: 2026/04/01',
+        'Duration: 1 Years, 3 Months, 0 Days',
+        'Completed 12-month periods: 1',
+        'Remaining period: 3 Months, 0 Days',
+        '',
+        'Total Interest: Rs. 31,440',
+        'Total Amount: Rs. 1,31,440',
+      ].join('\n'),
+    );
   });
 });

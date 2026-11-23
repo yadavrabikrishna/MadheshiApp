@@ -51,7 +51,7 @@ src/
                                  InterestCalculatorForm = the ONE Interest UI used by both types,
                                  interestCalculatorConfig.ts (InterestType, the InterestEngine
                                  boundary and INTEREST_CALCULATOR_CONFIGS: Simple has the Simple
-                                 Interest engine, Compound has none yet), interestForm.ts
+                                 Interest engine, Compound has the Compound engine), interestForm.ts, interestModeText.ts (per-mode title, interest label, share file name)
                                  (engine-injected form reducer), SimpleInterestView and
                                  CompoundInterestView (thin wrappers that pick a config),
                                  SimpleInterestResultCard, error-message mapping,

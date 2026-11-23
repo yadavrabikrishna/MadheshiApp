@@ -177,9 +177,123 @@ describe('InterestCalculatorForm: Simple Interest', () => {
   });
 });
 
-describe('InterestCalculatorForm: Compound Interest (no engine yet)', () => {
-  it('keeps Calculate unavailable and says the calculator is not implemented yet', async () => {
+describe('InterestCalculatorForm: Compound Interest', () => {
+  const C = {
+    title: en['compoundInterest.result.title'],
+    interest: en['compoundInterest.result.interest'],
+    periods: en['compoundInterest.result.periods'],
+    remaining: en['compoundInterest.result.remaining'],
+  };
+
+  async function calculateYearAndQuarter(
+    user: ReturnType<typeof userEvent.setup>,
+  ) {
+    await type(user, L['simpleInterest.principal.label'], '100000');
+    await type(user, L['simpleInterest.rate.label'], '2');
+    await type(user, L['simpleInterest.startDate.label'], '20250101');
+    // One completed 12-month period (balance 1,24,000) + 3 months simple on it.
+    await type(user, L['simpleInterest.endDate.label'], '20260401');
+    await user.press(calculateButton());
+  }
+
+  it('has Calculate enabled and no "not implemented" note', async () => {
     await render(setup(compound).ui);
+
+    expect(calculateButton().props.accessibilityState).toEqual({
+      disabled: false,
+    });
+    expect(
+      screen.queryByText(en['calculator.interest.compound.description']),
+    ).toBeNull();
+  });
+
+  it('shows the Compound result with Compound wording, never calling the Simple engine', async () => {
+    const { ui, user } = setup(compound);
+    await render(ui);
+
+    await calculateYearAndQuarter(user);
+
+    expect(calculateSimpleInterest).not.toHaveBeenCalled();
+    expect(screen.getByText(C.title)).toBeOnTheScreen();
+    expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
+    expect(screen.getByLabelText(`${C.periods}: 1`)).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(`${C.remaining}: 3 Months, 0 Days`),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(`${C.interest}: Rs. 31,440`),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.result.total']}: Rs. 1,31,440`,
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText('Principal: Rs. 1,00,000')).toBeOnTheScreen();
+    expect(screen.queryByText(L['simpleInterest.result.interest'])).toBeNull();
+  });
+
+  it('shows the Simple result with Simple wording and no Compound rows', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+
+    await calculateYearAndQuarter(user);
+
+    expect(
+      screen.getByText(L['simpleInterest.result.title']),
+    ).toBeOnTheScreen();
+    // 100000 x 2% x 15 months
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.result.interest']}: Rs. 30,000`,
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(C.title)).toBeNull();
+    expect(screen.queryByText(C.periods)).toBeNull();
+  });
+
+  it('uses Nepali Compound labels in Nepali', async () => {
+    const { ui, user, store } = setup(compound);
+    await render(ui);
+    await calculateYearAndQuarter(user);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+
+    expect(
+      screen.getByText(np['compoundInterest.result.title']),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(np['compoundInterest.result.periods']),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(np['compoundInterest.result.remaining']),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(np['compoundInterest.result.interest']),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows the same errors as Simple for invalid input', async () => {
+    const { ui, user } = setup(compound);
+    await render(ui);
+
+    await user.press(calculateButton());
+
+    expect(screen.queryByText(C.title)).toBeNull();
+    expect(
+      screen.getByText(L['simpleInterest.error.summary']),
+    ).toBeOnTheScreen();
+  });
+});
+
+describe('InterestCalculatorForm: an interest type without an engine', () => {
+  const noEngine: InterestCalculatorConfig = {
+    type: 'compound',
+    engine: null,
+  };
+
+  it('keeps Calculate unavailable and says the calculator is not available', async () => {
+    await render(setup(noEngine).ui);
 
     expect(calculateButton().props.accessibilityState).toEqual({
       disabled: true,
@@ -190,7 +304,7 @@ describe('InterestCalculatorForm: Compound Interest (no engine yet)', () => {
   });
 
   it('never calculates, shows no result or error, and never calls the Simple engine', async () => {
-    const { ui, user } = setup(compound);
+    const { ui, user } = setup(noEngine);
     await render(ui);
     await fillValid(user);
 
@@ -199,16 +313,14 @@ describe('InterestCalculatorForm: Compound Interest (no engine yet)', () => {
     expect(calculateSimpleInterest).not.toHaveBeenCalled();
     expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
     expect(screen.queryByText('Rs. 6,000')).toBeNull();
-    expect(screen.queryByText(L['simpleInterest.error.summary'])).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
-    // Nothing the user typed is lost or changed.
     expect(field(L['simpleInterest.principal.label']).props.value).toBe(
       '1,00,000',
     );
   });
 
-  it('shows the not-available note in Nepali', async () => {
-    const { ui, store } = setup(compound);
+  it('shows the note in Nepali', async () => {
+    const { ui, store } = setup(noEngine);
     await render(ui);
     await act(async () => {
       await store.dispatch(setLanguage('np'));
@@ -217,10 +329,6 @@ describe('InterestCalculatorForm: Compound Interest (no engine yet)', () => {
     expect(
       screen.getByText(np['calculator.interest.compound.description']),
     ).toBeOnTheScreen();
-    expect(
-      screen.getByRole('button', { name: np['simpleInterest.calculate'] }).props
-        .accessibilityState,
-    ).toEqual({ disabled: true });
   });
 });
 

@@ -2,8 +2,8 @@ import { InterestCalculatorForm } from './InterestCalculatorForm';
 import { INTEREST_CALCULATOR_CONFIGS } from './interestCalculatorConfig';
 
 /**
- * Compound Interest: the same shared Interest UI. It has no engine yet (a
- * separate issue), so Calculate is unavailable and nothing is calculated.
+ * Compound Interest: the same shared Interest UI, calculated by the Compound
+ * Interest engine.
  */
 export function CompoundInterestView() {
   return (
