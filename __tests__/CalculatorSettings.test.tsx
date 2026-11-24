@@ -88,7 +88,8 @@ async function openCalculator(user: User) {
   await user.press(bottomTab('Calculator'));
 }
 
-const RATE_MODE_RADIOS = ['% per month', 'Rs. per Rs. 100'];
+// The Interest form no longer has a rate-mode selector (Issue #51).
+const RATE_MODE_RADIOS: string[] = [];
 
 async function launchOnCalculator(device: Device = newDevice()): Promise<User> {
   const user = await launch(device);

@@ -160,13 +160,7 @@ describe('Interest type selector', () => {
 
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual([
-      'Simple Interest',
-      'Compound Interest',
-      // The Simple Interest view's own rate-mode selector follows the type selector.
-      '% per month',
-      'Rs. per Rs. 100',
-    ]);
+    ).toEqual(['Simple Interest', 'Compound Interest']);
     expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
     expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
@@ -199,23 +193,12 @@ describe('Interest type selector', () => {
     await changeLanguage(user, 'नेपाली');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual([
-      'घरेलु ब्याज',
-      'साहु ब्याज',
-      '% प्रति महिना',
-      'रु. प्रति रु. १००',
-    ]);
+    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज']);
 
     await changeLanguage(user, 'English');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual([
-      'Simple Interest',
-      'Compound Interest',
-      // The Simple Interest view's own rate-mode selector follows the type selector.
-      '% per month',
-      'Rs. per Rs. 100',
-    ]);
+    ).toEqual(['Simple Interest', 'Compound Interest']);
   });
 
   it('keeps the selected interest type when the language changes, in both directions', async () => {
@@ -314,13 +297,7 @@ describe('Age date system selector', () => {
     const user = await launchOnCalculator();
 
     // Interest tab: only the Interest selector.
-    expect(radioLabels()).toEqual([
-      'Simple Interest',
-      'Compound Interest',
-      // The Simple Interest view's own rate-mode selector follows the type selector.
-      '% per month',
-      'Rs. per Rs. 100',
-    ]);
+    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
 
     await user.press(topTab('Land'));
     expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);

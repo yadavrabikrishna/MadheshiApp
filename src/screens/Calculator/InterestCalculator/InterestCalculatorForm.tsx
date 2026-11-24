@@ -11,17 +11,22 @@ import {
   Button,
   FieldError,
   MaskedField,
-  SegmentedControl,
   useKeyboardAwareForm,
-  type SegmentOption,
 } from '../../../components';
-import type { RateEntryMode } from '../../../features/interest';
+import { selectInterestRateConfig } from '../../../features/interestRateConfig';
 import { useTranslation } from '../../../i18n';
+import { useAppSelector } from '../../../store';
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../../theme';
-import { dateMask, groupedDecimalMask, plainDecimalMask } from '../../../utils';
+import {
+  dateMask,
+  fillTemplate,
+  groupedDecimalMask,
+  plainDecimalMask,
+} from '../../../utils';
 import { SimpleInterestResultCard } from './SimpleInterestResultCard';
 import type { InterestCalculatorConfig } from './interestCalculatorConfig';
 import { createInterestFormReducer, initialInterestForm } from './interestForm';
+import { getInterestRateHint, toEngineRateMode } from './interestRateHint';
 import {
   getDateError,
   groupErrorsByField,
@@ -48,7 +53,22 @@ export function InterestCalculatorForm({
     () => createInterestFormReducer(config.engine),
     [config.engine],
   );
-  const [form, dispatch] = useReducer(reducer, initialInterestForm);
+  // This calculator's own saved rate configuration (Simple and Compound differ).
+  const rateConfig = useAppSelector(selectInterestRateConfig(config.type));
+  const engineRateMode = toEngineRateMode(rateConfig);
+  const [form, dispatch] = useReducer(
+    reducer,
+    initialInterestForm,
+    (initial): typeof initialInterestForm => ({
+      ...initial,
+      rateMode: engineRateMode,
+    }),
+  );
+  // A settings change applies to the open form at once; a shown result is
+  // dropped when the way the rate is read changes.
+  useEffect(() => {
+    dispatch({ type: 'setRateMode', mode: engineRateMode });
+  }, [engineRateMode]);
   const canCalculate = config.engine !== null;
 
   const keyboardForm = useKeyboardAwareForm();
@@ -96,13 +116,13 @@ export function InterestCalculatorForm({
   // Both dates share one message under their row; only its own field is marked.
   const dateError = getDateError(form.errors);
 
-  const modeOptions: SegmentOption<RateEntryMode>[] = [
-    { value: 'percentPerMonth', label: t('simpleInterest.rateMode.percent') },
-    {
-      value: 'rupeesPer100PerMonth',
-      label: t('simpleInterest.rateMode.rupees'),
-    },
-  ];
+  const rateHint = getInterestRateHint(rateConfig);
+  const rateHintText = rateHint.unitKey
+    ? fillTemplate(t(rateHint.key), {
+        amount: rateHint.amount ?? '',
+        unit: t(rateHint.unitKey),
+      })
+    : t(rateHint.key);
 
   return (
     // collapsable={false}: Android must keep this view so it can be measured.
@@ -141,25 +161,11 @@ export function InterestCalculatorForm({
           errorPrefix={errorPrefix}
         />
 
-        <Text style={styles.sectionLabel}>
-          {t('simpleInterest.rateMode.label')}
-        </Text>
-        <SegmentedControl
-          options={modeOptions}
-          value={form.rateMode}
-          onChange={mode => dispatch({ type: 'setRateMode', mode })}
-          accessibilityLabel={t('simpleInterest.rateMode.label')}
-        />
-        <View style={styles.gap} />
         <MaskedField
           {...chain(rateRef, startDateRef)}
           mask={plainDecimalMask}
           label={t('simpleInterest.rate.label')}
-          hint={t(
-            form.rateMode === 'percentPerMonth'
-              ? 'simpleInterest.rate.hint.percent'
-              : 'simpleInterest.rate.hint.rupees',
-          )}
+          hint={rateHintText}
           placeholder={t('simpleInterest.rate.placeholder')}
           keyboardType="decimal-pad"
           value={form.rate}
@@ -245,13 +251,6 @@ export function InterestCalculatorForm({
 const createStyles = (theme: AppTheme) => ({
   flex: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: 16, paddingBottom: 32 },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: theme.colors.text,
-    marginBottom: 6,
-  },
-  gap: { height: 16 },
   summary: { fontSize: 14, marginBottom: 12 },
   dateGroup: { marginBottom: 16 },
   dateRow: { flexDirection: 'row' as const, gap: 12 },
