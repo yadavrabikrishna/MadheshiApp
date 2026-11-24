@@ -1,9 +1,9 @@
 import type {
   CompoundInterestResult,
-  RateEntryMode,
   SimpleInterestResult,
 } from '../../../features/interest';
 import type { TranslationKey } from '../../../i18n';
+import type { InterestRateConfig } from '../../../types/interestRateConfig';
 import type { InterestType } from './interestCalculatorConfig';
 import { INTEREST_MODE_TEXT } from './interestModeText';
 import { getSimpleInterestDisplay } from './simpleInterestDisplay';
@@ -27,12 +27,12 @@ import { getSimpleInterestDisplay } from './simpleInterestDisplay';
 export function buildSimpleInterestSummary(
   result: SimpleInterestResult | CompoundInterestResult,
   enteredRate: string,
-  rateMode: RateEntryMode,
+  rateConfig: InterestRateConfig,
   t: (key: TranslationKey) => string,
   type: InterestType = 'simple',
 ): string {
   const mode = INTEREST_MODE_TEXT[type];
-  const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
+  const display = getSimpleInterestDisplay(result, enteredRate, rateConfig, t);
   return [
     t(mode.titleKey),
     '',

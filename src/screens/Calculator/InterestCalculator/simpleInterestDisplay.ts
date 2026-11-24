@@ -1,12 +1,26 @@
 import type {
   NeutralDate,
-  RateEntryMode,
   SimpleInterestResult,
 } from '../../../features/interest';
 import type { TranslationKey } from '../../../i18n';
-import { fillTemplate, formatMoney } from '../../../utils';
+import {
+  resolveDenominator,
+  selectedRatePeriod,
+  type InterestRateConfig,
+  type RatePeriod,
+} from '../../../types/interestRateConfig';
+import { fillTemplate, formatMoney, groupDecimalString } from '../../../utils';
 
 type Translate = (key: TranslationKey) => string;
+
+const UNIT_KEYS: Record<RatePeriod, TranslationKey> = {
+  yearly: 'interestRate.unit.yearly',
+  halfYearly: 'interestRate.unit.halfYearly',
+  quarterly: 'interestRate.unit.quarterly',
+  monthly: 'interestRate.unit.monthly',
+  weekly: 'interestRate.unit.weekly',
+  daily: 'interestRate.unit.daily',
+};
 
 const pad = (value: number, width: number) =>
   String(value).padStart(width, '0');
@@ -31,27 +45,43 @@ export interface SimpleInterestDisplay {
 }
 
 /**
+ * The rate as the user entered it and the saved configuration reads it, e.g.
+ * "12% per year" or "Rs. 2 per Rs. 1,000 per month". Never a converted rate.
+ */
+function getEnteredRateText(
+  enteredRate: string,
+  rateConfig: InterestRateConfig,
+  t: Translate,
+): string {
+  const unit = t(UNIT_KEYS[selectedRatePeriod(rateConfig)]);
+  if (rateConfig.rateInputMode === 'percentage') {
+    return fillTemplate(t('simpleInterest.rateText.percent'), {
+      rate: enteredRate,
+      unit,
+    });
+  }
+  return fillTemplate(t('simpleInterest.rateText.rupees'), {
+    rate: enteredRate,
+    amount: groupDecimalString(resolveDenominator(rateConfig) ?? '100'),
+    unit,
+  });
+}
+
+/**
  * The single place where a Simple Interest result becomes display text. The
  * result card and the copied summary both use it, so they always agree.
  */
 export function getSimpleInterestDisplay(
   result: SimpleInterestResult,
   enteredRate: string,
-  rateMode: RateEntryMode,
+  rateConfig: InterestRateConfig,
   t: Translate,
 ): SimpleInterestDisplay {
   const rs = t('simpleInterest.currency');
   const { years, months, days } = result.duration;
   return {
     principal: `${rs} ${formatMoney(result.principal)}`,
-    interestRate: fillTemplate(
-      t(
-        rateMode === 'percentPerMonth'
-          ? 'simpleInterest.rateText.percent'
-          : 'simpleInterest.rateText.rupees',
-      ),
-      { rate: enteredRate },
-    ),
+    interestRate: getEnteredRateText(enteredRate, rateConfig, t),
     startDate: formatNeutralDate(result.startDate),
     endDate: formatNeutralDate(result.endDate),
     duration: [

@@ -1,6 +1,10 @@
 import type { SimpleInterestErrorCode } from '../../../../features/interest';
 import { calculateSimpleInterest } from '../../../../features/interest';
 import {
+  DEFAULT_INTEREST_RATE_CONFIG,
+  type InterestRateConfig,
+} from '../../../../types/interestRateConfig';
+import {
   createInterestFormReducer,
   initialInterestForm,
   type InterestFormState,
@@ -10,8 +14,18 @@ import {
   groupErrorsByField,
 } from '../simpleInterestMessages';
 
+const MONTHLY: InterestRateConfig = {
+  ...DEFAULT_INTEREST_RATE_CONFIG,
+  percentagePeriod: 'monthly',
+};
+const RUPEES: InterestRateConfig = {
+  ...DEFAULT_INTEREST_RATE_CONFIG,
+  rateInputMode: 'rupees',
+};
+
 const valid: InterestFormState = {
   ...initialInterestForm,
+  rateConfig: MONTHLY,
   principal: '100000',
   rate: '2',
   startDate: '20250101',
@@ -71,20 +85,60 @@ describe('interest form reducer with the Simple Interest engine', () => {
     ).toEqual([]);
   });
 
-  it('clears the result when the rate mode changes, not when it is re-selected', () => {
+  it('clears the result when the rate configuration changes, not when it is unchanged', () => {
     const calculated = simpleInterestFormReducer(valid, { type: 'calculate' });
     expect(
       simpleInterestFormReducer(calculated, {
-        type: 'setRateMode',
-        mode: 'percentPerMonth',
+        type: 'setRateConfig',
+        config: { ...MONTHLY }, // equal values, new object
       }),
     ).toBe(calculated);
-    expect(
-      simpleInterestFormReducer(calculated, {
-        type: 'setRateMode',
-        mode: 'rupeesPer100PerMonth',
-      }).result,
-    ).toBeNull();
+    for (const config of [
+      RUPEES,
+      { ...MONTHLY, percentagePeriod: 'yearly' as const },
+      { ...MONTHLY, denominatorMode: 'per1000' as const },
+    ]) {
+      const next = simpleInterestFormReducer(calculated, {
+        type: 'setRateConfig',
+        config,
+      });
+      expect(next.result).toBeNull();
+      expect(next.rateConfig).toBe(config);
+    }
+  });
+
+  it('reads the entered rate through the saved configuration', () => {
+    // 12 yearly = 1 monthly: 100000 x 1% x 3 months = 3000.
+    const yearly = simpleInterestFormReducer(
+      { ...valid, rate: '12', rateConfig: DEFAULT_INTEREST_RATE_CONFIG },
+      { type: 'calculate' },
+    );
+    expect(yearly.result?.interest.toFixed()).toBe('3000');
+    // Rs. 2 per Rs. 1,000 monthly = 0.2% monthly: 100000 x 0.2% x 3 = 600.
+    const rupees = simpleInterestFormReducer(
+      {
+        ...valid,
+        rateConfig: { ...RUPEES, denominatorMode: 'per1000' },
+      },
+      { type: 'calculate' },
+    );
+    expect(rupees.result?.interest.toFixed()).toBe('600');
+  });
+
+  it('never calculates with an unusable rate configuration', () => {
+    const state = simpleInterestFormReducer(
+      {
+        ...valid,
+        rateConfig: {
+          ...RUPEES,
+          denominatorMode: 'custom',
+          customDenominator: null,
+        },
+      },
+      { type: 'calculate' },
+    );
+    expect(state.result).toBeNull();
+    expect(state.errors).toEqual(['rateConfigInvalid']);
   });
 });
 
@@ -94,13 +148,14 @@ describe('error presentation', () => {
     'principalNotPositive',
     'rateInvalid',
     'rateNegative',
+    'rateConfigInvalid',
     'rateModeInvalid',
     'startDateInvalid',
     'endDateInvalid',
     'endBeforeStart',
   ];
 
-  it('maps all 8 engine error codes to a field and a message', () => {
+  it('maps all 9 engine error codes to a field and a message', () => {
     expect(Object.keys(ERROR_PRESENTATION).sort()).toEqual([...codes].sort());
   });
 
@@ -128,6 +183,7 @@ describe('interest form reducer: the engine boundary', () => {
     const state = reducer(valid, { type: 'calculate' });
 
     expect(engine).toHaveBeenCalledTimes(1);
+    // The engine gets the normalized monthly percentage rate (2 monthly = 2).
     expect(engine).toHaveBeenCalledWith({
       principal: '100000',
       rate: '2',
@@ -157,7 +213,7 @@ describe('interest form reducer: the engine boundary', () => {
     const reducer = createInterestFormReducer(engine);
 
     reducer(valid, { type: 'edit', field: 'principal', value: '5' });
-    reducer(valid, { type: 'setRateMode', mode: 'rupeesPer100PerMonth' });
+    reducer(valid, { type: 'setRateConfig', config: RUPEES });
 
     expect(engine).not.toHaveBeenCalled();
   });
@@ -171,7 +227,7 @@ describe('interest form reducer: the engine boundary', () => {
     );
   });
 
-  it('with no engine, edits and rate-mode changes still work', () => {
+  it('with no engine, edits and rate-config changes still work', () => {
     const reducer = createInterestFormReducer(null);
 
     expect(
@@ -179,8 +235,7 @@ describe('interest form reducer: the engine boundary', () => {
         .principal,
     ).toBe('5');
     expect(
-      reducer(valid, { type: 'setRateMode', mode: 'rupeesPer100PerMonth' })
-        .rateMode,
-    ).toBe('rupeesPer100PerMonth');
+      reducer(valid, { type: 'setRateConfig', config: RUPEES }).rateConfig,
+    ).toBe(RUPEES);
   });
 });

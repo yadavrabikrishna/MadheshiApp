@@ -26,7 +26,7 @@ import {
 import { SimpleInterestResultCard } from './SimpleInterestResultCard';
 import type { InterestCalculatorConfig } from './interestCalculatorConfig';
 import { createInterestFormReducer, initialInterestForm } from './interestForm';
-import { getInterestRateHint, toEngineRateMode } from './interestRateHint';
+import { getInterestRateHint } from './interestRateHint';
 import {
   getDateError,
   groupErrorsByField,
@@ -55,20 +55,19 @@ export function InterestCalculatorForm({
   );
   // This calculator's own saved rate configuration (Simple and Compound differ).
   const rateConfig = useAppSelector(selectInterestRateConfig(config.type));
-  const engineRateMode = toEngineRateMode(rateConfig);
   const [form, dispatch] = useReducer(
     reducer,
     initialInterestForm,
     (initial): typeof initialInterestForm => ({
       ...initial,
-      rateMode: engineRateMode,
+      rateConfig,
     }),
   );
   // A settings change applies to the open form at once; a shown result is
   // dropped when the way the rate is read changes.
   useEffect(() => {
-    dispatch({ type: 'setRateMode', mode: engineRateMode });
-  }, [engineRateMode]);
+    dispatch({ type: 'setRateConfig', config: rateConfig });
+  }, [rateConfig]);
   const canCalculate = config.engine !== null;
 
   const keyboardForm = useKeyboardAwareForm();
@@ -240,7 +239,7 @@ export function InterestCalculatorForm({
             result={form.result}
             type={config.type}
             enteredRate={form.rate}
-            rateMode={form.rateMode}
+            rateConfig={form.rateConfig}
           />
         ) : null}
       </ScrollView>

@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { ResultActions } from '../../../components';
-import type { RateEntryMode } from '../../../features/interest';
+import type { InterestRateConfig } from '../../../types/interestRateConfig';
 import {
   useCopyResult,
   useSaveResultImage,
@@ -29,20 +29,20 @@ interface SimpleInterestResultCardProps {
   type?: InterestType;
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
-  rateMode: RateEntryMode;
+  rateConfig: InterestRateConfig;
 }
 
 export function SimpleInterestResultCard({
   result,
   type = 'simple',
   enteredRate,
-  rateMode,
+  rateConfig,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
   const mode = INTEREST_MODE_TEXT[type];
   const styles = useThemedStyles(createStyles);
   const { copy, feedback } = useCopyResult(() =>
-    buildSimpleInterestSummary(result, enteredRate, rateMode, t, type),
+    buildSimpleInterestSummary(result, enteredRate, rateConfig, t, type),
   );
 
   const {
@@ -55,7 +55,7 @@ export function SimpleInterestResultCard({
     mode.fileNamePrefix,
   );
 
-  const display = getSimpleInterestDisplay(result, enteredRate, rateMode, t);
+  const display = getSimpleInterestDisplay(result, enteredRate, rateConfig, t);
   const dateRangeText = `${display.startDate} – ${display.endDate}`;
   const durationLine = `${t('simpleInterest.result.duration')}: ${
     display.duration

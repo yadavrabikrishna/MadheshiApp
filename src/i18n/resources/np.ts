@@ -64,6 +64,8 @@ export const np: Translations = {
   'simpleInterest.error.rateInvalid':
     'दर सङ्ख्यामा राख्नुहोस्, जस्तै 2 वा 1.5। शून्य मान्य छ।',
   'simpleInterest.error.rateNegative': 'दर ऋणात्मक हुन सक्दैन।',
+  'simpleInterest.error.rateConfigInvalid':
+    'सुरक्षित गरिएको दर सेटिङ प्रयोग गर्न मिल्दैन। क्याल्कुलेटर सेटिङमा ब्याजदर राख्ने तरिका जाँच्नुहोस्।',
   'simpleInterest.error.rateModeInvalid': 'दर कसरी राख्ने भनेर छान्नुहोस्।',
   'simpleInterest.error.startDateInvalid':
     'सुरु मिति पूरा YYYY/MM/DD मा राख्नुहोस्; महिना 01 देखि 12 र गते 01 देखि 32।',
@@ -78,8 +80,8 @@ export const np: Translations = {
   'simpleInterest.result.duration': 'अवधि',
   'simpleInterest.result.interest': 'घरेलु ब्याज',
   'simpleInterest.result.total': 'जम्मा रकम',
-  'simpleInterest.rateText.percent': '{rate}% प्रति महिना',
-  'simpleInterest.rateText.rupees': 'रु. {rate} प्रति रु. १०० प्रति महिना',
+  'simpleInterest.rateText.percent': '{rate}% {unit}',
+  'simpleInterest.rateText.rupees': 'रु. {rate} प्रति रु. {amount} {unit}',
   'compoundInterest.result.title': 'साहु ब्याजको नतिजा',
   'compoundInterest.result.interest': 'जम्मा ब्याज',
   'simpleInterest.unit.years': 'वर्ष',
