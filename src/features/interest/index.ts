@@ -33,6 +33,8 @@ export {
   calculateWithConfiguredRate,
   isUsableRateConfig,
   normalizeConfiguredRate,
+  selectedCompoundingPeriod,
+  PERIOD_DAYS,
   type ConfiguredInterestInput,
   type ConfiguredRateErrorCode,
   type ConfiguredRateResult,
@@ -45,6 +47,7 @@ export {
 } from './compoundInterest';
 export {
   validateInterestInput,
+  type CompoundingPeriod,
   type InterestErrorCode,
   type InterestInput,
   type InterestValidation,

@@ -107,6 +107,14 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #58 (Compound Interest uses the selected rate period), 2026-11-24 (branch `feature/compound-selected-period` from `develop` @ `2d34d49`; PR to `develop` with `Closes #58`, owner review and manual merge required)
+
+- Completed: the selected rate period is now the Compound compounding period (Yearly 360, Half-yearly 180, Quarterly 90, Monthly 30, Weekly 7, Daily 1 fixed days), in Percentage and Rupees modes (Per 100 / Per 1,000 / custom). `selectedCompoundingPeriod` (configuredRate.ts) gives the engine the rate for ONE period (entered, or entered × 100 ÷ denominator in one division) plus `periodDays`; `InterestInput.compounding` carries it (Simple ignores it; absent means the old yearly behaviour, monthly × 12 over 360 days). Engine: completed periods = floor(elapsed days ÷ period days), balance = principal × (1 + period rate)^n, remainder = balance × period rate × remainingDays ÷ periodDays as simple interest, not capitalised. No intermediate rounding; the elapsed-days convention and display rounding are unchanged. Result adds `periodDays`; `remaining` is now whole months + days of the leftover time.
+- Supersedes the Issue #52 statement that Compound always capitalises per 12 months; the monthly-percentage path still serves Simple Interest.
+- Tests: new `compoundPeriods.test.ts` (Issue examples 136,000 / 184,960 / 160,480; six periods; denominators; boundaries; short, zero and long durations; mutation-checked); existing form, reducer and configuredRate tests updated. Expected values were hand-worked and the long ones re-checked with Python decimal.
+- Checks run: see the PR description (tsc, lint, Prettier, full Jest). Android build / device not run (no SDK).
+- Next action: owner reviews the PR.
+
 ### Checkpoint — Issue #52 (normalize configured rates to monthly), 2026-11-24 (branch `feature/interest-rate-normalization` from `develop` @ `812d70c`; PR to `develop` with `Closes #52`, owner review and manual merge required)
 
 - Completed: new `src/features/interest/configuredRate.ts` converts the entered Interest Rate to a monthly percentage before either engine runs. Percentage: Yearly ÷12, Half-yearly ÷6, Quarterly ÷3, Monthly ×1, Weekly ×30÷7, Daily ×30. Rupees: entered ÷ denominator (Per 100 / Per 1,000 / saved custom) × 100, then the same factor. decimal.js only, built from validated strings, one division and no intermediate rounding. `calculateWithConfiguredRate(engine, input)` hands the engine a monthly percentage (`percentPerMonth`), so Simple and Compound formulas, date logic and 12-month Compound capitalization are unchanged; the selected period is an input convention only.

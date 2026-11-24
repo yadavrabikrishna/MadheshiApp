@@ -14,6 +14,7 @@ import {
 } from './decimal';
 import {
   validateInterestInput,
+  type CompoundingPeriod,
   type InterestErrorCode,
   type InterestInput,
 } from './interestInput';
@@ -24,8 +25,8 @@ import type { RateErrorCode } from './rate';
  * Redux or storage). The Simple and Compound engines keep one input contract,
  * a MONTHLY percentage rate; this turns what the user entered, read through the
  * calculator's saved configuration, into that rate. The entered period is only
- * an input convention: it never changes how interest is calculated, and the
- * Compound engine still compounds once per completed 12-month period.
+ * an input convention for Simple Interest. Compound Interest also receives the
+ * selected period (see `selectedCompoundingPeriod`) and compounds per period.
  *
  * Monthly percentage rate, with the fixed 30-day month and 12-month year:
  *
@@ -48,6 +49,16 @@ const PERIOD_TO_MONTHLY: Record<RatePeriod, readonly [number, number]> = {
   monthly: [1, 1],
   weekly: [30, 7],
   daily: [30, 1],
+};
+
+/** Compounding period length in fixed days (30-day month, 12-month year). */
+export const PERIOD_DAYS: Record<RatePeriod, number> = {
+  yearly: 360,
+  halfYearly: 180,
+  quarterly: 90,
+  monthly: 30,
+  weekly: 7,
+  daily: 1,
 };
 
 export type ConfiguredRateErrorCode = RateErrorCode | 'rateConfigInvalid';
@@ -115,6 +126,33 @@ export function normalizeConfiguredRate(
   return { ok: true, monthlyRatePercent: numerator.div(divide) };
 }
 
+/**
+ * The rate for ONE selected period, as entered (Percentage) or converted
+ * (Rupees: entered x 100 / denominator, one division), with that period's
+ * length. Compound Interest compounds with exactly this. Assumes the rate and
+ * configuration were already accepted by `normalizeConfiguredRate`.
+ */
+export function selectedCompoundingPeriod(
+  entered: string,
+  config: InterestRateConfig,
+): CompoundingPeriod | null {
+  const parsed = parseDecimalInput(entered);
+  if (parsed.kind !== 'ok' || !isUsableRateConfig(config)) {
+    return null;
+  }
+  if (config.rateInputMode === 'percentage') {
+    return {
+      periodDays: PERIOD_DAYS[config.percentagePeriod],
+      periodRatePercent: parsed.value.toString(),
+    };
+  }
+  const denominator = new CalcDecimal(resolveDenominator(config) as string);
+  return {
+    periodDays: PERIOD_DAYS[config.rupeesPeriod],
+    periodRatePercent: parsed.value.mul(100).div(denominator).toString(),
+  };
+}
+
 /** The shape every interest engine has (Simple and Compound). */
 export type RateEngine<Result> = (
   input: InterestInput,
@@ -150,6 +188,7 @@ export function calculateWithConfiguredRate<Result>(
       ...rest,
       rate: normalized.monthlyRatePercent.toString(),
       rateMode: 'percentPerMonth',
+      compounding: selectedCompoundingPeriod(rate, rateConfig) ?? undefined,
     });
   }
 

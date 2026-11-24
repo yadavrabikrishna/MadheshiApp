@@ -188,6 +188,7 @@ describe('interest form reducer: the engine boundary', () => {
       principal: '100000',
       rate: '2',
       rateMode: 'percentPerMonth',
+      compounding: { periodDays: 30, periodRatePercent: '2' },
       startDate: '2025/01/01',
       endDate: '2025/04/01',
     });

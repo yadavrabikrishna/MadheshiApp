@@ -397,23 +397,21 @@ describe('integration with the Compound Interest engine', () => {
     expect(total(compound('24', pct('yearly'), '2027/01/01'))).toBe('153760');
   });
 
-  it('the entered period does not change the compounding frequency', () => {
-    // Weekly 7% = 30% a month = 360% a year: one capitalisation per 12 months,
-    // 100000 x (1 + 3.6) = 460000. Not compounded weekly or monthly.
-    expect(total(compound('7', pct('weekly'), '2026/01/01'))).toBe('460000');
-    // Daily 1% likewise.
-    expect(total(compound('1', pct('daily'), '2026/01/01'))).toBe('460000');
-  });
-
-  it('year + partial period keeps the unchanged rules (simple on the capitalised balance)', () => {
-    // 2% a month, 15 months: 124000 + 124000 x 2% x 3 = 131440
+  it('yearly 24%: one capitalisation per 360 days, then simple on the balance', () => {
+    // 15 months: 124000 + 124000 x 24% x (90/360) = 131440
     expect(total(compound('24', pct('yearly'), '2026/04/01'))).toBe('131440');
-    expect(total(compound('2', rupees('monthly'), '2026/04/01'))).toBe(
+    expect(total(compound('24', rupees('yearly'), '2026/04/01'))).toBe(
       '131440',
     );
     expect(
-      total(compound('20', rupees('monthly', 'per1000'), '2026/04/01')),
+      total(compound('240', rupees('yearly', 'per1000'), '2026/04/01')),
     ).toBe('131440');
+  });
+
+  it('weekly and daily compound per 7 and per 1 day', () => {
+    // 360 days weekly 1%: 51 weeks + 3 days; checked below against 1.01^51.
+    expect(total(compound('1', pct('weekly'), '2025/01/08'))).toBe('101000');
+    expect(total(compound('1', pct('daily'), '2025/01/03'))).toBe('102010');
   });
 
   it('under 12 months equals Simple Interest', () => {
@@ -447,6 +445,7 @@ describe('the engine contract and failures', () => {
       principal: '100000',
       rate: '1',
       rateMode: 'percentPerMonth',
+      compounding: { periodDays: 360, periodRatePercent: '12' },
       startDate: '2025/01/01',
       endDate: '2025/12/31',
     });
