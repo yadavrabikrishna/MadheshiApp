@@ -38,7 +38,7 @@ src/
                                decimal.ts (cloned Decimal, input parsing), neutralDate.ts
                                (YYYY/MM/DD validation + fixed 30-day/12-month duration),
                                rate.ts (rate-mode normalisation), configuredRate.ts (saved rate
-                               configuration -> monthly %), simpleInterest.ts
+                               configuration -> monthly % and compounding period), simpleInterest.ts
                                (calculateSimpleInterest); public API via index.ts
   utils/                     Pure helpers: formatMoney (Decimal, half-up, Indian grouping),
                                maskedInput (value/display masks and caret-preserving edits), fillTemplate

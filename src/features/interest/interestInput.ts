@@ -30,6 +30,20 @@ export interface InterestInput {
   readonly startDate: string;
   /** Neutral date text `YYYY/MM/DD`; must not be earlier than the start. */
   readonly endDate: string;
+  /**
+   * Compound Interest only (Simple ignores it): the selected rate period, kept
+   * as entered rather than re-derived from the monthly rate. When absent the
+   * Compound engine compounds yearly (360 days, monthly rate x 12).
+   */
+  readonly compounding?: CompoundingPeriod;
+}
+
+/** One compounding period: its length in fixed days and its rate in percent. */
+export interface CompoundingPeriod {
+  /** 360, 180, 90, 30, 7 or 1 (fixed 30-day month, 12-month year). */
+  readonly periodDays: number;
+  /** Plain decimal string: the percentage earned over one whole period. */
+  readonly periodRatePercent: string;
 }
 
 /** One reason the input was rejected. Map each code to a localized message. */

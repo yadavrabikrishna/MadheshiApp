@@ -11,21 +11,25 @@ import type {
  * storage or presentation formatting). It shares input validation with the
  * Simple Interest engine through `validateInterestInput` and never calls it.
  *
- * Rules (V1 spec 2.3-2.7):
- * - Each completed 12-month period is one compounding period.
- * - Annual rate = monthly rate × 12. At the end of every completed period the
- *   balance is multiplied by (1 + annual rate): the interest is capitalised.
+ * Rules (Issue #58):
+ * - The selected rate period is the compounding period, in fixed days:
+ *   yearly 360, half-yearly 180, quarterly 90, monthly 30, weekly 7, daily 1.
+ *   Without `compounding` the period is yearly with rate = monthly rate x 12.
+ * - Every completed period multiplies the balance by (1 + period rate / 100):
+ *   the interest is capitalised.
  * - The incomplete period after the last completed one earns simple interest
- *   on the current balance, for its remaining months and days, and is not
- *   capitalised.
- * - No other compounding frequency exists.
- * - Nothing is rounded here. Rounding is the display's job, on final amounts.
+ *   on the current balance, for remainingDays / periodDays of the period rate,
+ *   and is not capitalised. An exact boundary leaves no partial period.
+ * - Elapsed time is the fixed-duration convention (years x 360 + months x 30
+ *   + days). Nothing is rounded here; rounding is the display's job.
  */
 
 export interface CompoundInterestResult extends SimpleInterestResult {
-  /** Number of completed 12-month periods (each one capitalised). */
+  /** Number of completed selected periods (each one capitalised). */
   readonly completedPeriods: number;
-  /** Duration left after the completed periods (months 0-11, plus days). */
+  /** Length of the compounding period in fixed days. */
+  readonly periodDays: number;
+  /** Time left after the completed periods, in whole months and days. */
   readonly remaining: { readonly months: number; readonly days: number };
   /** Balance after capitalising every completed period, before the remainder. */
   readonly capitalizedBalance: CalcDecimalValue;
@@ -43,37 +47,41 @@ export function calculateCompoundInterest(
     return validated;
   }
   const { principal, rate, startDate, endDate, duration } = validated.value;
+  const YEAR_DAYS = MONTHS_PER_YEAR * DAYS_PER_MONTH;
 
-  const completedPeriods = duration.years;
-  const remaining = { months: duration.months, days: duration.days };
+  const periodDays = input.compounding?.periodDays ?? YEAR_DAYS;
+  const periodRatePercent = input.compounding
+    ? new CalcDecimal(input.compounding.periodRatePercent)
+    : rate.monthlyRatePercent.mul(MONTHS_PER_YEAR);
+  const periodRate = periodRatePercent.div(100);
 
-  const annualFactor = new CalcDecimal(1).plus(
-    rate.monthlyRate.mul(MONTHS_PER_YEAR),
-  );
-  let balance = principal;
-  for (let period = 0; period < completedPeriods; period += 1) {
-    balance = balance.mul(annualFactor);
-  }
+  const elapsedDays =
+    (duration.years * MONTHS_PER_YEAR + duration.months) * DAYS_PER_MONTH +
+    duration.days;
+  const completedPeriods = Math.floor(elapsedDays / periodDays);
+  const remainingDays = elapsedDays - completedPeriods * periodDays;
+  const remaining = {
+    months: Math.floor(remainingDays / DAYS_PER_MONTH),
+    days: remainingDays % DAYS_PER_MONTH,
+  };
 
-  // Remainder: simple interest on the current balance, in 1/30-month units,
-  // multiplying before the single division.
-  const remainingUnits = new CalcDecimal(
-    remaining.months * DAYS_PER_MONTH + remaining.days,
-  );
-  const perMonth = new CalcDecimal(DAYS_PER_MONTH);
+  const periodFactor = new CalcDecimal(1).plus(periodRate);
+  const balance = principal.mul(periodFactor.pow(completedPeriods));
+
+  // Remainder: simple interest on the current balance, multiplying before the
+  // single division.
   const remainderInterest = balance
-    .mul(rate.monthlyRate)
-    .mul(remainingUnits)
-    .div(perMonth);
+    .mul(periodRate)
+    .mul(new CalcDecimal(remainingDays))
+    .div(new CalcDecimal(periodDays));
 
   // Interest = capitalised interest + remainder; total = principal + interest
   // (with no completed period this is exactly the Simple Interest arithmetic).
   const interest = balance.minus(principal).plus(remainderInterest);
   const total = principal.plus(interest);
-  const timeInMonths = new CalcDecimal(
-    (duration.years * MONTHS_PER_YEAR + duration.months) * DAYS_PER_MONTH +
-      duration.days,
-  ).div(perMonth);
+  const timeInMonths = new CalcDecimal(elapsedDays).div(
+    new CalcDecimal(DAYS_PER_MONTH),
+  );
 
   return {
     ok: true,
@@ -88,6 +96,7 @@ export function calculateCompoundInterest(
       interest,
       total,
       completedPeriods,
+      periodDays,
       remaining,
       capitalizedBalance: balance,
     },

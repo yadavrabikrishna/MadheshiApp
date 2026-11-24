@@ -172,6 +172,7 @@ describe('InterestCalculatorForm: Simple Interest', () => {
       principal: '100000',
       rate: '2',
       rateMode: 'percentPerMonth',
+      compounding: { periodDays: 30, periodRatePercent: '2' },
       startDate: '2025/01/01',
       endDate: '2025/04/01',
     });
@@ -202,7 +203,7 @@ describe('InterestCalculatorForm: Compound Interest', () => {
     await type(user, L['simpleInterest.principal.label'], '100000');
     await type(user, L['simpleInterest.rate.label'], '2');
     await type(user, L['simpleInterest.startDate.label'], '20250101');
-    // One completed 12-month period (balance 1,24,000) + 3 months simple on it.
+    // Monthly period: 15 completed periods, 100000 x 1.02^15 (hand check ~1,34,586.83).
     await type(user, L['simpleInterest.endDate.label'], '20260401');
     await user.press(calculateButton());
   }
@@ -236,11 +237,11 @@ describe('InterestCalculatorForm: Compound Interest', () => {
     expect(screen.queryByText(C.periods)).toBeNull();
     expect(screen.queryByText(C.remaining)).toBeNull();
     expect(
-      screen.getByLabelText(`${C.interest}: Rs. 31,440`),
+      screen.getByLabelText(`${C.interest}: Rs. 34,586.83`),
     ).toBeOnTheScreen();
     expect(
       screen.getByLabelText(
-        `${L['simpleInterest.result.total']}: Rs. 1,31,440`,
+        `${L['simpleInterest.result.total']}: Rs. 1,34,586.83`,
       ),
     ).toBeOnTheScreen();
     expect(screen.getByLabelText('Principal: Rs. 1,00,000')).toBeOnTheScreen();
@@ -573,6 +574,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
       principal: '1000',
       rate: '1',
       rateMode: 'percentPerMonth',
+      compounding: { periodDays: 360, periodRatePercent: '12' },
       startDate: '2025/01/01',
       endDate: '2025/04/01',
     });
@@ -593,17 +595,24 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
     expect(screen.getByText('Rs. 24,000')).toBeOnTheScreen();
   });
 
-  it('keeps Compound capitalization yearly whatever period the rate is entered in', async () => {
+  it('compounds per the selected period: 36% per half-year for one year', async () => {
     const view = setup(compound);
-    await configureAndFill(view, 'weekly', '7', 'compound');
+    await configureAndFill(view, 'halfYearly', '36', 'compound');
     await view.user.press(calculateButton());
-    // Weekly 7% = 30% a month = 360% a year; one capitalization: 100000 x 4.6.
-    expect(screen.getByText('Rs. 4,60,000')).toBeOnTheScreen();
+    // 100000 -> 136000 -> 184960.
+    expect(
+      screen.getByLabelText('Total Interest: Rs. 84,960'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.result.total']}: Rs. 1,84,960`,
+      ),
+    ).toBeOnTheScreen();
   });
 
   async function configureAndFill(
     view: ReturnType<typeof setup>,
-    period: 'yearly' | 'weekly',
+    period: 'yearly' | 'weekly' | 'halfYearly',
     rate: string,
     calculator: InterestCalculatorKind = 'simple',
   ) {
