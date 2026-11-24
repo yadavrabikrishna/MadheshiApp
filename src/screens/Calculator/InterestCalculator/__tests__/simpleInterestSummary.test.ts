@@ -1,32 +1,48 @@
 import {
   calculateCompoundInterest,
   calculateSimpleInterest,
-  type RateEntryMode,
 } from '../../../../features/interest';
 import { translate, type TranslationKey } from '../../../../i18n';
+import {
+  DEFAULT_INTEREST_RATE_CONFIG,
+  type InterestRateConfig,
+} from '../../../../types/interestRateConfig';
 import type { Language } from '../../../../types/preferences';
 import { getSimpleInterestDisplay } from '../simpleInterestDisplay';
 import { buildSimpleInterestSummary } from '../simpleInterestSummary';
+
+const MONTHLY: InterestRateConfig = {
+  ...DEFAULT_INTEREST_RATE_CONFIG,
+  percentagePeriod: 'monthly',
+};
+const RUPEES_PER_100: InterestRateConfig = {
+  ...DEFAULT_INTEREST_RATE_CONFIG,
+  rateInputMode: 'rupees',
+};
 
 function summary(
   input: {
     principal: string;
     rate: string;
-    rateMode?: RateEntryMode;
+    config?: InterestRateConfig;
     startDate: string;
     endDate: string;
   },
   language: Language = 'en',
 ) {
-  const rateMode = input.rateMode ?? 'percentPerMonth';
-  const outcome = calculateSimpleInterest({ ...input, rateMode });
+  const config = input.config ?? MONTHLY;
+  // The engine is given the monthly rate; these tests use equivalent monthly values.
+  const outcome = calculateSimpleInterest({
+    ...input,
+    rateMode: 'percentPerMonth',
+  });
   if (!outcome.ok) {
     throw new Error(`expected a valid result: ${outcome.errors.join(', ')}`);
   }
   const t = (key: TranslationKey) => translate(language, key);
   return {
-    text: buildSimpleInterestSummary(outcome.value, input.rate, rateMode, t),
-    display: getSimpleInterestDisplay(outcome.value, input.rate, rateMode, t),
+    text: buildSimpleInterestSummary(outcome.value, input.rate, config, t),
+    display: getSimpleInterestDisplay(outcome.value, input.rate, config, t),
   };
 }
 
@@ -74,12 +90,11 @@ describe('buildSimpleInterestSummary', () => {
 
   it('shows the rate as entered, with its mode', () => {
     expect(
-      summary({ ...base, rate: '2', rateMode: 'rupeesPer100PerMonth' }).text,
+      summary({ ...base, rate: '2', config: RUPEES_PER_100 }).text,
     ).toContain('Interest Rate: Rs. 2 per Rs. 100 per month');
     expect(
-      summary({ ...base, rate: '2', rateMode: 'rupeesPer100PerMonth' }, 'np')
-        .text,
-    ).toContain('ब्याज दर: रु. 2 प्रति रु. १०० प्रति महिना');
+      summary({ ...base, rate: '2', config: RUPEES_PER_100 }, 'np').text,
+    ).toContain('ब्याज दर: रु. 2 प्रति रु. 100 प्रति महिना');
     expect(summary({ ...base, rate: '0.75' }).text).toContain(
       'Interest Rate: 0.75% per month',
     );
@@ -152,7 +167,7 @@ describe('buildSimpleInterestSummary: Compound Interest', () => {
     return buildSimpleInterestSummary(
       outcome.value,
       '2',
-      'percentPerMonth',
+      MONTHLY,
       t,
       'compound',
     );

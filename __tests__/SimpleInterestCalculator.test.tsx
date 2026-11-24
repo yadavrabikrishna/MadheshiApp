@@ -50,18 +50,17 @@ jest.setTimeout(60000);
 
 async function launchSimpleInterest(options: { rupees?: boolean } = {}) {
   const file = createRawTestDatabase();
-  if (options.rupees) {
-    // Saved Simple Interest setting (Percentage is the default): Rupees per Rs. 100.
-    const db = createTestDatabase(file);
-    await runMigrations(db);
-    await createPreferencesRepository(db).saveInterestRateConfig('simple', {
-      rateInputMode: 'rupees',
-      percentagePeriod: 'yearly',
-      rupeesPeriod: 'monthly',
-      denominatorMode: 'per100',
-      customDenominator: null,
-    });
-  }
+  // Saved Simple Interest setting. These tests read the entered rate as a
+  // monthly rate (the app default is Percentage per year, covered elsewhere).
+  const seedDb = createTestDatabase(file);
+  await runMigrations(seedDb);
+  await createPreferencesRepository(seedDb).saveInterestRateConfig('simple', {
+    rateInputMode: options.rupees ? 'rupees' : 'percentage',
+    percentagePeriod: 'monthly',
+    rupeesPeriod: 'monthly',
+    denominatorMode: 'per100',
+    customDenominator: null,
+  });
   const user = userEvent.setup();
   await render(
     <SafeAreaProvider>

@@ -1,10 +1,14 @@
-import type {
-  InterestErrorCode,
-  RateEntryMode,
+import {
+  calculateWithConfiguredRate,
+  type ConfiguredInterestInput,
+  type InterestErrorCode,
 } from '../../../features/interest';
+import {
+  DEFAULT_INTEREST_RATE_CONFIG,
+  type InterestRateConfig,
+} from '../../../types/interestRateConfig';
 import { dateMask } from '../../../utils';
 import type {
-  InterestCalculationInput,
   InterestCalculationResult,
   InterestEngine,
 } from './interestCalculatorConfig';
@@ -13,7 +17,11 @@ import type {
 export interface InterestFormState {
   principal: string;
   rate: string;
-  rateMode: RateEntryMode;
+  /**
+   * The saved rate configuration the entered rate is read through. It is the
+   * one used by the last Calculate (the shown result), kept in sync with Settings.
+   */
+  rateConfig: InterestRateConfig;
   startDate: string;
   endDate: string;
   /** Present only while the inputs are unchanged since Calculate. */
@@ -27,30 +35,44 @@ export type InterestFormAction =
       field: 'principal' | 'rate' | 'startDate' | 'endDate';
       value: string;
     }
-  | { type: 'setRateMode'; mode: RateEntryMode }
+  | { type: 'setRateConfig'; config: InterestRateConfig }
   | { type: 'calculate' };
 
 export const initialInterestForm: InterestFormState = {
   principal: '',
   rate: '',
-  rateMode: 'percentPerMonth',
+  rateConfig: DEFAULT_INTEREST_RATE_CONFIG,
   startDate: '',
   endDate: '',
   result: null,
   errors: [],
 };
 
-/** The engine input for the entered values (dates get their `/` separators). */
+/**
+ * The entered values with the saved rate configuration (dates get their `/`
+ * separators). The rate is normalized to the engine's monthly rate when
+ * calculating (`calculateWithConfiguredRate`), not here.
+ */
 export function toInterestInput(
   state: InterestFormState,
-): InterestCalculationInput {
+): ConfiguredInterestInput {
   return {
     principal: state.principal,
     rate: state.rate,
-    rateMode: state.rateMode,
+    rateConfig: state.rateConfig,
     startDate: dateMask.format(state.startDate),
     endDate: dateMask.format(state.endDate),
   };
+}
+
+function sameRateConfig(a: InterestRateConfig, b: InterestRateConfig) {
+  return (
+    a.rateInputMode === b.rateInputMode &&
+    a.percentagePeriod === b.percentagePeriod &&
+    a.rupeesPeriod === b.rupeesPeriod &&
+    a.denominatorMode === b.denominatorMode &&
+    a.customDenominator === b.customDenominator
+  );
 }
 
 /**
@@ -72,16 +94,26 @@ export function createInterestFormReducer(engine: InterestEngine | null) {
           result: null,
           errors: [],
         };
-      case 'setRateMode':
-        if (action.mode === state.rateMode) {
+      case 'setRateConfig':
+        // Same configuration (a no-op save): keep the result.
+        if (sameRateConfig(action.config, state.rateConfig)) {
           return state;
         }
-        return { ...state, rateMode: action.mode, result: null, errors: [] };
+        // The rate is now read differently, so a shown result no longer matches.
+        return {
+          ...state,
+          rateConfig: action.config,
+          result: null,
+          errors: [],
+        };
       case 'calculate': {
         if (!engine) {
           return state;
         }
-        const outcome = engine(toInterestInput(state));
+        const outcome = calculateWithConfiguredRate(
+          engine,
+          toInterestInput(state),
+        );
         return outcome.ok
           ? { ...state, result: outcome.value, errors: [] }
           : { ...state, result: null, errors: outcome.errors };

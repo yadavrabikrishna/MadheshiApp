@@ -1,4 +1,3 @@
-import type { RateEntryMode } from '../../../features/interest';
 import type { TranslationKey } from '../../../i18n';
 import {
   resolveDenominator,
@@ -53,17 +52,4 @@ export function getInterestRateHint(
     unitKey: UNIT_KEYS[period],
     amount: groupDecimalString(denominator),
   };
-}
-
-/**
- * The value of the existing calculation input contract that matches the saved
- * rate-entry mode. Only the label is chosen here: the entered number is passed
- * to the engine unchanged. Converting it between periods and denominators is
- * rate normalization (a separate issue), so until then the engine reads every
- * rate as per month (and per Rs. 100 for Rupees).
- */
-export function toEngineRateMode(config: InterestRateConfig): RateEntryMode {
-  return config.rateInputMode === 'percentage'
-    ? 'percentPerMonth'
-    : 'rupeesPer100PerMonth';
 }

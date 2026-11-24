@@ -29,6 +29,10 @@ export const ERROR_PRESENTATION: Record<
     field: 'rate',
     messageKey: 'simpleInterest.error.rateNegative',
   },
+  rateConfigInvalid: {
+    field: 'rate',
+    messageKey: 'simpleInterest.error.rateConfigInvalid',
+  },
   rateModeInvalid: {
     field: 'rateMode',
     messageKey: 'simpleInterest.error.rateModeInvalid',

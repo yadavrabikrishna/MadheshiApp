@@ -64,6 +64,8 @@ export const en = {
   'simpleInterest.error.rateInvalid':
     'Enter the rate as a number, for example 2 or 1.5. Zero is allowed.',
   'simpleInterest.error.rateNegative': 'The rate cannot be negative.',
+  'simpleInterest.error.rateConfigInvalid':
+    'The saved rate setting cannot be used. Check Interest rate entry in Calculator Settings.',
   'simpleInterest.error.rateModeInvalid': 'Choose how the rate is entered.',
   'simpleInterest.error.startDateInvalid':
     'Enter a complete start date as YYYY/MM/DD, with month 01 to 12 and day 01 to 32.',
@@ -78,8 +80,8 @@ export const en = {
   'simpleInterest.result.duration': 'Duration',
   'simpleInterest.result.interest': 'Simple Interest',
   'simpleInterest.result.total': 'Total Amount',
-  'simpleInterest.rateText.percent': '{rate}% per month',
-  'simpleInterest.rateText.rupees': 'Rs. {rate} per Rs. 100 per month',
+  'simpleInterest.rateText.percent': '{rate}% {unit}',
+  'simpleInterest.rateText.rupees': 'Rs. {rate} per Rs. {amount} {unit}',
   'compoundInterest.result.title': 'Compound Interest result',
   'compoundInterest.result.interest': 'Total Interest',
   'simpleInterest.unit.years': 'Years',

@@ -3,6 +3,7 @@
  * Interest, with the calculation supplied through `config.engine`.
  */
 import { render, screen, userEvent, act } from '@testing-library/react-native';
+import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 
 import { calculateSimpleInterest } from '../../../../features/interest';
@@ -32,7 +33,24 @@ jest.mock('../../../../features/interest', () => {
 
 jest.setTimeout(30000);
 
-function setup(config: InterestCalculatorConfig) {
+/** Reads the entered rate as a monthly percentage, like the engines do. */
+function MonthlyRates({ store }: { store: ReturnType<typeof createAppStore> }) {
+  useEffect(() => {
+    for (const calculator of ['simple', 'compound'] as const) {
+      store
+        .dispatch(
+          updateInterestRateConfigFor({
+            calculator,
+            patch: { period: 'monthly' },
+          }),
+        )
+        .catch(() => undefined);
+    }
+  }, [store]);
+  return null;
+}
+
+function setup(config: InterestCalculatorConfig, monthly = true) {
   const store = createAppStore({
     preferencesRepository: {
       saveLanguage: jest.fn().mockResolvedValue(undefined),
@@ -46,6 +64,7 @@ function setup(config: InterestCalculatorConfig) {
     user: userEvent.setup(),
     ui: (
       <Provider store={store}>
+        {monthly ? <MonthlyRates store={store} /> : null}
         <InterestCalculatorForm config={config} />
       </Provider>
     ),
@@ -391,7 +410,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
   });
 
   it('explains the default: annual percentage', async () => {
-    await render(setup(simple).ui);
+    await render(setup(simple, false).ui);
 
     expect(
       screen.getByText('Enter annual interest rate (%).'),
@@ -466,7 +485,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
   });
 
   it('updates the open form at once when the settings change (no restart)', async () => {
-    const { ui, store } = setup(simple);
+    const { ui, store } = setup(simple, false);
     await render(ui);
     expect(
       screen.getByText('Enter annual interest rate (%).'),
@@ -481,7 +500,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
   });
 
   it('Simple and Compound use only their own configuration', async () => {
-    const simpleView = setup(simple);
+    const simpleView = setup(simple, false);
     const view = await render(simpleView.ui);
     await configure(simpleView.store, 'compound', { period: 'weekly' });
     expect(
@@ -489,7 +508,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
     ).toBeOnTheScreen();
     await view.unmount();
 
-    const compoundView = setup(compound);
+    const compoundView = setup(compound, false);
     await render(compoundView.ui);
     await configure(compoundView.store, 'compound', { period: 'weekly' });
     await configure(compoundView.store, 'simple', { period: 'daily' });
@@ -538,7 +557,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
     expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
   });
 
-  it('passes the entered number unchanged to the engine (no normalization)', async () => {
+  it('normalizes the entered rate to a monthly percentage before the engine', async () => {
     const { ui, user, store } = setup(simple);
     await render(ui);
     await configure(store, 'simple', { period: 'yearly' });
@@ -549,18 +568,50 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
 
     await user.press(calculateButton());
 
-    expect(calculateSimpleInterest).toHaveBeenCalledWith({
+    // 12% a year is 1% a month.
+    expect(calculateSimpleInterest).toHaveBeenLastCalledWith({
       principal: '1000',
-      rate: '12',
+      rate: '1',
       rateMode: 'percentPerMonth',
       startDate: '2025/01/01',
       endDate: '2025/04/01',
     });
 
+    // Rupees has its own period (default monthly): Rs. 12 per Rs. 100 a month.
     await configure(store, 'simple', { rateInputMode: 'rupees' });
     await user.press(calculateButton());
     expect(calculateSimpleInterest).toHaveBeenLastCalledWith(
-      expect.objectContaining({ rate: '12', rateMode: 'rupeesPer100PerMonth' }),
+      expect.objectContaining({ rate: '12', rateMode: 'percentPerMonth' }),
     );
   });
+
+  it('reads Simple and Compound rates through their own configurations', async () => {
+    const simpleView = setup(simple);
+    await configureAndFill(simpleView, 'yearly', '24');
+    await simpleView.user.press(calculateButton());
+    // 24% a year = 2% a month: 12 months of interest = 24,000.
+    expect(screen.getByText('Rs. 24,000')).toBeOnTheScreen();
+  });
+
+  it('keeps Compound capitalization yearly whatever period the rate is entered in', async () => {
+    const view = setup(compound);
+    await configureAndFill(view, 'weekly', '7', 'compound');
+    await view.user.press(calculateButton());
+    // Weekly 7% = 30% a month = 360% a year; one capitalization: 100000 x 4.6.
+    expect(screen.getByText('Rs. 4,60,000')).toBeOnTheScreen();
+  });
+
+  async function configureAndFill(
+    view: ReturnType<typeof setup>,
+    period: 'yearly' | 'weekly',
+    rate: string,
+    calculator: InterestCalculatorKind = 'simple',
+  ) {
+    await render(view.ui);
+    await configure(view.store, calculator, { period });
+    await type(view.user, L['simpleInterest.principal.label'], '100000');
+    await type(view.user, L['simpleInterest.rate.label'], rate);
+    await type(view.user, L['simpleInterest.startDate.label'], '20250101');
+    await type(view.user, L['simpleInterest.endDate.label'], '20260101');
+  }
 });

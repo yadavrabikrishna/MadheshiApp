@@ -37,6 +37,8 @@ export type InterestErrorCode =
   | 'principalInvalid'
   | 'principalNotPositive'
   | RateErrorCode
+  /** The saved rate-entry configuration cannot be applied (see `configuredRate`). */
+  | 'rateConfigInvalid'
   | 'startDateInvalid'
   | 'endDateInvalid'
   | 'endBeforeStart';

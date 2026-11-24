@@ -30,6 +30,15 @@ export {
   type SimpleInterestResult,
 } from './simpleInterest';
 export {
+  calculateWithConfiguredRate,
+  isUsableRateConfig,
+  normalizeConfiguredRate,
+  type ConfiguredInterestInput,
+  type ConfiguredRateErrorCode,
+  type ConfiguredRateResult,
+  type RateEngine,
+} from './configuredRate';
+export {
   calculateCompoundInterest,
   type CompoundInterestOutcome,
   type CompoundInterestResult,

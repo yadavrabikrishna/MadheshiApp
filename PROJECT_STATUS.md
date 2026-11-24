@@ -107,6 +107,15 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #52 (normalize configured rates to monthly), 2026-11-24 (branch `feature/interest-rate-normalization` from `develop` @ `812d70c`; PR to `develop` with `Closes #52`, owner review and manual merge required)
+
+- Completed: new `src/features/interest/configuredRate.ts` converts the entered Interest Rate to a monthly percentage before either engine runs. Percentage: Yearly ÷12, Half-yearly ÷6, Quarterly ÷3, Monthly ×1, Weekly ×30÷7, Daily ×30. Rupees: entered ÷ denominator (Per 100 / Per 1,000 / saved custom) × 100, then the same factor. decimal.js only, built from validated strings, one division and no intermediate rounding. `calculateWithConfiguredRate(engine, input)` hands the engine a monthly percentage (`percentPerMonth`), so Simple and Compound formulas, date logic and 12-month Compound capitalization are unchanged; the selected period is an input convention only.
+- An unusable saved configuration (unknown choice, missing/zero/negative/non-numeric custom denominator in Rupees mode) never calculates: it returns the new `rateConfigInvalid` error (message in en/np pointing to Calculator Settings). Form state now holds `rateConfig` instead of `rateMode`; `toEngineRateMode` removed (replaces the Issue #51 compatibility boundary). Result card and copied summary show the entered convention ("12% per year", "Rs. 2 per Rs. 1,000 per month"); a shown result is dropped when the saved configuration changes.
+- Tests: new `configuredRate.test.ts` (six periods in both modes, three denominators, Percentage/Rupees equivalence, defaults, zero, decimals, large values, repeating-decimal precision, invalid rate/config, Simple and Compound integration incl. independent configs); form, reducer, summary and screen tests updated.
+- Checks run: `npx tsc --noEmit` clean; `npm run lint` clean (0 problems); Prettier check clean on changed files; `npx jest --runInBand` 40 suites, 881 tests passed. Android build / device not run (no SDK).
+- Owner decisions: Nepali wording of the new error and rate-text units is mine; the saved default (Percentage Yearly) now divides the entered rate by 12.
+- Next action: owner reviews the PR.
+
 ### Checkpoint — Issue #51 (single Interest Rate field), 2026-11-24 (branch `feature/interest-rate-field` from `develop` @ `a71c975`; PR to `develop` with `Closes #51`, owner review and manual merge required)
 
 - Completed (form UI only; engines and rate normalization untouched): the shared `InterestCalculatorForm` shows one field labelled "Interest Rate" (ब्याज दर) and no rate-mode selector. Its helper text comes from the active calculator's saved configuration (`getInterestRateHint`): Percentage gives "Enter annual / half-yearly / quarterly / monthly / weekly / daily interest rate (%).", Rupees gives "Enter rupees per Rs. {100 | 1,000 | custom} per {year | half-year | quarter | month | week | day}." in English and Nepali. Simple and Compound read their own configuration; Settings changes update the open form at once.
