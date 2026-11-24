@@ -107,6 +107,12 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #60 (Simple Interest never capitalizes), 2026-11-24 (branch `fix/simple-interest-no-capitalization` from `develop` @ `0535993`; PR to `develop` with `Closes #60`, owner review and manual merge required)
+
+- Finding: the Simple Interest engine already satisfies the issue (`principal × monthlyRate × days/30`, total = original principal + interest, no capitalization, no second normalization), so NO production code changed. Added `src/features/interest/__tests__/simpleNoCapitalization.test.ts` (regression): the six issue examples, all six periods in Percentage and Rupees modes (Per 100 / Per 1,000 / custom) linear over 12, 24 and 90 months, halves adding to the whole, day proration, `compounding` ignored, monthly rate not re-normalized. Mutation check: replacing the formula with compounding fails the new tests.
+- Checks run: see the PR description. Android build / device not run (no SDK).
+- Next action: owner reviews the PR.
+
 ### Checkpoint — Issue #58 (Compound Interest uses the selected rate period), 2026-11-24 (branch `feature/compound-selected-period` from `develop` @ `2d34d49`; PR to `develop` with `Closes #58`, owner review and manual merge required)
 
 - Completed: the selected rate period is now the Compound compounding period (Yearly 360, Half-yearly 180, Quarterly 90, Monthly 30, Weekly 7, Daily 1 fixed days), in Percentage and Rupees modes (Per 100 / Per 1,000 / custom). `selectedCompoundingPeriod` (configuredRate.ts) gives the engine the rate for ONE period (entered, or entered × 100 ÷ denominator in one division) plus `periodDays`; `InterestInput.compounding` carries it (Simple ignores it; absent means the old yearly behaviour, monthly × 12 over 360 days). Engine: completed periods = floor(elapsed days ÷ period days), balance = principal × (1 + period rate)^n, remainder = balance × period rate × remainingDays ÷ periodDays as simple interest, not capitalised. No intermediate rounding; the elapsed-days convention and display rounding are unchanged. Result adds `periodDays`; `remaining` is now whole months + days of the leftover time.
