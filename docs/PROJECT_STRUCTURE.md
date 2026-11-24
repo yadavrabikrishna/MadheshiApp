@@ -34,9 +34,13 @@ src/
                                @react-native-camera-roll/camera-roll; asks for storage permission
                                only on Android 9 and earlier) and useSaveResultImage.ts (hook:
                                save + success/error feedback); public API via index.ts
+    date/                      Shared pure fixed-date arithmetic used by Interest and Age
+                               (fixedDate.ts: YYYY/MM/DD validation + fixed 30-day/12-month
+                               duration; no calendar rules); public API via index.ts
+    age/                       Pure Age calculation (ageCalculator.ts: calculateAge, validation
+                               codes, fixed borrowing algorithm via ../date); no UI yet
     interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
-                               decimal.ts (cloned Decimal, input parsing), neutralDate.ts
-                               (YYYY/MM/DD validation + fixed 30-day/12-month duration),
+                               decimal.ts (cloned Decimal, input parsing),
                                rate.ts (rate-mode normalisation), directDuration.ts (direct Years/Months/Days -> fixed
                                duration and neutral dates), configuredRate.ts (saved rate
                                configuration -> monthly % and compounding period), simpleInterest.ts

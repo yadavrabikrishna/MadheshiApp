@@ -107,6 +107,15 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #64 (Age calculation logic), 2026-11-24 (branch `feature/age-calculation-logic` from `develop` @ `17c4164`; PR to `develop` with `Closes #64`, owner review and manual merge required)
+
+- Completed: pure Age domain `src/features/age/ageCalculator.ts` (`calculateAge({startDate, endDate})` → `{ok, value:{startDate,endDate,years,months,days}}` or `{ok:false, errors}` with `startDateInvalid` / `endDateInvalid` / `endBeforeStart`; never throws). It uses the approved fixed borrowing algorithm (day borrow +30, month borrow +12) through the shared `calculateFixedDuration`; no AD/BS conversion, real month lengths, leap years or Gregorian rules. The BS result is approximate by design.
+- Shared date arithmetic moved (git mv) from `src/features/interest/neutralDate.ts` to `src/features/date/fixedDate.ts` with `src/features/date/index.ts`; Interest and Age now both depend on `../date`, never on each other. Interest's public exports are unchanged (re-exported from `../date`), its calculation code and the existing `neutralDate.test.ts` are untouched. No new dependencies, no UI.
+- Same documented edge case as Interest: when day 31/32 makes the day result still negative after one borrow, the non-negative elapsed total is split into whole 360/30 units (e.g. `2080/01/32` → `2080/03/01` = 0y 0m 29d); a negative fixed-scale elapsed time is `endBeforeStart`.
+- Tests: new `ageCalculator.test.ts` and `fixedDate.test.ts` (shared-module regression, re-export identity, import boundaries); the existing Interest date tests pass unchanged.
+- Checks run: see the PR description. Android build / device not run (no SDK).
+- Next action: owner reviews the PR; the BS Age UI is Issue #65.
+
 ### Checkpoint — Issue #62 (direct duration input), 2026-11-24 (branch `feature/direct-duration-input` from `develop` @ `4026b61`; PR to `develop` with `Closes #62`, owner review and manual merge required)
 
 - Completed: the shared Interest form (Simple and Compound) has a "Duration input" switch: Date range (default, unchanged) or Direct duration (Years / Months / Days, whole numbers, any size). `src/features/interest/directDuration.ts` normalizes with 360 days/year and 30 days/month and rejects only invalid input, a zero total, or more than 9,999 years. The normalized duration enters the existing path as two neutral dates (`0000/01/01` and the date that duration later), so both engines, validation and the duration algorithm are reused unchanged; no formula, rate, settings or persistence change. Form state keeps both modes' values when switching (a shown result is dropped); the normalized duration is shown live beneath the inputs; a direct-duration result shows Duration only (no dates) in the card and copied summary. New `wholeNumberMask`, en/np strings, `formatDuration` helper.

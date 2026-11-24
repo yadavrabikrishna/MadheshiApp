@@ -4,7 +4,7 @@ import {
   parseNeutralDate,
   type FixedDuration,
   type NeutralDate,
-} from './neutralDate';
+} from '../date';
 import {
   normalizeMonthlyRate,
   type NormalizedRate,
