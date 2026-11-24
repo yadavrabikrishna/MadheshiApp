@@ -1,5 +1,6 @@
 /**
- * Neutral arithmetic dates for the interest calculators.
+ * Neutral arithmetic dates shared by the Interest and Age calculators (moved
+ * from the Interest feature in Issue #64 so neither depends on the other).
  *
  * These are NOT Gregorian/AD or BS calendar dates. Only the shape is checked
  * (four-digit year, month 01-12, day 01-32); there is no month-length lookup,

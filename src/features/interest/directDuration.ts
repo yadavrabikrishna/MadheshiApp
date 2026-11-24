@@ -1,9 +1,5 @@
 import { toAsciiDigits } from '../../utils/maskedInput';
-import {
-  DAYS_PER_MONTH,
-  MONTHS_PER_YEAR,
-  type FixedDuration,
-} from './neutralDate';
+import { DAYS_PER_MONTH, MONTHS_PER_YEAR, type FixedDuration } from '../date';
 
 /**
  * Direct duration input (Issue #62): years, months and days typed as whole

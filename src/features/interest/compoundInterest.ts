@@ -1,6 +1,6 @@
 import { CalcDecimal, type CalcDecimalValue } from './decimal';
 import { validateInterestInput, type InterestInput } from './interestInput';
-import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from './neutralDate';
+import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from '../date';
 import type {
   SimpleInterestErrorCode,
   SimpleInterestResult,

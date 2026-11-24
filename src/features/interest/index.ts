@@ -13,7 +13,7 @@ export {
   MONTHS_PER_YEAR,
   type FixedDuration,
   type NeutralDate,
-} from './neutralDate';
+} from '../date';
 export {
   normalizeMonthlyRate,
   RATE_ENTRY_MODES,

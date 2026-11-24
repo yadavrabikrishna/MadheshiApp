@@ -9,7 +9,7 @@ import {
   MONTHS_PER_YEAR,
   type FixedDuration,
   type NeutralDate,
-} from './neutralDate';
+} from '../date';
 import type { NormalizedRate } from './rate';
 
 /**
