@@ -226,3 +226,12 @@ export function applyMaskedEdit(
     cursor: caretAfterValueChars(mask, text, adjusted),
   };
 }
+
+/** Whole numbers: digits only (no sign, no decimal point), up to 7 digits. */
+export const WHOLE_NUMBER_MAX_DIGITS = 7;
+
+export const wholeNumberMask: InputMask = {
+  toValue: text => toAsciiDigits(text).replace(/\D/g, ''),
+  normalize: value => (value.length > WHOLE_NUMBER_MAX_DIGITS ? null : value),
+  format: value => value,
+};

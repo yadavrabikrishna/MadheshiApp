@@ -206,3 +206,30 @@ describe('buildSimpleInterestSummary: Compound Interest', () => {
     },
   );
 });
+
+describe('buildSimpleInterestSummary: direct duration', () => {
+  it('lists the duration but no start or end date', () => {
+    const outcome = calculateSimpleInterest({
+      principal: '100000',
+      rate: '2',
+      rateMode: 'percentPerMonth',
+      startDate: '0000/01/01',
+      endDate: '0000/04/01',
+    });
+    if (!outcome.ok) {
+      throw new Error('expected ok');
+    }
+    const text = buildSimpleInterestSummary(
+      outcome.value,
+      '2',
+      MONTHLY,
+      (key: TranslationKey) => translate('en', key),
+      'simple',
+      false,
+    );
+    expect(text).toContain('Duration: 0 Years, 3 Months, 0 Days');
+    expect(text).not.toContain('Start Date');
+    expect(text).not.toContain('End Date');
+    expect(text).not.toContain('0000');
+  });
+});

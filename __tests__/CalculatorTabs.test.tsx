@@ -160,7 +160,12 @@ describe('Interest type selector', () => {
 
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['Simple Interest', 'Compound Interest']);
+    ).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      'Date range',
+      'Direct duration',
+    ]);
     expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
     expect(interestOption('Compound Interest', false)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
@@ -193,12 +198,17 @@ describe('Interest type selector', () => {
     await changeLanguage(user, 'नेपाली');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज']);
+    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज', 'मिति दायरा', 'सिधा अवधि']);
 
     await changeLanguage(user, 'English');
     expect(
       screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['Simple Interest', 'Compound Interest']);
+    ).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      'Date range',
+      'Direct duration',
+    ]);
   });
 
   it('keeps the selected interest type when the language changes, in both directions', async () => {
@@ -296,8 +306,13 @@ describe('Age date system selector', () => {
   it('appears only inside the Age calculator, not the Interest or Land selectors', async () => {
     const user = await launchOnCalculator();
 
-    // Interest tab: only the Interest selector.
-    expect(radioLabels()).toEqual(['Simple Interest', 'Compound Interest']);
+    // Interest tab: the Interest selector, then the duration input choice.
+    expect(radioLabels()).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      'Date range',
+      'Direct duration',
+    ]);
 
     await user.press(topTab('Land'));
     expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);

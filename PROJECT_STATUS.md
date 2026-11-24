@@ -107,6 +107,15 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #62 (direct duration input), 2026-11-24 (branch `feature/direct-duration-input` from `develop` @ `4026b61`; PR to `develop` with `Closes #62`, owner review and manual merge required)
+
+- Completed: the shared Interest form (Simple and Compound) has a "Duration input" switch: Date range (default, unchanged) or Direct duration (Years / Months / Days, whole numbers, any size). `src/features/interest/directDuration.ts` normalizes with 360 days/year and 30 days/month and rejects only invalid input, a zero total, or more than 9,999 years. The normalized duration enters the existing path as two neutral dates (`0000/01/01` and the date that duration later), so both engines, validation and the duration algorithm are reused unchanged; no formula, rate, settings or persistence change. Form state keeps both modes' values when switching (a shown result is dropped); the normalized duration is shown live beneath the inputs; a direct-duration result shows Duration only (no dates) in the card and copied summary. New `wholeNumberMask`, en/np strings, `formatDuration` helper.
+- Discrepancy to confirm: the issue's example "1 year, 15 months, 45 days → 3 years, 4 months, 15 days" does not match its own formula (360 + 450 + 45 = 855 days = 2 years, 4 months, 15 days). The formula is implemented and tested.
+- Tests: new `directDuration.test.ts`; reducer, form (mode switch, state preservation, live normalization, zero/invalid errors, same result as equivalent dates in both engines) and summary tests; radio-list assertions in existing screen tests updated for the two new radios.
+- Checks run: see the PR description. Android build / device not run (no SDK).
+- Owner decisions: Nepali wording is mine; blank fields count as 0.
+- Next action: owner reviews the PR.
+
 ### Checkpoint — Issue #60 (Simple Interest never capitalizes), 2026-11-24 (branch `fix/simple-interest-no-capitalization` from `develop` @ `0535993`; PR to `develop` with `Closes #60`, owner review and manual merge required)
 
 - Finding: the Simple Interest engine already satisfies the issue (`principal × monthlyRate × days/30`, total = original principal + interest, no capitalization, no second normalization), so NO production code changed. Added `src/features/interest/__tests__/simpleNoCapitalization.test.ts` (regression): the six issue examples, all six periods in Percentage and Rupees modes (Per 100 / Per 1,000 / custom) linear over 12, 24 and 90 months, halves adding to the whole, day proration, `compounding` ignored, monthly rate not re-normalized. Mutation check: replacing the formula with compounding fails the new tests.

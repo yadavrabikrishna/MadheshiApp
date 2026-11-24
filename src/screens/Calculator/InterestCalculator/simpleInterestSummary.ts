@@ -30,6 +30,8 @@ export function buildSimpleInterestSummary(
   rateConfig: InterestRateConfig,
   t: (key: TranslationKey) => string,
   type: InterestType = 'simple',
+  /** False for a direct duration: no dates were entered, so none are listed. */
+  showDates = true,
 ): string {
   const mode = INTEREST_MODE_TEXT[type];
   const display = getSimpleInterestDisplay(result, enteredRate, rateConfig, t);
@@ -38,8 +40,12 @@ export function buildSimpleInterestSummary(
     '',
     `${t('simpleInterest.result.principal')}: ${display.principal}`,
     `${t('simpleInterest.result.interestRate')}: ${display.interestRate}`,
-    `${t('simpleInterest.startDate.label')}: ${display.startDate}`,
-    `${t('simpleInterest.endDate.label')}: ${display.endDate}`,
+    ...(showDates
+      ? [
+          `${t('simpleInterest.startDate.label')}: ${display.startDate}`,
+          `${t('simpleInterest.endDate.label')}: ${display.endDate}`,
+        ]
+      : []),
     `${t('simpleInterest.result.duration')}: ${display.duration}`,
     '',
     `${t(mode.interestKey)}: ${display.interest}`,

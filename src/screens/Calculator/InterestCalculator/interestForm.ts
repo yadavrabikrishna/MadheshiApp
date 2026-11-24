@@ -1,6 +1,9 @@
 import {
   calculateWithConfiguredRate,
+  directDurationToDates,
+  normalizeDirectDuration,
   type ConfiguredInterestInput,
+  type DirectDurationErrorCode,
   type InterestErrorCode,
 } from '../../../features/interest';
 import {
@@ -13,6 +16,12 @@ import type {
   InterestEngine,
 } from './interestCalculatorConfig';
 
+/** How the elapsed time is entered. Date range is the default. */
+export type DurationMode = 'dateRange' | 'direct';
+
+/** The direct-duration inputs are digits only. */
+export type DurationField = 'years' | 'months' | 'days';
+
 /** Raw values: dates are their digits only (no `/`), numbers have no commas. */
 export interface InterestFormState {
   principal: string;
@@ -24,17 +33,25 @@ export interface InterestFormState {
   rateConfig: InterestRateConfig;
   startDate: string;
   endDate: string;
+  /** Both modes keep their own values; switching never clears either set. */
+  durationMode: DurationMode;
+  years: string;
+  months: string;
+  days: string;
   /** Present only while the inputs are unchanged since Calculate. */
   result: InterestCalculationResult | null;
   errors: readonly InterestErrorCode[];
+  /** Direct-duration problems found by the last Calculate. */
+  durationErrors: readonly DirectDurationErrorCode[];
 }
 
 export type InterestFormAction =
   | {
       type: 'edit';
-      field: 'principal' | 'rate' | 'startDate' | 'endDate';
+      field: 'principal' | 'rate' | 'startDate' | 'endDate' | DurationField;
       value: string;
     }
+  | { type: 'setDurationMode'; mode: DurationMode }
   | { type: 'setRateConfig'; config: InterestRateConfig }
   | { type: 'calculate' };
 
@@ -44,8 +61,13 @@ export const initialInterestForm: InterestFormState = {
   rateConfig: DEFAULT_INTEREST_RATE_CONFIG,
   startDate: '',
   endDate: '',
+  durationMode: 'dateRange',
+  years: '',
+  months: '',
+  days: '',
   result: null,
   errors: [],
+  durationErrors: [],
 };
 
 /**
@@ -56,12 +78,24 @@ export const initialInterestForm: InterestFormState = {
 export function toInterestInput(
   state: InterestFormState,
 ): ConfiguredInterestInput {
+  // Direct duration enters the same path as a pair of neutral dates whose
+  // difference is the normalized duration; an unusable duration is reported
+  // separately by `calculate`, so the dates here are only placeholders.
+  const direct = normalizeDirectDuration(state);
+  const dates =
+    state.durationMode === 'direct'
+      ? directDurationToDates(
+          direct.ok ? direct.duration : { years: 0, months: 0, days: 0 },
+        )
+      : {
+          startDate: dateMask.format(state.startDate),
+          endDate: dateMask.format(state.endDate),
+        };
   return {
     principal: state.principal,
     rate: state.rate,
     rateConfig: state.rateConfig,
-    startDate: dateMask.format(state.startDate),
-    endDate: dateMask.format(state.endDate),
+    ...dates,
   };
 }
 
@@ -93,6 +127,19 @@ export function createInterestFormReducer(engine: InterestEngine | null) {
           [action.field]: action.value,
           result: null,
           errors: [],
+          durationErrors: [],
+        };
+      case 'setDurationMode':
+        if (action.mode === state.durationMode) {
+          return state;
+        }
+        // Only the mode changes: every entered value in both modes is kept.
+        return {
+          ...state,
+          durationMode: action.mode,
+          result: null,
+          errors: [],
+          durationErrors: [],
         };
       case 'setRateConfig':
         // Same configuration (a no-op save): keep the result.
@@ -105,18 +152,38 @@ export function createInterestFormReducer(engine: InterestEngine | null) {
           rateConfig: action.config,
           result: null,
           errors: [],
+          durationErrors: [],
         };
       case 'calculate': {
         if (!engine) {
           return state;
         }
+        const direct =
+          state.durationMode === 'direct'
+            ? normalizeDirectDuration(state)
+            : null;
         const outcome = calculateWithConfiguredRate(
           engine,
           toInterestInput(state),
         );
+        if (direct && !direct.ok) {
+          // Never a result for an unusable duration; the other fields are
+          // still checked so every problem shows together.
+          return {
+            ...state,
+            result: null,
+            errors: outcome.ok ? [] : outcome.errors,
+            durationErrors: [direct.error],
+          };
+        }
         return outcome.ok
-          ? { ...state, result: outcome.value, errors: [] }
-          : { ...state, result: null, errors: outcome.errors };
+          ? { ...state, result: outcome.value, errors: [], durationErrors: [] }
+          : {
+              ...state,
+              result: null,
+              errors: outcome.errors,
+              durationErrors: [],
+            };
       }
     }
   };

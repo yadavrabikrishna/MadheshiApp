@@ -240,3 +240,99 @@ describe('interest form reducer: the engine boundary', () => {
     ).toBe(RUPEES);
   });
 });
+
+describe('interest form reducer: direct duration (Issue #62)', () => {
+  const direct: InterestFormState = {
+    ...valid,
+    durationMode: 'direct',
+    years: '1',
+    months: '15',
+    days: '45',
+  };
+
+  it('defaults to Date range with empty duration values', () => {
+    expect(initialInterestForm.durationMode).toBe('dateRange');
+    expect([
+      initialInterestForm.years,
+      initialInterestForm.months,
+      initialInterestForm.days,
+    ]).toEqual(['', '', '']);
+  });
+
+  it('calculates through the same engine path as the equivalent dates', () => {
+    const engine = jest.fn(calculateSimpleInterest);
+    const reducer = createInterestFormReducer(engine);
+
+    const viaDuration = reducer(direct, { type: 'calculate' });
+    const viaDates = reducer(
+      { ...valid, startDate: '20250101', endDate: '20270516' },
+      { type: 'calculate' },
+    );
+
+    // 1 y 15 m 45 d = 855 days = 2 years, 4 months, 15 days.
+    expect(viaDuration.result?.duration).toEqual({
+      years: 2,
+      months: 4,
+      days: 15,
+    });
+    expect(viaDuration.result?.total.toString()).toBe(
+      viaDates.result?.total.toString(),
+    );
+    expect(engine).toHaveBeenCalledTimes(2);
+  });
+
+  it('never calculates a zero or invalid duration, and keeps other errors', () => {
+    const zero = simpleInterestFormReducer(
+      { ...direct, years: '0', months: '', days: '0' },
+      { type: 'calculate' },
+    );
+    expect(zero.result).toBeNull();
+    expect(zero.durationErrors).toEqual(['durationZero']);
+    expect(zero.errors).toEqual([]);
+
+    const bad = simpleInterestFormReducer(
+      { ...direct, months: '1.5', principal: '' },
+      { type: 'calculate' },
+    );
+    expect(bad.result).toBeNull();
+    expect(bad.durationErrors).toEqual(['durationInvalid']);
+    expect(bad.errors).toEqual(['principalInvalid']);
+  });
+
+  it('keeps both modes values when the mode changes, and drops the result', () => {
+    const calculated = simpleInterestFormReducer(direct, { type: 'calculate' });
+    expect(calculated.result).not.toBeNull();
+
+    const back = simpleInterestFormReducer(calculated, {
+      type: 'setDurationMode',
+      mode: 'dateRange',
+    });
+
+    expect(back.durationMode).toBe('dateRange');
+    expect(back.result).toBeNull();
+    expect([back.startDate, back.endDate]).toEqual(['20250101', '20250401']);
+    expect([back.years, back.months, back.days]).toEqual(['1', '15', '45']);
+    // Same mode: nothing changes.
+    expect(
+      simpleInterestFormReducer(back, {
+        type: 'setDurationMode',
+        mode: 'dateRange',
+      }),
+    ).toBe(back);
+  });
+
+  it('ignores the dates in Direct duration and the duration in Date range', () => {
+    const noDates = simpleInterestFormReducer(
+      { ...direct, startDate: '', endDate: '' },
+      { type: 'calculate' },
+    );
+    expect(noDates.errors).toEqual([]);
+    expect(noDates.result).not.toBeNull();
+
+    const noDuration = simpleInterestFormReducer(
+      { ...valid, years: '', months: '', days: '' },
+      { type: 'calculate' },
+    );
+    expect(noDuration.result?.total.toString()).toBe('106000');
+  });
+});

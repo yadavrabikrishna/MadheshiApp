@@ -1,4 +1,5 @@
 import type {
+  FixedDuration,
   NeutralDate,
   SimpleInterestResult,
 } from '../../../features/interest';
@@ -28,6 +29,18 @@ const pad = (value: number, width: number) =>
 /** Neutral display only: no calendar name, no conversion. */
 export function formatNeutralDate(date: NeutralDate): string {
   return `${pad(date.year, 4)}/${pad(date.month, 2)}/${pad(date.day, 2)}`;
+}
+
+/** "1 Years, 3 Months, 0 Days": a duration as text in the active language. */
+export function formatDuration(
+  { years, months, days }: FixedDuration,
+  t: Translate,
+): string {
+  return [
+    `${years} ${t('simpleInterest.unit.years')}`,
+    `${months} ${t('simpleInterest.unit.months')}`,
+    `${days} ${t('simpleInterest.unit.days')}`,
+  ].join(', ');
 }
 
 /** The result values exactly as the result card shows them, in the active language. */
@@ -78,17 +91,12 @@ export function getSimpleInterestDisplay(
   t: Translate,
 ): SimpleInterestDisplay {
   const rs = t('simpleInterest.currency');
-  const { years, months, days } = result.duration;
   return {
     principal: `${rs} ${formatMoney(result.principal)}`,
     interestRate: getEnteredRateText(enteredRate, rateConfig, t),
     startDate: formatNeutralDate(result.startDate),
     endDate: formatNeutralDate(result.endDate),
-    duration: [
-      `${years} ${t('simpleInterest.unit.years')}`,
-      `${months} ${t('simpleInterest.unit.months')}`,
-      `${days} ${t('simpleInterest.unit.days')}`,
-    ].join(', '),
+    duration: formatDuration(result.duration, t),
     interest: `${rs} ${formatMoney(result.interest)}`,
     total: `${rs} ${formatMoney(result.total)}`,
   };

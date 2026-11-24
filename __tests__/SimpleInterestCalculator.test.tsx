@@ -134,10 +134,16 @@ describe('Simple Interest calculator', () => {
     await launchSimpleInterest();
 
     expect(en['simpleInterest.rate.label']).toBe('Interest Rate');
-    // Only the Interest type selector remains: no rate-mode or period control.
+    // The Interest type selector and the duration input choice (Issue #62):
+    // no rate-mode or period control.
     expect(
       screen.queryAllByRole('radio').map(n => n.props.accessibilityLabel),
-    ).toEqual(['Simple Interest', 'Compound Interest']);
+    ).toEqual([
+      'Simple Interest',
+      'Compound Interest',
+      'Date range',
+      'Direct duration',
+    ]);
     expect(screen.queryByText('Rate entry mode')).toBeNull();
     expect(
       screen.getAllByLabelText(en['simpleInterest.rate.label']),

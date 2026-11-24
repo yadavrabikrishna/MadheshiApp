@@ -88,8 +88,9 @@ async function openCalculator(user: User) {
   await user.press(bottomTab('Calculator'));
 }
 
-// The Interest form no longer has a rate-mode selector (Issue #51).
-const RATE_MODE_RADIOS: string[] = [];
+// The Interest form has no rate-mode selector (Issue #51); its only radios are
+// the duration input choice (Issue #62).
+const RATE_MODE_RADIOS: string[] = ['Date range', 'Direct duration'];
 
 async function launchOnCalculator(device: Device = newDevice()): Promise<User> {
   const user = await launch(device);

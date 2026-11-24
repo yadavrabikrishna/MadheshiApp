@@ -30,6 +30,8 @@ interface SimpleInterestResultCardProps {
   /** The rate exactly as entered, and how it was entered. */
   enteredRate: string;
   rateConfig: InterestRateConfig;
+  /** False for a direct duration: only the duration is shown, no dates. */
+  showDates?: boolean;
 }
 
 export function SimpleInterestResultCard({
@@ -37,12 +39,20 @@ export function SimpleInterestResultCard({
   type = 'simple',
   enteredRate,
   rateConfig,
+  showDates = true,
 }: SimpleInterestResultCardProps) {
   const { t } = useTranslation();
   const mode = INTEREST_MODE_TEXT[type];
   const styles = useThemedStyles(createStyles);
   const { copy, feedback } = useCopyResult(() =>
-    buildSimpleInterestSummary(result, enteredRate, rateConfig, t, type),
+    buildSimpleInterestSummary(
+      result,
+      enteredRate,
+      rateConfig,
+      t,
+      type,
+      showDates,
+    ),
   );
 
   const {
@@ -111,9 +121,11 @@ export function SimpleInterestResultCard({
         <View
           style={styles.row}
           accessible
-          accessibilityLabel={`${dateRangeText}. ${durationLine}`}
+          accessibilityLabel={
+            showDates ? `${dateRangeText}. ${durationLine}` : durationLine
+          }
         >
-          <Text style={styles.value}>{dateRangeText}</Text>
+          {showDates ? <Text style={styles.value}>{dateRangeText}</Text> : null}
           <Text style={styles.durationLine}>{durationLine}</Text>
         </View>
         {rows.slice(2).map(renderRow)}
