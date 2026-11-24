@@ -11,8 +11,10 @@ import {
   Button,
   FieldError,
   MaskedField,
+  SegmentedControl,
   useKeyboardAwareForm,
 } from '../../../components';
+import { normalizeDirectDuration } from '../../../features/interest';
 import { selectInterestRateConfig } from '../../../features/interestRateConfig';
 import { useTranslation } from '../../../i18n';
 import { useAppSelector } from '../../../store';
@@ -22,10 +24,17 @@ import {
   fillTemplate,
   groupedDecimalMask,
   plainDecimalMask,
+  wholeNumberMask,
 } from '../../../utils';
 import { SimpleInterestResultCard } from './SimpleInterestResultCard';
+import { formatDuration } from './simpleInterestDisplay';
 import type { InterestCalculatorConfig } from './interestCalculatorConfig';
-import { createInterestFormReducer, initialInterestForm } from './interestForm';
+import {
+  createInterestFormReducer,
+  initialInterestForm,
+  type DurationField,
+  type DurationMode,
+} from './interestForm';
 import { getInterestRateHint } from './interestRateHint';
 import {
   getDateError,
@@ -76,14 +85,17 @@ export function InterestCalculatorForm({
   const rateRef = useRef<TextInputInstance>(null);
   const startDateRef = useRef<TextInputInstance>(null);
   const endDateRef = useRef<TextInputInstance>(null);
+  const yearsRef = useRef<TextInputInstance>(null);
+  const monthsRef = useRef<TextInputInstance>(null);
+  const daysRef = useRef<TextInputInstance>(null);
 
   // The summary is at the top of the form; after a failed Calculate (pressed
   // lower down) bring it, and the first invalid field, back into view.
   useEffect(() => {
-    if (form.errors.length > 0) {
+    if (form.errors.length > 0 || form.durationErrors.length > 0) {
       scrollToTop();
     }
-  }, [form.errors, scrollToTop]);
+  }, [form.errors, form.durationErrors, scrollToTop]);
 
   /**
    * Keyboard action key for the text inputs, top to bottom: "Next" keeps the
@@ -115,6 +127,30 @@ export function InterestCalculatorForm({
   // Both dates share one message under their row; only its own field is marked.
   const dateError = getDateError(form.errors);
 
+  const durationError = form.durationErrors[0];
+  // The normalized equivalent of what is typed, shown live beneath the inputs.
+  const directDuration = normalizeDirectDuration(form);
+  const durationFields: {
+    field: DurationField;
+    label: string;
+    ref: React.RefObject<TextInputInstance | null>;
+    next?: React.RefObject<TextInputInstance | null>;
+  }[] = [
+    {
+      field: 'years',
+      label: t('simpleInterest.unit.years'),
+      ref: yearsRef,
+      next: monthsRef,
+    },
+    {
+      field: 'months',
+      label: t('simpleInterest.unit.months'),
+      ref: monthsRef,
+      next: daysRef,
+    },
+    { field: 'days', label: t('simpleInterest.unit.days'), ref: daysRef },
+  ];
+
   const rateHint = getInterestRateHint(rateConfig);
   const rateHintText = rateHint.unitKey
     ? fillTemplate(t(rateHint.key), {
@@ -137,7 +173,7 @@ export function InterestCalculatorForm({
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {form.errors.length > 0 ? (
+        {form.errors.length > 0 || form.durationErrors.length > 0 ? (
           // Visual summary only: each field's own error row is the announced one.
           <Text style={[styles.summary, { color: theme.colors.error }]}>
             {t('simpleInterest.error.summary')}
@@ -161,7 +197,10 @@ export function InterestCalculatorForm({
         />
 
         <MaskedField
-          {...chain(rateRef, startDateRef)}
+          {...chain(
+            rateRef,
+            form.durationMode === 'direct' ? yearsRef : startDateRef,
+          )}
           mask={plainDecimalMask}
           label={t('simpleInterest.rate.label')}
           hint={rateHintText}
@@ -175,51 +214,116 @@ export function InterestCalculatorForm({
           errorPrefix={errorPrefix}
         />
 
-        <View style={styles.dateGroup}>
-          <View style={styles.dateRow} testID="simple-interest-date-row">
-            <View style={styles.dateCell} testID="simple-interest-start-date">
-              <MaskedField
-                {...chain(startDateRef, endDateRef)}
-                mask={dateMask}
-                label={t('simpleInterest.startDate.label')}
-                hint={t('simpleInterest.date.hint')}
-                hintVisible={false}
-                placeholder={t('simpleInterest.date.placeholder')}
-                keyboardType="number-pad"
-                value={form.startDate}
-                onChangeValue={value =>
-                  dispatch({ type: 'edit', field: 'startDate', value })
-                }
-                invalid={dateError?.field === 'startDate'}
-                containerStyle={styles.dateField}
-              />
-            </View>
-            <View style={styles.dateCell} testID="simple-interest-end-date">
-              <MaskedField
-                {...chain(endDateRef)}
-                mask={dateMask}
-                label={t('simpleInterest.endDate.label')}
-                hint={t('simpleInterest.date.hint')}
-                hintVisible={false}
-                placeholder={t('simpleInterest.date.placeholder')}
-                keyboardType="number-pad"
-                value={form.endDate}
-                onChangeValue={value =>
-                  dispatch({ type: 'edit', field: 'endDate', value })
-                }
-                invalid={dateError?.field === 'endDate'}
-                containerStyle={styles.dateField}
-              />
-            </View>
-          </View>
-          {dateError ? (
-            <FieldError
-              message={t(dateError.messageKey)}
-              prefix={errorPrefix}
-            />
-          ) : null}
-          <Text style={styles.dateHint}>{t('simpleInterest.date.hint')}</Text>
+        <View style={styles.modeGroup}>
+          <Text style={styles.modeLabel}>
+            {t('simpleInterest.duration.mode.label')}
+          </Text>
+          <SegmentedControl<DurationMode>
+            accessibilityLabel={t('simpleInterest.duration.mode.label')}
+            options={(['dateRange', 'direct'] as const).map(mode => ({
+              value: mode,
+              label: t(`simpleInterest.duration.mode.${mode}`),
+            }))}
+            value={form.durationMode}
+            onChange={mode => dispatch({ type: 'setDurationMode', mode })}
+          />
         </View>
+
+        {form.durationMode === 'dateRange' ? (
+          <>
+            <View style={styles.dateGroup}>
+              <View style={styles.dateRow} testID="simple-interest-date-row">
+                <View
+                  style={styles.dateCell}
+                  testID="simple-interest-start-date"
+                >
+                  <MaskedField
+                    {...chain(startDateRef, endDateRef)}
+                    mask={dateMask}
+                    label={t('simpleInterest.startDate.label')}
+                    hint={t('simpleInterest.date.hint')}
+                    hintVisible={false}
+                    placeholder={t('simpleInterest.date.placeholder')}
+                    keyboardType="number-pad"
+                    value={form.startDate}
+                    onChangeValue={value =>
+                      dispatch({ type: 'edit', field: 'startDate', value })
+                    }
+                    invalid={dateError?.field === 'startDate'}
+                    containerStyle={styles.dateField}
+                  />
+                </View>
+                <View style={styles.dateCell} testID="simple-interest-end-date">
+                  <MaskedField
+                    {...chain(endDateRef)}
+                    mask={dateMask}
+                    label={t('simpleInterest.endDate.label')}
+                    hint={t('simpleInterest.date.hint')}
+                    hintVisible={false}
+                    placeholder={t('simpleInterest.date.placeholder')}
+                    keyboardType="number-pad"
+                    value={form.endDate}
+                    onChangeValue={value =>
+                      dispatch({ type: 'edit', field: 'endDate', value })
+                    }
+                    invalid={dateError?.field === 'endDate'}
+                    containerStyle={styles.dateField}
+                  />
+                </View>
+              </View>
+              {dateError ? (
+                <FieldError
+                  message={t(dateError.messageKey)}
+                  prefix={errorPrefix}
+                />
+              ) : null}
+              <Text style={styles.dateHint}>
+                {t('simpleInterest.date.hint')}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <View style={styles.dateGroup} testID="direct-duration">
+            <View style={styles.dateRow}>
+              {durationFields.map(({ field, label, ref, next }) => (
+                <View key={field} style={styles.dateCell}>
+                  <MaskedField
+                    {...chain(ref, next)}
+                    mask={wholeNumberMask}
+                    label={label}
+                    hint={t('simpleInterest.duration.hint')}
+                    hintVisible={false}
+                    placeholder={t('simpleInterest.duration.placeholder')}
+                    keyboardType="number-pad"
+                    value={form[field]}
+                    onChangeValue={value =>
+                      dispatch({ type: 'edit', field, value })
+                    }
+                    invalid={durationError !== undefined}
+                    containerStyle={styles.dateField}
+                  />
+                </View>
+              ))}
+            </View>
+            {durationError ? (
+              <FieldError
+                message={t(`simpleInterest.error.${durationError}`)}
+                prefix={errorPrefix}
+              />
+            ) : null}
+            {directDuration.ok ? (
+              <Text style={styles.normalized} testID="normalized-duration">
+                {`${t('simpleInterest.duration.normalized')}: ${formatDuration(
+                  directDuration.duration,
+                  t,
+                )}`}
+              </Text>
+            ) : null}
+            <Text style={styles.dateHint}>
+              {t('simpleInterest.duration.hint')}
+            </Text>
+          </View>
+        )}
 
         <Button
           variant="primary"
@@ -240,6 +344,7 @@ export function InterestCalculatorForm({
             type={config.type}
             enteredRate={form.rate}
             rateConfig={form.rateConfig}
+            showDates={form.durationMode === 'dateRange'}
           />
         ) : null}
       </ScrollView>
@@ -251,6 +356,18 @@ const createStyles = (theme: AppTheme) => ({
   flex: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: 16, paddingBottom: 32 },
   summary: { fontSize: 14, marginBottom: 12 },
+  modeGroup: { marginBottom: 16 },
+  modeLabel: {
+    fontSize: 14,
+    marginBottom: 6,
+    color: theme.colors.textSecondary,
+  },
+  normalized: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+    color: theme.colors.text,
+  },
   dateGroup: { marginBottom: 16 },
   dateRow: { flexDirection: 'row' as const, gap: 12 },
   // Equal widths: both cells share the row; minWidth 0 lets a long value shrink.

@@ -53,6 +53,13 @@ export const en = {
   'simpleInterest.date.hint':
     'Type 8 digits (YYYYMMDD). The slashes are added for you.',
   'simpleInterest.date.placeholder': 'YYYY/MM/DD',
+  'simpleInterest.duration.mode.label': 'Duration input',
+  'simpleInterest.duration.mode.dateRange': 'Date range',
+  'simpleInterest.duration.mode.direct': 'Direct duration',
+  'simpleInterest.duration.placeholder': '0',
+  'simpleInterest.duration.hint':
+    'Enter whole numbers. Months and days can be any size; they are converted automatically (1 year = 360 days, 1 month = 30 days).',
+  'simpleInterest.duration.normalized': 'Duration',
   'simpleInterest.calculate': 'Calculate',
 
   'simpleInterest.error.prefix': 'Error',
@@ -71,6 +78,12 @@ export const en = {
     'Enter a complete start date as YYYY/MM/DD, with month 01 to 12 and day 01 to 32.',
   'simpleInterest.error.endDateInvalid':
     'Enter a complete end date as YYYY/MM/DD, with month 01 to 12 and day 01 to 32.',
+  'simpleInterest.error.durationInvalid':
+    'Enter years, months and days as whole numbers, for example 15 or 0.',
+  'simpleInterest.error.durationZero':
+    'The duration must be greater than zero. Enter at least one year, month or day.',
+  'simpleInterest.error.durationTooLong':
+    'The duration is too long. Enter fewer than 10,000 years.',
   'simpleInterest.error.endBeforeStart':
     'The end date cannot be earlier than the start date.',
 

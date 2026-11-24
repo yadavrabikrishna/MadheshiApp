@@ -54,6 +54,13 @@ export const np: Translations = {
   'simpleInterest.date.hint':
     '८ अङ्क टाइप गर्नुहोस् (YYYYMMDD)। स्ल्याश आफैँ थपिन्छ।',
   'simpleInterest.date.placeholder': 'YYYY/MM/DD',
+  'simpleInterest.duration.mode.label': 'अवधि प्रविष्टि',
+  'simpleInterest.duration.mode.dateRange': 'मिति दायरा',
+  'simpleInterest.duration.mode.direct': 'सिधा अवधि',
+  'simpleInterest.duration.placeholder': '0',
+  'simpleInterest.duration.hint':
+    'पूर्ण संख्या लेख्नुहोस्। महिना र दिन जतिसुकै हुन सक्छन्; ती आफैं रूपान्तरण हुन्छन् (१ वर्ष = ३६० दिन, १ महिना = ३० दिन)।',
+  'simpleInterest.duration.normalized': 'अवधि',
   'simpleInterest.calculate': 'हिसाब गर्नुहोस्',
 
   'simpleInterest.error.prefix': 'त्रुटि',
@@ -71,6 +78,12 @@ export const np: Translations = {
     'सुरु मिति पूरा YYYY/MM/DD मा राख्नुहोस्; महिना 01 देखि 12 र गते 01 देखि 32।',
   'simpleInterest.error.endDateInvalid':
     'अन्तिम मिति पूरा YYYY/MM/DD मा राख्नुहोस्; महिना 01 देखि 12 र गते 01 देखि 32।',
+  'simpleInterest.error.durationInvalid':
+    'वर्ष, महिना र दिन पूर्ण संख्यामा लेख्नुहोस्, जस्तै १५ वा ०।',
+  'simpleInterest.error.durationZero':
+    'अवधि शून्यभन्दा बढी हुनुपर्छ। कम्तीमा एक वर्ष, महिना वा दिन लेख्नुहोस्।',
+  'simpleInterest.error.durationTooLong':
+    'अवधि धेरै लामो छ। १०,००० वर्षभन्दा कम लेख्नुहोस्।',
   'simpleInterest.error.endBeforeStart':
     'अन्तिम मिति सुरु मितिभन्दा अगाडि हुन सक्दैन।',
 

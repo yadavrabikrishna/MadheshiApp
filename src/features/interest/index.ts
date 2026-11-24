@@ -53,3 +53,12 @@ export {
   type InterestValidation,
   type ValidatedInterestInput,
 } from './interestInput';
+export {
+  DAYS_PER_YEAR,
+  directDurationToDates,
+  normalizeDirectDuration,
+  normalizeTotalDays,
+  type DirectDurationErrorCode,
+  type DirectDurationResult,
+  type DirectDurationText,
+} from './directDuration';

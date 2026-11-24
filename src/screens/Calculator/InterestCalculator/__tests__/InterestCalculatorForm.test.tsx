@@ -2,7 +2,13 @@
  * The shared Interest UI (Issue #45): the same form for Simple and Compound
  * Interest, with the calculation supplied through `config.engine`.
  */
-import { render, screen, userEvent, act } from '@testing-library/react-native';
+import {
+  render,
+  screen,
+  userEvent,
+  act,
+  within,
+} from '@testing-library/react-native';
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 
@@ -133,7 +139,11 @@ describe('InterestCalculatorForm: one UI for both interest types', () => {
       L['simpleInterest.endDate.label'],
     ]);
     // One Interest Rate input: no rate-mode selector or period control.
-    expect(simpleStructure.radios).toEqual([]);
+    // Only the duration input choice (Issue #62): no rate-mode or period control.
+    expect(simpleStructure.radios).toEqual([
+      L['simpleInterest.duration.mode.dateRange'],
+      L['simpleInterest.duration.mode.direct'],
+    ]);
     expect(simpleStructure.buttons).toContain(L['simpleInterest.calculate']);
   });
 
@@ -404,7 +414,7 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
 
       expect(L['simpleInterest.rate.label']).toBe('Interest Rate');
       expect(screen.getAllByLabelText('Interest Rate')).toHaveLength(1);
-      expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(screen.queryAllByRole('radio')).toHaveLength(2); // duration choice only
       expect(screen.queryByText('Rate entry mode')).toBeNull();
       await view.unmount();
     }
@@ -623,4 +633,202 @@ describe('InterestCalculatorForm: Interest Rate field and saved configuration', 
     await type(view.user, L['simpleInterest.startDate.label'], '20250101');
     await type(view.user, L['simpleInterest.endDate.label'], '20260101');
   }
+});
+
+describe('InterestCalculatorForm: direct duration (Issue #62)', () => {
+  const dateRange = () =>
+    screen.getByRole('radio', {
+      name: L['simpleInterest.duration.mode.dateRange'],
+    });
+  const direct = () =>
+    screen.getByRole('radio', {
+      name: L['simpleInterest.duration.mode.direct'],
+    });
+  const years = () => field(L['simpleInterest.unit.years']);
+  const months = () => field(L['simpleInterest.unit.months']);
+  const days = () => field(L['simpleInterest.unit.days']);
+  const normalized = () => screen.queryByTestId('normalized-duration');
+
+  it('defaults to Date range with the existing date fields and no duration inputs', async () => {
+    await render(setup(simple).ui);
+
+    expect(dateRange().props.accessibilityState.selected).toBe(true);
+    expect(field(L['simpleInterest.startDate.label'])).toBeOnTheScreen();
+    expect(screen.queryByLabelText(L['simpleInterest.unit.years'])).toBeNull();
+    expect(normalized()).toBeNull();
+  });
+
+  it('shows Years, Months and Days and hides the dates in Direct duration', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+
+    await user.press(direct());
+
+    expect(years()).toBeOnTheScreen();
+    expect(months()).toBeOnTheScreen();
+    expect(days()).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText(L['simpleInterest.startDate.label']),
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText(L['simpleInterest.endDate.label']),
+    ).toBeNull();
+  });
+
+  it.each([
+    [['0', '15', '0'], '1 Years, 3 Months, 0 Days'],
+    [['0', '0', '45'], '0 Years, 1 Months, 15 Days'],
+    [['1', '15', '45'], '2 Years, 4 Months, 15 Days'],
+  ])('shows the normalized duration live for %j', async (values, text) => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await user.press(direct());
+
+    await type(user, L['simpleInterest.unit.years'], values[0]);
+    await type(user, L['simpleInterest.unit.months'], values[1]);
+    await type(user, L['simpleInterest.unit.days'], values[2]);
+
+    expect(normalized()).toHaveTextContent(`Duration: ${text}`);
+  });
+
+  it('accepts digits only', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await user.press(direct());
+
+    await type(user, L['simpleInterest.unit.months'], '1.5-x');
+
+    expect(months().props.value).toBe('15');
+  });
+
+  it('keeps both modes values when switching back and forth', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await type(user, L['simpleInterest.startDate.label'], '20250101');
+    await type(user, L['simpleInterest.endDate.label'], '20260101');
+
+    await user.press(direct());
+    await type(user, L['simpleInterest.unit.months'], '15');
+    await type(user, L['simpleInterest.unit.days'], '45');
+
+    await user.press(dateRange());
+    expect(field(L['simpleInterest.startDate.label']).props.value).toBe(
+      '2025/01/01',
+    );
+    expect(field(L['simpleInterest.endDate.label']).props.value).toBe(
+      '2026/01/01',
+    );
+
+    await user.press(direct());
+    expect(months().props.value).toBe('15');
+    expect(days().props.value).toBe('45');
+  });
+
+  it('gives the same result from a direct duration as from the equivalent dates', async () => {
+    for (const config of [simple, compound]) {
+      const first = setup(config);
+      const view = await render(first.ui);
+      await type(first.user, L['simpleInterest.principal.label'], '100000');
+      await type(first.user, L['simpleInterest.rate.label'], '2');
+      await type(first.user, L['simpleInterest.startDate.label'], '20250101');
+      await type(first.user, L['simpleInterest.endDate.label'], '20270516');
+      await first.user.press(calculateButton());
+      // 2 years, 4 months, 15 days
+      const totalFromDates = screen.getAllByLabelText(
+        new RegExp(`^${L['simpleInterest.result.total']}: `),
+      )[0].props.accessibilityLabel;
+      await view.unmount();
+
+      const second = setup(config);
+      const view2 = await render(second.ui);
+      await type(second.user, L['simpleInterest.principal.label'], '100000');
+      await type(second.user, L['simpleInterest.rate.label'], '2');
+      await second.user.press(direct());
+      await type(second.user, L['simpleInterest.unit.years'], '1');
+      await type(second.user, L['simpleInterest.unit.months'], '15');
+      await type(second.user, L['simpleInterest.unit.days'], '45');
+      await second.user.press(calculateButton());
+      const totalFromDuration = screen.getAllByLabelText(
+        new RegExp(`^${L['simpleInterest.result.total']}: `),
+      )[0].props.accessibilityLabel;
+      await view2.unmount();
+
+      expect(totalFromDuration).toBe(totalFromDates);
+    }
+  });
+
+  it('shows the duration but no start or end date in the result', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await type(user, L['simpleInterest.principal.label'], '100000');
+    await type(user, L['simpleInterest.rate.label'], '2');
+    await user.press(direct());
+    await type(user, L['simpleInterest.unit.months'], '3');
+    await user.press(calculateButton());
+
+    const card = within(screen.getByTestId('result-card-image'));
+    expect(card.getByText('Rs. 1,06,000')).toBeOnTheScreen();
+    expect(
+      card.getByText(
+        `${L['simpleInterest.result.duration']}: 0 Years, 3 Months, 0 Days`,
+      ),
+    ).toBeOnTheScreen();
+    expect(card.queryByText(/0000\//)).toBeNull();
+  });
+
+  it('rejects a zero total and shows the existing error pattern, with no result', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await type(user, L['simpleInterest.principal.label'], '100000');
+    await type(user, L['simpleInterest.rate.label'], '2');
+    await user.press(direct());
+    await user.press(calculateButton());
+
+    expect(
+      screen.getByText(L['simpleInterest.error.summary']),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.error.prefix']}: ${L['simpleInterest.error.durationZero']}`,
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
+  });
+
+  it('reports other invalid fields together with a bad duration', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await user.press(direct());
+    await user.press(calculateButton());
+
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.error.prefix']}: ${L['simpleInterest.error.principalInvalid']}`,
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        `${L['simpleInterest.error.prefix']}: ${L['simpleInterest.error.durationZero']}`,
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('drops a shown result when the mode changes, keeping the values', async () => {
+    const { ui, user } = setup(simple);
+    await render(ui);
+    await type(user, L['simpleInterest.principal.label'], '100000');
+    await type(user, L['simpleInterest.rate.label'], '2');
+    await user.press(direct());
+    await type(user, L['simpleInterest.unit.months'], '3');
+    await user.press(calculateButton());
+    expect(
+      screen.getByText(L['simpleInterest.result.title']),
+    ).toBeOnTheScreen();
+
+    await user.press(dateRange());
+
+    expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
+    await user.press(direct());
+    expect(months().props.value).toBe('3');
+  });
 });

@@ -12,6 +12,8 @@ export {
   groupedDecimalMask,
   plainDecimalMask,
   toAsciiDigits,
+  wholeNumberMask,
+  WHOLE_NUMBER_MAX_DIGITS,
   type InputMask,
   type MaskSelection,
   type MaskedEdit,
