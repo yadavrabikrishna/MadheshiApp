@@ -107,6 +107,14 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #51 (single Interest Rate field), 2026-11-24 (branch `feature/interest-rate-field` from `develop` @ `a71c975`; PR to `develop` with `Closes #51`, owner review and manual merge required)
+
+- Completed (form UI only; engines and rate normalization untouched): the shared `InterestCalculatorForm` shows one field labelled "Interest Rate" (ब्याज दर) and no rate-mode selector. Its helper text comes from the active calculator's saved configuration (`getInterestRateHint`): Percentage gives "Enter annual / half-yearly / quarterly / monthly / weekly / daily interest rate (%).", Rupees gives "Enter rupees per Rs. {100 | 1,000 | custom} per {year | half-year | quarter | month | week | day}." in English and Nepali. Simple and Compound read their own configuration; Settings changes update the open form at once.
+- Compatibility boundary (until Issue #52): the engine contract is unchanged. `toEngineRateMode` only picks the existing `rateMode` label from the saved mode (Percentage → `percentPerMonth`, Rupees → `rupeesPer100PerMonth`); the entered number is passed through unchanged, so results are correct only for Percentage + Monthly and Rupees + Per 100 + Monthly until normalization lands. A shown result is dropped when that mode changes.
+- Removed now-unused strings `simpleInterest.rateMode.*` and `simpleInterest.rate.hint.*`; `simpleInterest.rate.label` is now "Interest Rate".
+- Checks run: `npx tsc --noEmit` exit 0; `npm run lint` exit 0; Prettier clean on changed files; `npx jest --runInBand` 39 suites, 800 tests passed. Android build / device not run (no SDK).
+- Next action: owner reviews the PR; Issue #52 adds rate normalization in the engines' input path.
+
 ### Checkpoint — Issue #50 (interest rate settings UI), 2026-11-23 (branch `feature/interest-rate-settings-ui` from `develop` @ `cf22322`; PR to `develop` with `Closes #50`, owner review and manual merge required)
 
 - Completed (Settings UI only; calculator form, rate conversion and engines untouched): `InterestRateSettingsSection` (one per calculator, Simple and Compound, each editing only its own configuration) shown under Calculator Settings; rate-entry mode selector, period dropdown (new shared `Dropdown` component, same six periods in both modes), Rupees denominator options (Per 100 / Per 1,000 / Custom) and a custom-amount input with empty / not-a-number / not-positive messages (`validateCustomDenominatorText` added to the model). All strings in en/np (`interestRate.*`), light/dark theme tokens.

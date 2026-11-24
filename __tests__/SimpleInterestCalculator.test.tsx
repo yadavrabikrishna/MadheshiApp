@@ -48,8 +48,20 @@ jest.mock('../src/storage/database', () => ({
 
 jest.setTimeout(60000);
 
-async function launchSimpleInterest() {
+async function launchSimpleInterest(options: { rupees?: boolean } = {}) {
   const file = createRawTestDatabase();
+  if (options.rupees) {
+    // Saved Simple Interest setting (Percentage is the default): Rupees per Rs. 100.
+    const db = createTestDatabase(file);
+    await runMigrations(db);
+    await createPreferencesRepository(db).saveInterestRateConfig('simple', {
+      rateInputMode: 'rupees',
+      percentagePeriod: 'yearly',
+      rupeesPeriod: 'monthly',
+      denominatorMode: 'per100',
+      customDenominator: null,
+    });
+  }
   const user = userEvent.setup();
   await render(
     <SafeAreaProvider>
@@ -119,21 +131,18 @@ describe('Simple Interest calculator', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('offers exactly two rate modes, % per month selected by default', async () => {
+  it('has no rate-mode or period controls, only the one Interest Rate field', async () => {
     await launchSimpleInterest();
 
+    expect(en['simpleInterest.rate.label']).toBe('Interest Rate');
+    // Only the Interest type selector remains: no rate-mode or period control.
     expect(
-      screen.getByRole('radio', {
-        name: en['simpleInterest.rateMode.percent'],
-        selected: true,
-      }),
-    ).toBeOnTheScreen();
+      screen.queryAllByRole('radio').map(n => n.props.accessibilityLabel),
+    ).toEqual(['Simple Interest', 'Compound Interest']);
+    expect(screen.queryByText('Rate entry mode')).toBeNull();
     expect(
-      screen.getByRole('radio', {
-        name: en['simpleInterest.rateMode.rupees'],
-        selected: false,
-      }),
-    ).toBeOnTheScreen();
+      screen.getAllByLabelText(en['simpleInterest.rate.label']),
+    ).toHaveLength(1);
   });
 
   it('uses neutral dates: no AD/BS/Gregorian labels and a single numeric input per date', async () => {
@@ -166,7 +175,11 @@ describe('Simple Interest calculator', () => {
       screen.getByText(en['simpleInterest.result.title']),
     ).toBeOnTheScreen();
     expect(screen.getByText('Rs. 1,00,000')).toBeOnTheScreen();
-    expect(screen.getByText('Interest Rate')).toBeOnTheScreen();
+    expect(
+      within(screen.getByTestId('result-card-image')).getByText(
+        'Interest Rate',
+      ),
+    ).toBeOnTheScreen();
     expect(screen.getByText('2% per month')).toBeOnTheScreen();
     expect(
       screen.getByText('Duration: 0 Years, 3 Months, 0 Days'),
@@ -177,11 +190,8 @@ describe('Simple Interest calculator', () => {
   });
 
   it('gives the same numbers for Rs. per Rs. 100 and shows the entered mode', async () => {
-    const user = await launchSimpleInterest();
+    const user = await launchSimpleInterest({ rupees: true });
 
-    await user.press(
-      screen.getByRole('radio', { name: en['simpleInterest.rateMode.rupees'] }),
-    );
     await fillForm({
       principal: '100000',
       rate: '2',
@@ -231,10 +241,8 @@ describe('Simple Interest calculator', () => {
     expect(
       screen.getByText(en['simpleInterest.result.title']),
     ).toBeOnTheScreen();
-    await user.press(
-      screen.getByRole('radio', { name: en['simpleInterest.rateMode.rupees'] }),
-    );
-    expect(screen.queryByText(en['simpleInterest.result.title'])).toBeNull();
+    // Rate-entry mode now changes in Settings (covered in the form tests).
+    expect(screen.queryByText('Rate entry mode')).toBeNull();
   });
 
   it('shows a message for each invalid field (the two dates share one)', async () => {
@@ -876,14 +884,7 @@ describe('Simple Interest calculator: automatic scrolling to the focused field',
 
 describe('Simple Interest result card layout', () => {
   const calculateValid = async (rateMode?: 'rupees') => {
-    const user = await launchSimpleInterest();
-    if (rateMode === 'rupees') {
-      await user.press(
-        screen.getByRole('radio', {
-          name: en['simpleInterest.rateMode.rupees'],
-        }),
-      );
-    }
+    const user = await launchSimpleInterest({ rupees: rateMode === 'rupees' });
     await fillForm({
       principal: '100000',
       rate: '2',
@@ -897,7 +898,11 @@ describe('Simple Interest result card layout', () => {
   it('shows one Interest Rate row with the entered rate, and no converted monthly rate', async () => {
     await calculateValid();
 
-    expect(screen.getAllByText('Interest Rate')).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('result-card-image')).getAllByText(
+        'Interest Rate',
+      ),
+    ).toHaveLength(1);
     expect(screen.getByText('2% per month')).toBeOnTheScreen();
     expect(screen.queryByText(/Entered rate|Monthly rate used/i)).toBeNull();
     expect(screen.queryByText(/\(0\.02\)/)).toBeNull();
@@ -906,7 +911,11 @@ describe('Simple Interest result card layout', () => {
   it('keeps the rupees-wise mode and its existing format', async () => {
     await calculateValid('rupees');
 
-    expect(screen.getByText('Interest Rate')).toBeOnTheScreen();
+    expect(
+      within(screen.getByTestId('result-card-image')).getByText(
+        'Interest Rate',
+      ),
+    ).toBeOnTheScreen();
     expect(screen.getByText('Rs. 2 per Rs. 100 per month')).toBeOnTheScreen();
   });
 
@@ -957,7 +966,9 @@ describe('Simple Interest result card layout', () => {
     await user.press(screen.getByRole('button', { name: /^Change language$/ }));
     await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
 
-    expect(screen.getByText('ब्याज दर')).toBeOnTheScreen();
+    expect(
+      within(screen.getByTestId('result-card-image')).getByText('ब्याज दर'),
+    ).toBeOnTheScreen();
     expect(screen.getByText('2% प्रति महिना')).toBeOnTheScreen();
     expect(screen.getByText('अवधि: 0 वर्ष, 3 महिना, 0 दिन')).toBeOnTheScreen();
     expect(screen.getByText('2025/01/01 – 2025/04/01')).toBeOnTheScreen();
@@ -1168,10 +1179,7 @@ describe('Simple Interest calculator: copy result summary (Issue #35)', () => {
 
   it('copies the entered rate and mode and the displayed (rounded) money', async () => {
     const clipboard = installFakeClipboard();
-    const user = await launchSimpleInterest();
-    await user.press(
-      screen.getByRole('radio', { name: en['simpleInterest.rateMode.rupees'] }),
-    );
+    const user = await launchSimpleInterest({ rupees: true });
     // 1,000 at Rs. 0.5 per Rs. 100 per month for 10 days = 1.6666...
     await fillForm({
       principal: '1000',

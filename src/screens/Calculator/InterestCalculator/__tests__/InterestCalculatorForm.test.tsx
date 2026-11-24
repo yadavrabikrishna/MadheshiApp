@@ -6,11 +6,16 @@ import { render, screen, userEvent, act } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 
 import { calculateSimpleInterest } from '../../../../features/interest';
+import { updateInterestRateConfigFor } from '../../../../features/interestRateConfig';
 import { setLanguage } from '../../../../features/preferences';
 import { en } from '../../../../i18n/resources/en';
 import { np } from '../../../../i18n/resources/np';
 import type { PreferencesRepository } from '../../../../storage';
 import { createAppStore } from '../../../../store';
+import type {
+  InterestCalculatorKind,
+  InterestRateConfigPatch,
+} from '../../../../types/interestRateConfig';
 import { InterestCalculatorForm } from '../InterestCalculatorForm';
 import {
   INTEREST_CALCULATOR_CONFIGS,
@@ -32,6 +37,7 @@ function setup(config: InterestCalculatorConfig) {
     preferencesRepository: {
       saveLanguage: jest.fn().mockResolvedValue(undefined),
       saveTheme: jest.fn().mockResolvedValue(undefined),
+      saveInterestRateConfig: jest.fn().mockResolvedValue(undefined),
     } as unknown as PreferencesRepository,
     getSystemTheme: () => 'light',
   });
@@ -74,14 +80,13 @@ function formStructure() {
       .filter(node => node.props.placeholder !== undefined)
       .map(node => [node.props.accessibilityLabel, node.props.placeholder]),
     radios: screen
-      .getAllByRole('radio')
+      .queryAllByRole('radio')
       .map(node => node.props.accessibilityLabel),
     buttons: screen
       .getAllByRole('button')
       .map(node => node.props.accessibilityLabel),
     labels: [
       L['simpleInterest.principal.label'],
-      L['simpleInterest.rateMode.label'],
       L['simpleInterest.rate.label'],
       L['simpleInterest.startDate.label'],
       L['simpleInterest.endDate.label'],
@@ -108,25 +113,18 @@ describe('InterestCalculatorForm: one UI for both interest types', () => {
       L['simpleInterest.startDate.label'],
       L['simpleInterest.endDate.label'],
     ]);
-    expect(simpleStructure.radios).toEqual([
-      L['simpleInterest.rateMode.percent'],
-      L['simpleInterest.rateMode.rupees'],
-    ]);
+    // One Interest Rate input: no rate-mode selector or period control.
+    expect(simpleStructure.radios).toEqual([]);
     expect(simpleStructure.buttons).toContain(L['simpleInterest.calculate']);
   });
 
-  it('formats the same way in both modes (grouped principal, masked dates, rate mode)', async () => {
+  it('formats the same way in both modes (grouped principal, masked dates)', async () => {
     for (const config of [simple, compound]) {
       const { ui, user } = setup(config);
       const view = await render(ui);
 
       await type(user, L['simpleInterest.principal.label'], '1234567');
       await type(user, L['simpleInterest.startDate.label'], '20250101');
-      await user.press(
-        screen.getByRole('radio', {
-          name: L['simpleInterest.rateMode.rupees'],
-        }),
-      );
 
       expect(field(L['simpleInterest.principal.label']).props.value).toBe(
         '12,34,567',
@@ -134,12 +132,6 @@ describe('InterestCalculatorForm: one UI for both interest types', () => {
       expect(field(L['simpleInterest.startDate.label']).props.value).toBe(
         '2025/01/01',
       );
-      expect(
-        screen.getByRole('radio', {
-          name: L['simpleInterest.rateMode.rupees'],
-          selected: true,
-        }),
-      ).toBeOnTheScreen();
       await view.unmount();
     }
   });
@@ -370,5 +362,205 @@ describe('InterestCalculatorForm: plugging in an engine', () => {
       screen.getByText(L['simpleInterest.error.summary']),
     ).toBeOnTheScreen();
     expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
+  });
+});
+
+describe('InterestCalculatorForm: Interest Rate field and saved configuration', () => {
+  const rateField = () => field(L['simpleInterest.rate.label']);
+
+  async function configure(
+    store: ReturnType<typeof setup>['store'],
+    calculator: InterestCalculatorKind,
+    patch: InterestRateConfigPatch,
+  ) {
+    await act(async () => {
+      await store.dispatch(updateInterestRateConfigFor({ calculator, patch }));
+    });
+  }
+
+  it('always labels the one field "Interest Rate", with no mode or period control', async () => {
+    for (const config of [simple, compound]) {
+      const view = await render(setup(config).ui);
+
+      expect(L['simpleInterest.rate.label']).toBe('Interest Rate');
+      expect(screen.getAllByLabelText('Interest Rate')).toHaveLength(1);
+      expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(screen.queryByText('Rate entry mode')).toBeNull();
+      await view.unmount();
+    }
+  });
+
+  it('explains the default: annual percentage', async () => {
+    await render(setup(simple).ui);
+
+    expect(
+      screen.getByText('Enter annual interest rate (%).'),
+    ).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['yearly', 'Enter annual interest rate (%).'],
+    ['halfYearly', 'Enter half-yearly interest rate (%).'],
+    ['quarterly', 'Enter quarterly interest rate (%).'],
+    ['monthly', 'Enter monthly interest rate (%).'],
+    ['weekly', 'Enter weekly interest rate (%).'],
+    ['daily', 'Enter daily interest rate (%).'],
+  ] as const)('describes Percentage + %s', async (period, text) => {
+    const { ui, store } = setup(simple);
+    await render(ui);
+
+    await configure(store, 'simple', { period });
+
+    expect(screen.getByText(text)).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['yearly', 'per year'],
+    ['halfYearly', 'per half-year'],
+    ['quarterly', 'per quarter'],
+    ['monthly', 'per month'],
+    ['weekly', 'per week'],
+    ['daily', 'per day'],
+  ] as const)(
+    'describes Rupees + %s for every denominator',
+    async (period, unit) => {
+      const { ui, store } = setup(simple);
+      await render(ui);
+      await configure(store, 'simple', { rateInputMode: 'rupees', period });
+
+      expect(
+        screen.getByText(`Enter rupees per Rs. 100 ${unit}.`),
+      ).toBeOnTheScreen();
+
+      await configure(store, 'simple', { denominatorMode: 'per1000' });
+      expect(
+        screen.getByText(`Enter rupees per Rs. 1,000 ${unit}.`),
+      ).toBeOnTheScreen();
+
+      await configure(store, 'simple', {
+        customDenominator: '5000',
+        denominatorMode: 'custom',
+      });
+      expect(
+        screen.getByText(`Enter rupees per Rs. 5,000 ${unit}.`),
+      ).toBeOnTheScreen();
+    },
+  );
+
+  it('uses the saved period of the active mode, as Settings restores it', async () => {
+    const { ui, store } = setup(simple);
+    await render(ui);
+    await configure(store, 'simple', { period: 'quarterly' });
+    await configure(store, 'simple', {
+      rateInputMode: 'rupees',
+      period: 'daily',
+    });
+    expect(
+      screen.getByText('Enter rupees per Rs. 100 per day.'),
+    ).toBeOnTheScreen();
+
+    await configure(store, 'simple', { rateInputMode: 'percentage' });
+    expect(
+      screen.getByText('Enter quarterly interest rate (%).'),
+    ).toBeOnTheScreen();
+  });
+
+  it('updates the open form at once when the settings change (no restart)', async () => {
+    const { ui, store } = setup(simple);
+    await render(ui);
+    expect(
+      screen.getByText('Enter annual interest rate (%).'),
+    ).toBeOnTheScreen();
+
+    await configure(store, 'simple', { period: 'monthly' });
+
+    expect(screen.queryByText('Enter annual interest rate (%).')).toBeNull();
+    expect(
+      screen.getByText('Enter monthly interest rate (%).'),
+    ).toBeOnTheScreen();
+  });
+
+  it('Simple and Compound use only their own configuration', async () => {
+    const simpleView = setup(simple);
+    const view = await render(simpleView.ui);
+    await configure(simpleView.store, 'compound', { period: 'weekly' });
+    expect(
+      screen.getByText('Enter annual interest rate (%).'),
+    ).toBeOnTheScreen();
+    await view.unmount();
+
+    const compoundView = setup(compound);
+    await render(compoundView.ui);
+    await configure(compoundView.store, 'compound', { period: 'weekly' });
+    await configure(compoundView.store, 'simple', { period: 'daily' });
+    expect(
+      screen.getByText('Enter weekly interest rate (%).'),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows the hint in Nepali', async () => {
+    const { ui, store } = setup(simple);
+    await render(ui);
+    await configure(store, 'simple', {
+      rateInputMode: 'rupees',
+      period: 'monthly',
+    });
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+
+    expect(
+      screen.getByText(
+        np['interestRate.field.hint.rupees']
+          .replace('{amount}', '100')
+          .replace('{unit}', np['interestRate.unit.monthly']),
+      ),
+    ).toBeOnTheScreen();
+    expect(field(np['simpleInterest.rate.label'])).toBeOnTheScreen();
+    expect(np['simpleInterest.rate.label']).toBe('ब्याज दर');
+  });
+
+  it('keeps the entered rate when the settings change, and drops a shown result when its reading changes', async () => {
+    const { ui, user, store } = setup(simple);
+    await render(ui);
+    await type(user, L['simpleInterest.principal.label'], '100000');
+    await type(user, L['simpleInterest.rate.label'], '2');
+    await type(user, L['simpleInterest.startDate.label'], '20250101');
+    await type(user, L['simpleInterest.endDate.label'], '20250401');
+    await user.press(calculateButton());
+    expect(
+      screen.getByText(L['simpleInterest.result.title']),
+    ).toBeOnTheScreen();
+
+    await configure(store, 'simple', { rateInputMode: 'rupees' });
+
+    expect(rateField().props.value).toBe('2');
+    expect(screen.queryByText(L['simpleInterest.result.title'])).toBeNull();
+  });
+
+  it('passes the entered number unchanged to the engine (no normalization)', async () => {
+    const { ui, user, store } = setup(simple);
+    await render(ui);
+    await configure(store, 'simple', { period: 'yearly' });
+    await type(user, L['simpleInterest.principal.label'], '1000');
+    await type(user, L['simpleInterest.rate.label'], '12');
+    await type(user, L['simpleInterest.startDate.label'], '20250101');
+    await type(user, L['simpleInterest.endDate.label'], '20250401');
+
+    await user.press(calculateButton());
+
+    expect(calculateSimpleInterest).toHaveBeenCalledWith({
+      principal: '1000',
+      rate: '12',
+      rateMode: 'percentPerMonth',
+      startDate: '2025/01/01',
+      endDate: '2025/04/01',
+    });
+
+    await configure(store, 'simple', { rateInputMode: 'rupees' });
+    await user.press(calculateButton());
+    expect(calculateSimpleInterest).toHaveBeenLastCalledWith(
+      expect.objectContaining({ rate: '12', rateMode: 'rupeesPer100PerMonth' }),
+    );
   });
 });

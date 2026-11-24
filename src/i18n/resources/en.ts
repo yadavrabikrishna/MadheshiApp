@@ -46,15 +46,8 @@ export const en = {
   'simpleInterest.principal.label': 'Principal amount',
   'simpleInterest.principal.hint': 'The amount borrowed or lent, in Rs.',
   'simpleInterest.principal.placeholder': '100000',
-  'simpleInterest.rate.label': 'Monthly interest rate',
-  'simpleInterest.rate.hint.percent':
-    'Percent per month. For example, 2 means 2% every month.',
-  'simpleInterest.rate.hint.rupees':
-    'Rupees per Rs. 100 per month. For example, 2 means Rs. 2 on every Rs. 100 each month.',
+  'simpleInterest.rate.label': 'Interest Rate',
   'simpleInterest.rate.placeholder': '2',
-  'simpleInterest.rateMode.label': 'Rate entry mode',
-  'simpleInterest.rateMode.percent': '% per month',
-  'simpleInterest.rateMode.rupees': 'Rs. per Rs. 100',
   'simpleInterest.startDate.label': 'Start Date',
   'simpleInterest.endDate.label': 'End Date',
   'simpleInterest.date.hint':
@@ -152,6 +145,18 @@ export const en = {
   'interestRate.error.empty': 'Enter a custom amount.',
   'interestRate.error.notNumber': 'Enter a number, for example 250 or 12.5.',
   'interestRate.error.notPositive': 'The amount must be greater than zero.',
+  'interestRate.field.hint.percentage.yearly':
+    'Enter annual interest rate (%).',
+  'interestRate.field.hint.percentage.halfYearly':
+    'Enter half-yearly interest rate (%).',
+  'interestRate.field.hint.percentage.quarterly':
+    'Enter quarterly interest rate (%).',
+  'interestRate.field.hint.percentage.monthly':
+    'Enter monthly interest rate (%).',
+  'interestRate.field.hint.percentage.weekly':
+    'Enter weekly interest rate (%).',
+  'interestRate.field.hint.percentage.daily': 'Enter daily interest rate (%).',
+  'interestRate.field.hint.rupees': 'Enter rupees per Rs. {amount} {unit}.',
   'interestRate.dropdown.close': 'Close',
   'calculatorSettings.atLeastOne':
     'At least one calculator must remain enabled, so Basic Calculator was turned on automatically.',

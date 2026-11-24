@@ -47,15 +47,8 @@ export const np: Translations = {
   'simpleInterest.principal.label': 'मूलधन रकम',
   'simpleInterest.principal.hint': 'ऋण दिएको वा लिएको रकम, रुपैयाँमा।',
   'simpleInterest.principal.placeholder': '100000',
-  'simpleInterest.rate.label': 'मासिक ब्याजदर',
-  'simpleInterest.rate.hint.percent':
-    'प्रति महिना प्रतिशत। जस्तै, २ को अर्थ हरेक महिना २% हो।',
-  'simpleInterest.rate.hint.rupees':
-    'प्रति रु. १०० मा प्रति महिना रुपैयाँ। जस्तै, २ को अर्थ हरेक महिना रु. १०० मा रु. २ हो।',
+  'simpleInterest.rate.label': 'ब्याज दर',
   'simpleInterest.rate.placeholder': '2',
-  'simpleInterest.rateMode.label': 'दर राख्ने तरिका',
-  'simpleInterest.rateMode.percent': '% प्रति महिना',
-  'simpleInterest.rateMode.rupees': 'रु. प्रति रु. १००',
   'simpleInterest.startDate.label': 'सुरु मिति',
   'simpleInterest.endDate.label': 'अन्तिम मिति',
   'simpleInterest.date.hint':
@@ -153,6 +146,19 @@ export const np: Translations = {
   'interestRate.error.empty': 'अनुकूल रकम राख्नुहोस्।',
   'interestRate.error.notNumber': 'सङ्ख्या राख्नुहोस्, जस्तै 250 वा 12.5।',
   'interestRate.error.notPositive': 'रकम शून्यभन्दा बढी हुनुपर्छ।',
+  'interestRate.field.hint.percentage.yearly':
+    'वार्षिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.percentage.halfYearly':
+    'अर्धवार्षिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.percentage.quarterly':
+    'त्रैमासिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.percentage.monthly':
+    'मासिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.percentage.weekly':
+    'साप्ताहिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.percentage.daily': 'दैनिक ब्याज दर (%) राख्नुहोस्।',
+  'interestRate.field.hint.rupees':
+    'रु. {amount} मा {unit} रुपैयाँ राख्नुहोस्।',
   'interestRate.dropdown.close': 'बन्द गर्नुहोस्',
   'calculatorSettings.atLeastOne':
     'कम्तीमा एउटा क्यालकुलेटर सक्रिय रहनुपर्छ, त्यसैले सामान्य क्यालकुलेटर स्वतः सक्रिय गरिएको छ।',
