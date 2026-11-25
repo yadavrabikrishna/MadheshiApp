@@ -1,4 +1,5 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 
 import type { PreferencesRepository } from '../../../storage';
@@ -70,5 +71,34 @@ describe('Dropdown', () => {
     for (const radio of screen.getAllByRole('radio')) {
       expect(radio.props.accessibilityState.selected).toBe(false);
     }
+  });
+});
+
+describe('Dropdown: compact', () => {
+  it('uses tighter padding only when compact', async () => {
+    const make = (compact: boolean) => (
+      <Provider store={store()}>
+        <Dropdown
+          label={compact ? 'Tight' : 'Roomy'}
+          compact={compact}
+          options={OPTIONS}
+          value="a"
+          onChange={jest.fn()}
+          closeLabel="Close"
+        />
+      </Provider>
+    );
+    await render(
+      <>
+        {make(true)}
+        {make(false)}
+      </>,
+    );
+
+    const padding = (name: string) =>
+      StyleSheet.flatten(screen.getByRole('button', { name }).props.style)
+        .paddingHorizontal;
+    expect(padding('Tight: Alpha')).toBe(8);
+    expect(padding('Roomy: Alpha')).toBe(12);
   });
 });

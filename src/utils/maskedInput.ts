@@ -42,6 +42,13 @@ export function toAsciiDigits(text: string): string {
   );
 }
 
+/** ASCII digits become Devanagari digits (०-९); display only, never a value. */
+export function toDevanagariDigits(text: string): string {
+  return text.replace(/[0-9]/g, digit =>
+    String.fromCharCode('०'.charCodeAt(0) + Number(digit)),
+  );
+}
+
 /** Neutral date mask: eight digits shown as `YYYY/MM/DD`. */
 export const DATE_DIGIT_COUNT = 8;
 

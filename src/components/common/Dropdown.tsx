@@ -1,5 +1,12 @@
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type ScrollViewInstance,
+} from 'react-native';
 
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { Icon } from './Icon';
@@ -23,9 +30,15 @@ interface DropdownProps<Value extends string> {
    * list title only.
    */
   groupLabel?: string;
+  /** Tighter padding and gap, for narrow fields side by side in a row. */
+  compact?: boolean;
   /** Accessible name of the dismiss area behind the list (already localized). */
   closeLabel: string;
 }
+
+/** How many rows stay visible above the chosen one when the list opens. */
+const ROWS_ABOVE_SELECTED = 2;
+const ROW_HEIGHT_HINT = 48;
 
 /**
  * A single-choice dropdown: a field showing the current choice that opens a
@@ -40,10 +53,12 @@ export function Dropdown<Value extends string>({
   closeLabel,
   placeholder,
   groupLabel,
+  compact = false,
 }: DropdownProps<Value>) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
+  const listRef = useRef<ScrollViewInstance>(null);
   const selected = options.find(option => option.value === value);
   const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
   const shown = selected?.label ?? placeholder ?? '';
@@ -59,7 +74,7 @@ export function Dropdown<Value extends string>({
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <Pressable
-        style={styles.button}
+        style={[styles.button, compact && styles.buttonCompact]}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={`${fullLabel}: ${shown}`}
@@ -70,7 +85,7 @@ export function Dropdown<Value extends string>({
         </Text>
         <Icon
           name="chevron-down"
-          size={20}
+          size={compact ? 18 : 20}
           color={theme.colors.textSecondary}
         />
       </Pressable>
@@ -91,7 +106,7 @@ export function Dropdown<Value extends string>({
             <Text style={styles.sheetTitle} accessibilityRole="header">
               {fullLabel}
             </Text>
-            <ScrollView>
+            <ScrollView ref={listRef}>
               {options.map(option => {
                 const isSelected = option.value === value;
                 return (
@@ -102,6 +117,21 @@ export function Dropdown<Value extends string>({
                     accessibilityRole="radio"
                     accessibilityState={{ selected: isSelected }}
                     accessibilityLabel={option.label}
+                    // Open the list around the chosen row, not at the top. The
+                    // whole list stays scrollable.
+                    onLayout={
+                      isSelected
+                        ? event =>
+                            listRef.current?.scrollTo({
+                              y: Math.max(
+                                0,
+                                event.nativeEvent.layout.y -
+                                  ROWS_ABOVE_SELECTED * ROW_HEIGHT_HINT,
+                              ),
+                              animated: false,
+                            })
+                        : undefined
+                    }
                   >
                     <Text style={styles.itemLabel}>{option.label}</Text>
                     {isSelected ? (
@@ -141,6 +171,7 @@ const createStyles = (theme: AppTheme) => ({
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
+  buttonCompact: { paddingHorizontal: 8, gap: 4 },
   value: { flex: 1, fontSize: 16, color: theme.colors.text },
   placeholder: { color: theme.colors.textSecondary },
   backdrop: {

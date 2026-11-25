@@ -5,8 +5,9 @@ import {
   userEvent,
   within,
   act,
+  fireEvent,
 } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 
 import { calculateAge } from '../../../../features/age';
@@ -16,7 +17,8 @@ import { np } from '../../../../i18n/resources/np';
 import type { PreferencesRepository } from '../../../../storage';
 import { createAppStore } from '../../../../store';
 import { appColors } from '../../../../theme/colors';
-import { BsAgeView } from '../BsAgeView';
+import { toDevanagariDigits } from '../../../../utils';
+import { BsAgeView, MONTH_FLEX, YEAR_DAY_FLEX } from '../BsAgeView';
 
 jest.mock('../../../../features/age', () => {
   const actual = jest.requireActual('../../../../features/age');
@@ -76,9 +78,16 @@ async function pickDate(
   monthName: string,
   lang: Lang = L,
 ) {
-  await choose(user, group, lang['age.field.year'], year);
-  await choose(user, group, lang['age.field.month'], `${month} – ${monthName}`);
-  await choose(user, group, lang['age.field.day'], day);
+  // The options show Devanagari digits in Nepali; the values stay ASCII.
+  const show = lang === np ? toDevanagariDigits : (text: string) => text;
+  await choose(user, group, lang['age.field.year'], show(year));
+  await choose(
+    user,
+    group,
+    lang['age.field.month'],
+    `${show(month)} – ${monthName}`,
+  );
+  await choose(user, group, lang['age.field.day'], show(day));
 }
 
 const calculate = () =>
@@ -157,7 +166,7 @@ describe('BsAgeView: fields', () => {
     ]);
   });
 
-  it('Month names are Nepali when the language is Nepali, numbers unchanged', async () => {
+  it('Month names and numbers are Nepali when the language is Nepali', async () => {
     const { ui, user, store } = setup();
     await render(ui);
     await act(async () => {
@@ -167,18 +176,18 @@ describe('BsAgeView: fields', () => {
     await user.press(dropdown(np['age.bs.startDate'], np['age.field.month']));
 
     expect(radios()).toEqual([
-      '01 – वैशाख',
-      '02 – जेठ',
-      '03 – असार',
-      '04 – साउन',
-      '05 – भदौ',
-      '06 – असोज',
-      '07 – कात्तिक',
-      '08 – मंसिर',
-      '09 – पुस',
-      '10 – माघ',
-      '11 – फागुन',
-      '12 – चैत',
+      '०१ – वैशाख',
+      '०२ – जेठ',
+      '०३ – असार',
+      '०४ – साउन',
+      '०५ – भदौ',
+      '०६ – असोज',
+      '०७ – कात्तिक',
+      '०८ – मंसिर',
+      '०९ – पुस',
+      '१० – माघ',
+      '११ – फागुन',
+      '१२ – चैत',
     ]);
   });
 
@@ -211,7 +220,7 @@ describe('BsAgeView: fields', () => {
     expect(
       dropdown(np['age.bs.endDate'], np['age.field.month']).props
         .accessibilityLabel,
-    ).toBe(`${np['age.bs.endDate']} – ${np['age.field.month']}: 03 – असार`);
+    ).toBe(`${np['age.bs.endDate']} – ${np['age.field.month']}: ०३ – असार`);
     expect(
       dropdown(np['age.bs.startDate'], np['age.field.year']).props
         .accessibilityLabel,
@@ -497,5 +506,190 @@ describe('BsAgeView: theme and translations', () => {
       expect(en[`age.month.${i}` as keyof typeof en]).toBeTruthy();
       expect(np[`age.month.${i}` as keyof typeof np]).toBeTruthy();
     }
+  });
+});
+
+describe('BsAgeView: dropdown widths', () => {
+  it('gives Year and Day slightly more width than Month, the three aligned in one row', async () => {
+    await render(setup().ui);
+
+    const flexOf = (part: string) => {
+      // The dropdown's wrapper is the view that carries the flex share.
+      let node = dropdown(START, part).parent;
+      while (node && StyleSheet.flatten(node.props.style)?.flex === undefined) {
+        node = node.parent;
+      }
+      return StyleSheet.flatten(node?.props.style).flex;
+    };
+
+    const year = flexOf(L['age.field.year']);
+    const month = flexOf(L['age.field.month']);
+    const day = flexOf(L['age.field.day']);
+    expect(year).toBe(YEAR_DAY_FLEX);
+    expect(day).toBe(YEAR_DAY_FLEX);
+    expect(month).toBe(MONTH_FLEX);
+    expect(year).toBeGreaterThan(month);
+    // "Slightly": Month is narrower, but not collapsed.
+    expect(year / month).toBeLessThan(1.5);
+  });
+});
+
+describe('BsAgeView: list position', () => {
+  const scrollTo = jest.fn();
+  const mockedScrollView = ScrollView as unknown as {
+    prototype: { scrollTo: unknown };
+  };
+  let original: unknown;
+
+  beforeEach(() => {
+    scrollTo.mockClear();
+    original = mockedScrollView.prototype.scrollTo;
+    mockedScrollView.prototype.scrollTo = scrollTo;
+  });
+  afterEach(() => {
+    mockedScrollView.prototype.scrollTo = original;
+  });
+
+  const layoutSelected = (y: number) =>
+    fireEvent(
+      screen
+        .getAllByRole('radio')
+        .find(r => r.props.accessibilityState.selected) as never,
+      'layout',
+      { nativeEvent: { layout: { x: 0, y, width: 300, height: 48 } } },
+    );
+
+  it.each([
+    ['2080', START, 180],
+    ['2083', END, 183],
+  ])(
+    'opens the %s year list around the chosen year, not at 1900',
+    async (year, group, index) => {
+      const { ui, user } = setup();
+      await render(ui);
+      await choose(user, group, L['age.field.year'], year);
+
+      await user.press(dropdown(group, L['age.field.year']));
+      layoutSelected(index * 48); // row index x row height
+
+      // Two rows stay visible above the chosen year; animation off.
+      expect(scrollTo).toHaveBeenCalledWith({
+        y: index * 48 - 96,
+        animated: false,
+      });
+      // The whole range is still in the list.
+      expect(radios()[0]).toBe('1900');
+      expect(radios()[200]).toBe('2100');
+    },
+  );
+
+  it('does not scroll when no year is chosen yet, and never below zero', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await user.press(dropdown(START, L['age.field.year']));
+    expect(scrollTo).not.toHaveBeenCalled();
+    await user.press(screen.getByRole('radio', { name: '1900' }));
+
+    await user.press(dropdown(START, L['age.field.year']));
+    layoutSelected(0);
+
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
+  });
+});
+
+describe('BsAgeView: numerals', () => {
+  it('shows English digits in English: values, options and selection', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await pickDate(user, START, '2080', '01', '09', 'Baishakh');
+
+    expect(dropdown(START, L['age.field.year']).props.accessibilityLabel).toBe(
+      `${START} – ${L['age.field.year']}: 2080`,
+    );
+    expect(dropdown(START, L['age.field.month']).props.accessibilityLabel).toBe(
+      `${START} – ${L['age.field.month']}: 01 – Baishakh`,
+    );
+    expect(dropdown(START, L['age.field.day']).props.accessibilityLabel).toBe(
+      `${START} – ${L['age.field.day']}: 09`,
+    );
+  });
+
+  it('shows Devanagari digits in Nepali: selected values and every option', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    const s = np['age.bs.startDate'];
+    await pickDate(user, s, '2080', '01', '09', 'वैशाख', np);
+
+    expect(dropdown(s, np['age.field.year']).props.accessibilityLabel).toBe(
+      `${s} – ${np['age.field.year']}: २०८०`,
+    );
+    expect(dropdown(s, np['age.field.month']).props.accessibilityLabel).toBe(
+      `${s} – ${np['age.field.month']}: ०१ – वैशाख`,
+    );
+    expect(dropdown(s, np['age.field.day']).props.accessibilityLabel).toBe(
+      `${s} – ${np['age.field.day']}: ०९`,
+    );
+
+    await user.press(dropdown(s, np['age.field.year']));
+    const years = radios();
+    expect(years[0]).toBe('१९००');
+    expect(years[200]).toBe('२१००');
+    expect(years.every(label => /^[०-९]{4}$/.test(label))).toBe(true);
+    await user.press(screen.getByRole('radio', { name: '२०८०' }));
+
+    await user.press(dropdown(s, np['age.field.day']));
+    const days = radios();
+    expect(days[0]).toBe('०१');
+    expect(days[31]).toBe('३२');
+    expect(days.every(label => /^[०-९]{2}$/.test(label))).toBe(true);
+  });
+
+  it('only converts the display: calculateAge still gets ASCII YYYY/MM/DD in Nepali', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    await pickDate(
+      user,
+      np['age.bs.startDate'],
+      '2080',
+      '01',
+      '20',
+      'वैशाख',
+      np,
+    );
+    await pickDate(user, np['age.bs.endDate'], '2083', '03', '32', 'असार', np);
+
+    await user.press(screen.getByRole('button', { name: np['age.calculate'] }));
+
+    expect(calculateAge).toHaveBeenCalledWith({
+      startDate: '2080/01/20',
+      endDate: '2083/03/32',
+    });
+  });
+
+  it('switches digits live when the language changes', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await choose(user, START, L['age.field.year'], '2080');
+
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    expect(
+      dropdown(np['age.bs.startDate'], np['age.field.year']).props
+        .accessibilityLabel,
+    ).toContain('२०८०');
+
+    await act(async () => {
+      await store.dispatch(setLanguage('en'));
+    });
+    expect(
+      dropdown(START, L['age.field.year']).props.accessibilityLabel,
+    ).toContain('2080');
   });
 });

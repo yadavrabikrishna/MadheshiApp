@@ -5,6 +5,7 @@ import { Button, Dropdown, FieldError } from '../../../components';
 import { calculateAge, type AgeErrorCode } from '../../../features/age';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
+import { toDevanagariDigits } from '../../../utils';
 
 /**
  * Age calculator for BS (Bikram Sambat) dates. Each date is three dropdowns
@@ -12,6 +13,10 @@ import { useThemedStyles, type AppTheme } from '../../../theme';
  * to the shared `calculateAge`, which owns all validation and arithmetic.
  * State is local to this view: nothing is stored or sent anywhere.
  */
+
+/** Relative widths of the three dropdowns in a date row. */
+export const YEAR_DAY_FLEX = 1.2;
+export const MONTH_FLEX = 1;
 
 const FIRST_YEAR = 1900;
 const LAST_YEAR = 2100;
@@ -67,7 +72,7 @@ interface Result {
 }
 
 export function BsAgeView() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const [dates, setDates] = useState<Record<DateName, DateParts>>({
     start: EMPTY_DATE,
@@ -101,18 +106,23 @@ export function BsAgeView() {
     }
   };
 
-  const yearOptions = YEARS.map(value => ({ value, label: value }));
+  // Digits are converted for display only: the option values (and the
+  // YYYY/MM/DD passed to calculateAge) stay ASCII in every language.
+  const show = (text: string) =>
+    language === 'np' ? toDevanagariDigits(text) : text;
+  const yearOptions = YEARS.map(value => ({ value, label: show(value) }));
   const monthOptions = MONTH_NUMBERS.map((value, index) => ({
     value,
-    label: `${value} – ${t(MONTH_KEYS[index])}`,
+    label: `${show(value)} – ${t(MONTH_KEYS[index])}`,
   }));
-  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: value }));
+  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: show(value) }));
 
   const renderDate = (name: DateName, label: string) => {
     const parts = dates[name];
     const own = errors.filter(code => ERROR_DATE[code] === name);
     const common = {
       groupLabel: label,
+      compact: true,
       closeLabel: t('age.dropdown.close'),
       placeholder: t('age.field.placeholder'),
     };
@@ -231,10 +241,11 @@ const createStyles = (theme: AppTheme) =>
       marginBottom: 8,
     },
     row: { flexDirection: 'row', gap: 8 },
-    // Month names are the longest, so it gets the widest share.
-    year: { flex: 1, minWidth: 0 },
-    month: { flex: 1.6, minWidth: 0 },
-    day: { flex: 1, minWidth: 0 },
+    // Year and Day get a little more room than Month so four-digit years (also
+    // in Devanagari) fit; Month stays wide enough for "Select" on one line.
+    year: { flex: YEAR_DAY_FLEX, minWidth: 0 },
+    month: { flex: MONTH_FLEX, minWidth: 0 },
+    day: { flex: YEAR_DAY_FLEX, minWidth: 0 },
     card: {
       marginTop: 16,
       padding: 16,

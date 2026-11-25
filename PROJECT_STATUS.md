@@ -115,6 +115,7 @@ Never report a check as passed unless it was executed and its output reviewed. N
 - Tests: new `BsAgeView.test.tsx` (31 tests: boundaries 1900/2100 and day 01/32, month lists in en/np, assembled date passed to `calculateAge`, results incl. zeros, validation, stale clearing, notice en/np, light/dark, key parity) and `Dropdown.test.tsx`; the existing tab/settings tests that asserted the BS placeholder now assert the BS view.
 - Checks run: see the PR description. Android build / device not run (no SDK).
 - Owner decisions: Nepali wording is mine.
+- Follow-up on the same branch (device review): Year and Day dropdowns are wider than Month (`YEAR_DAY_FLEX` 1.2, `MONTH_FLEX` 1) and use a new `compact` Dropdown option (tighter padding) so "Select" fits on one line; the dropdown list now opens around the chosen row (two rows above it, still fully scrollable; e.g. Start Year opens near 2080, End Year near 2083); in Nepali all date numbers (year, month number, day) display as Devanagari digits in the selected values and in every option, via display-only `toDevanagariDigits` (option values and the `YYYY/MM/DD` passed to `calculateAge()` stay ASCII). Result-card numbers are unchanged. Nepali "Select" (छान्नुहोस्) is longer and may wrap on narrow phones.
 - Next action: owner reviews the PR; AD Age UI is a later issue.
 
 ### Checkpoint — Issue #64 (Age calculation logic), 2026-11-24 (branch `feature/age-calculation-logic` from `develop` @ `17c4164`; PR to `develop` with `Closes #64`, owner review and manual merge required)

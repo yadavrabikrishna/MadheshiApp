@@ -12,6 +12,7 @@ export {
   groupedDecimalMask,
   plainDecimalMask,
   toAsciiDigits,
+  toDevanagariDigits,
   wholeNumberMask,
   WHOLE_NUMBER_MAX_DIGITS,
   type InputMask,
