@@ -33,7 +33,8 @@ const DESCRIPTIONS = {
     compound:
       'The compound interest calculator will be implemented in a later task.',
     ageAd: 'The AD age calculator will be implemented in a later task.',
-    ageBs: 'The BS age calculator will be implemented in a later task.',
+    // The BS Age calculator is implemented (Issue #65): its approximation notice title.
+    ageBs: 'Approximate result',
     landTerai: 'The Terai land calculator will be implemented in a later task.',
     landHill:
       'The Hill / Mountain land calculator will be implemented in a later task.',
@@ -42,7 +43,7 @@ const DESCRIPTIONS = {
     simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageAd: 'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-    ageBs: 'विक्रम संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
+    ageBs: 'अनुमानित नतिजा',
     landTerai: 'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },

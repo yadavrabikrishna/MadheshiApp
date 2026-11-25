@@ -107,6 +107,16 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #65 (BS Age Calculator UI), 2026-11-25 (branch `feature/bs-age-calculator-ui` from `develop` @ `3ea397d`; PR to `develop` with `Closes #65`, owner review and manual merge required)
+
+- Completed: `BsAgeView` is now a working BS Age form (local component state only; no Redux, storage, backend, AD UI or conversion). Start Date and End Date each use three dropdowns: Year 1900-2100, Month (12 BS months in calendar order, shown as `01 – Baishakh` / `01 – वैशाख`; Latin digits like the rest of the app), Day 01-32 (never restricted by month or year). The chosen parts are joined into `YYYY/MM/DD` and passed to the shared `calculateAge()`; the view holds no parsing, validation or arithmetic. Results show Years / Months / Days including zeros; invalid start, invalid end and reversed range show localized field errors beside the relevant date; any edit clears the shown result and errors. The BS approximation notice (fixed 30-day month, 12-month year) is always visible and sits inside the result card once a result exists. en/np strings added; the old BS placeholder string was removed. `AdAgeView`, the AD/BS selector and navigation are unchanged.
+- Shared `Dropdown` gained optional `placeholder` and `groupLabel` (backward compatible; empty value shows the placeholder).
+- The issue body still contains superseded text (masked `YYYY/MM/DD` input, month-only dropdown); its later "BS date field selectors" section (dropdowns for all three parts) and your instruction were followed.
+- Tests: new `BsAgeView.test.tsx` (31 tests: boundaries 1900/2100 and day 01/32, month lists in en/np, assembled date passed to `calculateAge`, results incl. zeros, validation, stale clearing, notice en/np, light/dark, key parity) and `Dropdown.test.tsx`; the existing tab/settings tests that asserted the BS placeholder now assert the BS view.
+- Checks run: see the PR description. Android build / device not run (no SDK).
+- Owner decisions: Nepali wording is mine.
+- Next action: owner reviews the PR; AD Age UI is a later issue.
+
 ### Checkpoint — Issue #64 (Age calculation logic), 2026-11-24 (branch `feature/age-calculation-logic` from `develop` @ `17c4164`; PR to `develop` with `Closes #64`, owner review and manual merge required)
 
 - Completed: pure Age domain `src/features/age/ageCalculator.ts` (`calculateAge({startDate, endDate})` → `{ok, value:{startDate,endDate,years,months,days}}` or `{ok:false, errors}` with `startDateInvalid` / `endDateInvalid` / `endBeforeStart`; never throws). It uses the approved fixed borrowing algorithm (day borrow +30, month borrow +12) through the shared `calculateFixedDuration`; no AD/BS conversion, real month lengths, leap years or Gregorian rules. The BS result is approximate by design.

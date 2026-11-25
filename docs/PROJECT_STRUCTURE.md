@@ -38,7 +38,7 @@ src/
                                (fixedDate.ts: YYYY/MM/DD validation + fixed 30-day/12-month
                                duration; no calendar rules); public API via index.ts
     age/                       Pure Age calculation (ageCalculator.ts: calculateAge, validation
-                               codes, fixed borrowing algorithm via ../date); no UI yet
+                               codes, fixed borrowing algorithm via ../date)
     interest/                  Pure Simple Interest calculation engine (no React/Redux/storage):
                                decimal.ts (cloned Decimal, input parsing),
                                rate.ts (rate-mode normalisation), directDuration.ts (direct Years/Months/Days -> fixed

@@ -12,8 +12,17 @@ export interface DropdownOption<Value extends string> {
 interface DropdownProps<Value extends string> {
   label: string;
   options: DropdownOption<Value>[];
-  value: Value;
+  /** The chosen value, or '' when nothing is chosen yet (shows the placeholder). */
+  value: Value | '';
   onChange: (value: Value) => void;
+  /** Shown while no option is chosen. */
+  placeholder?: string;
+  /**
+   * Names the group this dropdown belongs to (e.g. "Start Date") when several
+   * dropdowns share one label (e.g. "Year"). Used in the spoken name and the
+   * list title only.
+   */
+  groupLabel?: string;
   /** Accessible name of the dismiss area behind the list (already localized). */
   closeLabel: string;
 }
@@ -29,11 +38,15 @@ export function Dropdown<Value extends string>({
   value,
   onChange,
   closeLabel,
+  placeholder,
+  groupLabel,
 }: DropdownProps<Value>) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
   const selected = options.find(option => option.value === value);
+  const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
+  const shown = selected?.label ?? placeholder ?? '';
 
   const choose = (next: Value) => {
     setOpen(false);
@@ -49,10 +62,12 @@ export function Dropdown<Value extends string>({
         style={styles.button}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${selected?.label ?? ''}`}
+        accessibilityLabel={`${fullLabel}: ${shown}`}
         accessibilityState={{ expanded: open }}
       >
-        <Text style={styles.value}>{selected?.label ?? ''}</Text>
+        <Text style={[styles.value, !selected && styles.placeholder]}>
+          {shown}
+        </Text>
         <Icon
           name="chevron-down"
           size={20}
@@ -74,7 +89,7 @@ export function Dropdown<Value extends string>({
           />
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle} accessibilityRole="header">
-              {label}
+              {fullLabel}
             </Text>
             <ScrollView>
               {options.map(option => {
@@ -127,6 +142,7 @@ const createStyles = (theme: AppTheme) => ({
     backgroundColor: theme.colors.surface,
   },
   value: { flex: 1, fontSize: 16, color: theme.colors.text },
+  placeholder: { color: theme.colors.textSecondary },
   backdrop: {
     flex: 1,
     justifyContent: 'center' as const,
