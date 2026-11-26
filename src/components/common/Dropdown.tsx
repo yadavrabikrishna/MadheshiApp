@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import {
+  FlatList,
   Modal,
   Pressable,
-  ScrollView,
   Text,
+  useWindowDimensions,
   View,
-  type ScrollViewInstance,
+  type LayoutChangeEvent,
 } from 'react-native';
 
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
@@ -36,9 +37,54 @@ interface DropdownProps<Value extends string> {
   closeLabel: string;
 }
 
-/** How many rows stay visible above the chosen one when the list opens. */
-const ROWS_ABOVE_SELECTED = 2;
-const ROW_HEIGHT_HINT = 48;
+/**
+ * Every row has this exact height. A fixed height is what lets the list know
+ * where any row is without rendering or measuring it first, so the chosen row
+ * can be placed before the first frame (see `getItemLayout` below).
+ */
+export const ROW_HEIGHT = 48;
+
+/** The sheet is at most 80% of the space inside the 24-unit backdrop padding. */
+const SHEET_MAX_FRACTION = 0.8;
+const BACKDROP_PADDING = 24;
+/** Sheet vertical padding (8 + 8) and the title row (about 38). */
+const SHEET_CHROME = 16 + 38;
+
+/**
+ * The row to start the list at so the chosen row lands near the middle of the
+ * visible rows. Used for the first frame; `centeredOffset` then corrects it
+ * from the real measured height. Pure, so it can be tested.
+ */
+export function initialRowIndex(
+  selectedIndex: number,
+  rowCount: number,
+  windowHeight: number,
+): number {
+  if (selectedIndex < 0) {
+    return 0;
+  }
+  const listMax =
+    (windowHeight - 2 * BACKDROP_PADDING) * SHEET_MAX_FRACTION - SHEET_CHROME;
+  const visibleRows = Math.max(
+    1,
+    Math.floor(Math.min(rowCount * ROW_HEIGHT, listMax) / ROW_HEIGHT),
+  );
+  const first = selectedIndex - Math.floor((visibleRows - 1) / 2);
+  return Math.min(Math.max(0, first), Math.max(0, rowCount - visibleRows));
+}
+
+/** Scroll offset that centres a row in a list `viewHeight` tall (never past the ends). */
+export function centeredOffset(
+  selectedIndex: number,
+  rowCount: number,
+  viewHeight: number,
+): number {
+  const centred = selectedIndex * ROW_HEIGHT - (viewHeight - ROW_HEIGHT) / 2;
+  return Math.min(
+    Math.max(0, centred),
+    Math.max(0, rowCount * ROW_HEIGHT - viewHeight),
+  );
+}
 
 /**
  * A single-choice dropdown: a field showing the current choice that opens a
@@ -58,10 +104,28 @@ export function Dropdown<Value extends string>({
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
-  const listRef = useRef<ScrollViewInstance>(null);
-  const selected = options.find(option => option.value === value);
+  const listRef = useRef<FlatList<DropdownOption<Value>>>(null);
+  const { height: windowHeight } = useWindowDimensions();
+  const selectedIndex = options.findIndex(option => option.value === value);
+  const selected = options[selectedIndex];
   const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
   const shown = selected?.label ?? placeholder ?? '';
+
+  // Once the list has its real height, centre the chosen row exactly. This
+  // corrects the first-frame estimate and does not depend on when rows lay out.
+  const centreSelected = (event: LayoutChangeEvent) => {
+    if (selectedIndex < 0) {
+      return;
+    }
+    listRef.current?.scrollToOffset({
+      offset: centeredOffset(
+        selectedIndex,
+        options.length,
+        event.nativeEvent.layout.height,
+      ),
+      animated: false,
+    });
+  };
 
   const choose = (next: Value) => {
     setOpen(false);
@@ -80,7 +144,18 @@ export function Dropdown<Value extends string>({
         accessibilityLabel={`${fullLabel}: ${shown}`}
         accessibilityState={{ expanded: open }}
       >
-        <Text style={[styles.value, !selected && styles.placeholder]}>
+        <Text
+          style={[styles.value, !selected && styles.placeholder]}
+          // An empty field's hint stays on one line, shrinking slightly if the
+          // field is narrow (several fields side by side).
+          {...(selected
+            ? {}
+            : {
+                numberOfLines: 1,
+                adjustsFontSizeToFit: true,
+                minimumFontScale: 0.75,
+              })}
+        >
           {shown}
         </Text>
         <Icon
@@ -106,34 +181,40 @@ export function Dropdown<Value extends string>({
             <Text style={styles.sheetTitle} accessibilityRole="header">
               {fullLabel}
             </Text>
-            <ScrollView ref={listRef}>
-              {options.map(option => {
+            <FlatList
+              ref={listRef}
+              data={options}
+              keyExtractor={option => option.value}
+              getItemLayout={(_, index) => ({
+                length: ROW_HEIGHT,
+                offset: ROW_HEIGHT * index,
+                index,
+              })}
+              // Start already at the chosen row (first frame), so there is no
+              // visible jump from the top. Without a choice: the top, as before.
+              initialScrollIndex={initialRowIndex(
+                selectedIndex,
+                options.length,
+                windowHeight,
+              )}
+              // Render every row: the lists are short (at most ~200 rows) and
+              // this keeps every option reachable by accessibility tools.
+              initialNumToRender={options.length}
+              onLayout={centreSelected}
+              testID="dropdown-list"
+              renderItem={({ item: option }) => {
                 const isSelected = option.value === value;
                 return (
                   <Pressable
-                    key={option.value}
                     style={styles.item}
                     onPress={() => choose(option.value)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: isSelected }}
                     accessibilityLabel={option.label}
-                    // Open the list around the chosen row, not at the top. The
-                    // whole list stays scrollable.
-                    onLayout={
-                      isSelected
-                        ? event =>
-                            listRef.current?.scrollTo({
-                              y: Math.max(
-                                0,
-                                event.nativeEvent.layout.y -
-                                  ROWS_ABOVE_SELECTED * ROW_HEIGHT_HINT,
-                              ),
-                              animated: false,
-                            })
-                        : undefined
-                    }
                   >
-                    <Text style={styles.itemLabel}>{option.label}</Text>
+                    <Text style={styles.itemLabel} numberOfLines={2}>
+                      {option.label}
+                    </Text>
                     {isSelected ? (
                       <Icon
                         name="checkmark"
@@ -143,8 +224,8 @@ export function Dropdown<Value extends string>({
                     ) : null}
                   </Pressable>
                 );
-              })}
-            </ScrollView>
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -203,7 +284,7 @@ const createStyles = (theme: AppTheme) => ({
     paddingVertical: 8,
   },
   item: {
-    minHeight: 48,
+    height: ROW_HEIGHT,
     paddingHorizontal: 16,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,

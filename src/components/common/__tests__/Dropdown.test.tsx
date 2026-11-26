@@ -4,7 +4,12 @@ import { Provider } from 'react-redux';
 
 import type { PreferencesRepository } from '../../../storage';
 import { createAppStore } from '../../../store';
-import { Dropdown } from '../Dropdown';
+import {
+  centeredOffset,
+  Dropdown,
+  initialRowIndex,
+  ROW_HEIGHT,
+} from '../Dropdown';
 
 const store = () =>
   createAppStore({
@@ -100,5 +105,49 @@ describe('Dropdown: compact', () => {
         .paddingHorizontal;
     expect(padding('Tight: Alpha')).toBe(8);
     expect(padding('Roomy: Alpha')).toBe(12);
+  });
+});
+
+describe('Dropdown: where the list opens', () => {
+  it('rows are a fixed height so positions are known without measuring', () => {
+    expect(ROW_HEIGHT).toBe(48);
+  });
+
+  describe('centeredOffset', () => {
+    it.each([
+      // [index, rows, view height, expected]
+      [180, 201, 480, 180 * 48 - 216], // 2080 in the 1900-2100 list
+      [183, 201, 480, 183 * 48 - 216], // 2083
+      [0, 201, 480, 0], // never above the top
+      [1, 201, 480, 0],
+      [200, 201, 480, 201 * 48 - 480], // never past the end
+      [2, 3, 480, 0], // a short list never scrolls
+      [5, 12, 240, 5 * 48 - 96],
+    ])('row %i of %i in %i high -> %i', (index, rows, height, expected) => {
+      expect(centeredOffset(index, rows, height)).toBe(expected);
+    });
+  });
+
+  describe('initialRowIndex (the first frame, before measuring)', () => {
+    it('is 0 when nothing is chosen', () => {
+      expect(initialRowIndex(-1, 201, 800)).toBe(0);
+    });
+
+    it('starts above the chosen row so it lands near the middle', () => {
+      // 800 high window: sheet list ~ (800 - 48) x 0.8 - 54 = 547 -> 11 rows
+      expect(initialRowIndex(180, 201, 800)).toBe(180 - 5);
+      expect(initialRowIndex(183, 201, 800)).toBe(183 - 5);
+    });
+
+    it('stays inside the list at both ends and for short lists', () => {
+      expect(initialRowIndex(0, 201, 800)).toBe(0);
+      expect(initialRowIndex(200, 201, 800)).toBe(201 - 11);
+      expect(initialRowIndex(1, 3, 800)).toBe(0);
+    });
+
+    it('uses fewer rows on a short screen', () => {
+      // 400 high: list ~ (400 - 48) x 0.8 - 54 = 227 -> 4 rows
+      expect(initialRowIndex(100, 201, 400)).toBe(100 - 1);
+    });
   });
 });

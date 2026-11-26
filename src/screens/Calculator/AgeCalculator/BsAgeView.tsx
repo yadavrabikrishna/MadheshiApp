@@ -14,10 +14,6 @@ import { toDevanagariDigits } from '../../../utils';
  * State is local to this view: nothing is stored or sent anywhere.
  */
 
-/** Relative widths of the three dropdowns in a date row. */
-export const YEAR_DAY_FLEX = 1.2;
-export const MONTH_FLEX = 1;
-
 const FIRST_YEAR = 1900;
 const LAST_YEAR = 2100;
 const YEARS = Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, i) =>
@@ -241,11 +237,10 @@ const createStyles = (theme: AppTheme) =>
       marginBottom: 8,
     },
     row: { flexDirection: 'row', gap: 8 },
-    // Year and Day get a little more room than Month so four-digit years (also
-    // in Devanagari) fit; Month stays wide enough for "Select" on one line.
-    year: { flex: YEAR_DAY_FLEX, minWidth: 0 },
-    month: { flex: MONTH_FLEX, minWidth: 0 },
-    day: { flex: YEAR_DAY_FLEX, minWidth: 0 },
+    // Three exactly equal columns (same flex, zero basis, no intrinsic width).
+    year: { flex: 1, flexBasis: 0, minWidth: 0 },
+    month: { flex: 1, flexBasis: 0, minWidth: 0 },
+    day: { flex: 1, flexBasis: 0, minWidth: 0 },
     card: {
       marginTop: 16,
       padding: 16,

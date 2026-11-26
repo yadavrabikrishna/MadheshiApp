@@ -7,7 +7,7 @@ import {
   act,
   fireEvent,
 } from '@testing-library/react-native';
-import { ScrollView, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 
 import { calculateAge } from '../../../../features/age';
@@ -18,7 +18,7 @@ import type { PreferencesRepository } from '../../../../storage';
 import { createAppStore } from '../../../../store';
 import { appColors } from '../../../../theme/colors';
 import { toDevanagariDigits } from '../../../../utils';
-import { BsAgeView, MONTH_FLEX, YEAR_DAY_FLEX } from '../BsAgeView';
+import { BsAgeView } from '../BsAgeView';
 
 jest.mock('../../../../features/age', () => {
   const actual = jest.requireActual('../../../../features/age');
@@ -510,90 +510,171 @@ describe('BsAgeView: theme and translations', () => {
 });
 
 describe('BsAgeView: dropdown widths', () => {
-  it('gives Year and Day slightly more width than Month, the three aligned in one row', async () => {
+  const columnStyle = (group: string, part: string) => {
+    // The dropdown sits in a column wrapper that carries the width share.
+    let node = dropdown(group, part).parent;
+    while (node && StyleSheet.flatten(node.props.style)?.flex === undefined) {
+      node = node.parent;
+    }
+    return StyleSheet.flatten(node?.props.style);
+  };
+
+  it.each([START, END])(
+    '%s: Year, Month and Day are exactly equal in width, in one row',
+    async group => {
+      await render(setup().ui);
+
+      const columns = ['year', 'month', 'day'].map(part =>
+        columnStyle(group, L[`age.field.${part}` as 'age.field.year']),
+      );
+
+      // Identical share, no intrinsic width, and allowed to shrink.
+      expect(new Set(columns.map(c => JSON.stringify(c))).size).toBe(1);
+      expect(columns[0]).toMatchObject({ flex: 1, flexBasis: 0, minWidth: 0 });
+      // The three columns share one row container.
+      const rows = ['year', 'month', 'day'].map(part => {
+        let node = dropdown(
+          group,
+          L[`age.field.${part}` as 'age.field.year'],
+        ).parent;
+        while (
+          node &&
+          StyleSheet.flatten(node.props.style)?.flex === undefined
+        ) {
+          node = node.parent;
+        }
+        return node?.parent;
+      });
+      expect(rows[0]).toBe(rows[1]);
+      expect(rows[1]).toBe(rows[2]);
+      expect(StyleSheet.flatten(rows[0]?.props.style).flexDirection).toBe(
+        'row',
+      );
+    },
+  );
+
+  it("keeps an empty field's placeholder on one line, shrinking if it must", async () => {
     await render(setup().ui);
 
-    const flexOf = (part: string) => {
-      // The dropdown's wrapper is the view that carries the flex share.
-      let node = dropdown(START, part).parent;
-      while (node && StyleSheet.flatten(node.props.style)?.flex === undefined) {
-        node = node.parent;
-      }
-      return StyleSheet.flatten(node?.props.style).flex;
-    };
-
-    const year = flexOf(L['age.field.year']);
-    const month = flexOf(L['age.field.month']);
-    const day = flexOf(L['age.field.day']);
-    expect(year).toBe(YEAR_DAY_FLEX);
-    expect(day).toBe(YEAR_DAY_FLEX);
-    expect(month).toBe(MONTH_FLEX);
-    expect(year).toBeGreaterThan(month);
-    // "Slightly": Month is narrower, but not collapsed.
-    expect(year / month).toBeLessThan(1.5);
+    const placeholder = within(dropdown(START, L['age.field.month'])).getByText(
+      L['age.field.placeholder'],
+    );
+    expect(placeholder.props.numberOfLines).toBe(1);
+    expect(placeholder.props.adjustsFontSizeToFit).toBe(true);
   });
 });
 
 describe('BsAgeView: list position', () => {
-  const scrollTo = jest.fn();
-  const mockedScrollView = ScrollView as unknown as {
-    prototype: { scrollTo: unknown };
-  };
-  let original: unknown;
+  const scrollToOffset = jest.spyOn(FlatList.prototype, 'scrollToOffset');
 
   beforeEach(() => {
-    scrollTo.mockClear();
-    original = mockedScrollView.prototype.scrollTo;
-    mockedScrollView.prototype.scrollTo = scrollTo;
+    scrollToOffset.mockClear().mockImplementation(() => undefined);
   });
-  afterEach(() => {
-    mockedScrollView.prototype.scrollTo = original;
+  afterAll(() => {
+    scrollToOffset.mockRestore();
   });
 
-  const layoutSelected = (y: number) =>
-    fireEvent(
-      screen
-        .getAllByRole('radio')
-        .find(r => r.props.accessibilityState.selected) as never,
-      'layout',
-      { nativeEvent: { layout: { x: 0, y, width: 300, height: 48 } } },
-    );
+  const layoutList = (height: number) =>
+    fireEvent(screen.getByTestId('dropdown-list'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 300, height } },
+    });
 
   it.each([
     ['2080', START, 180],
     ['2083', END, 183],
   ])(
-    'opens the %s year list around the chosen year, not at 1900',
+    'opens the %s year list centred on the chosen year, not at 1900',
     async (year, group, index) => {
       const { ui, user } = setup();
       await render(ui);
       await choose(user, group, L['age.field.year'], year);
 
       await user.press(dropdown(group, L['age.field.year']));
-      layoutSelected(index * 48); // row index x row height
+      layoutList(480); // ten rows visible
 
-      // Two rows stay visible above the chosen year; animation off.
-      expect(scrollTo).toHaveBeenCalledWith({
-        y: index * 48 - 96,
+      // The chosen row's top minus half of (list height - row height): centred.
+      expect(scrollToOffset).toHaveBeenCalledWith({
+        offset: index * 48 - (480 - 48) / 2,
         animated: false,
       });
-      // The whole range is still in the list.
-      expect(radios()[0]).toBe('1900');
-      expect(radios()[200]).toBe('2100');
+      // The chosen year and its neighbours are rendered around the centre.
+      const shown = radios();
+      const y = Number(year);
+      for (let n = y - 4; n <= y + 4; n += 1) {
+        expect(shown).toContain(String(n));
+      }
     },
   );
 
-  it('does not scroll when no year is chosen yet, and never below zero', async () => {
+  it('Start and End years position independently', async () => {
     const { ui, user } = setup();
     await render(ui);
+    await choose(user, START, L['age.field.year'], '2080');
+    await choose(user, END, L['age.field.year'], '2083');
+
+    await user.press(dropdown(END, L['age.field.year']));
+    layoutList(480);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({
+      offset: 183 * 48 - 216,
+      animated: false,
+    });
+    await user.press(screen.getByRole('radio', { name: '2083' }));
+
     await user.press(dropdown(START, L['age.field.year']));
-    expect(scrollTo).not.toHaveBeenCalled();
+    layoutList(480);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({
+      offset: 180 * 48 - 216,
+      animated: false,
+    });
+  });
+
+  it('does not scroll when no year is chosen (existing top-of-list behavior)', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+
+    await user.press(dropdown(START, L['age.field.year']));
+    layoutList(480);
+
+    expect(scrollToOffset).not.toHaveBeenCalled();
+  });
+
+  it('keeps the list centred offset inside the list at both ends', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await choose(user, START, L['age.field.year'], '1900');
+    await user.press(dropdown(START, L['age.field.year']));
+    layoutList(480);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({
+      offset: 0,
+      animated: false,
+    });
     await user.press(screen.getByRole('radio', { name: '1900' }));
 
+    await choose(user, START, L['age.field.year'], '2100');
     await user.press(dropdown(START, L['age.field.year']));
-    layoutSelected(0);
+    layoutList(480);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({
+      offset: 201 * 48 - 480,
+      animated: false,
+    });
+  });
 
-    expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
+  it('Nepali: the same position, with Devanagari labels', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    const group = np['age.bs.startDate'];
+    await choose(user, group, np['age.field.year'], '२०८०');
+
+    await user.press(dropdown(group, np['age.field.year']));
+    layoutList(480);
+
+    expect(scrollToOffset).toHaveBeenLastCalledWith({
+      offset: 180 * 48 - 216,
+      animated: false,
+    });
   });
 });
 
@@ -633,11 +714,18 @@ describe('BsAgeView: numerals', () => {
       `${s} – ${np['age.field.day']}: ०९`,
     );
 
-    await user.press(dropdown(s, np['age.field.year']));
+    // The End year has no selection, so its list opens at 1900 with every option.
+    const e = np['age.bs.endDate'];
+    await user.press(dropdown(e, np['age.field.year']));
     const years = radios();
+    expect(years).toHaveLength(201);
     expect(years[0]).toBe('१९००');
     expect(years[200]).toBe('२१००');
     expect(years.every(label => /^[०-९]{4}$/.test(label))).toBe(true);
+    await user.press(screen.getByRole('radio', { name: '२०८०' }));
+    // The chosen Start year's list is centred on it and still Devanagari.
+    await user.press(dropdown(s, np['age.field.year']));
+    expect(radios()).toContain('२०८०');
     await user.press(screen.getByRole('radio', { name: '२०८०' }));
 
     await user.press(dropdown(s, np['age.field.day']));
