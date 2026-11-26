@@ -5,10 +5,10 @@ import { Provider } from 'react-redux';
 import type { PreferencesRepository } from '../../../storage';
 import { createAppStore } from '../../../store';
 import {
-  centeredOffset,
   Dropdown,
   initialRowIndex,
   ROW_HEIGHT,
+  visibleRowCount,
 } from '../Dropdown';
 
 const store = () =>
@@ -113,41 +113,35 @@ describe('Dropdown: where the list opens', () => {
     expect(ROW_HEIGHT).toBe(48);
   });
 
-  describe('centeredOffset', () => {
+  describe('visibleRowCount', () => {
     it.each([
-      // [index, rows, view height, expected]
-      [180, 201, 480, 180 * 48 - 216], // 2080 in the 1900-2100 list
-      [183, 201, 480, 183 * 48 - 216], // 2083
-      [0, 201, 480, 0], // never above the top
-      [1, 201, 480, 0],
-      [200, 201, 480, 201 * 48 - 480], // never past the end
-      [2, 3, 480, 0], // a short list never scrolls
-      [5, 12, 240, 5 * 48 - 96],
-    ])('row %i of %i in %i high -> %i', (index, rows, height, expected) => {
-      expect(centeredOffset(index, rows, height)).toBe(expected);
+      // [rows, window height, expected]  list max = (h - 48) x 0.8 - 54
+      [201, 800, 11], // 547 / 48 = 11
+      [201, 400, 3], // 227 / 48 = 4, made odd
+      [201, 1334, 19], // 974 / 48 = 20, made odd
+      [3, 800, 3], // a short list shows all rows
+      [4, 800, 4], // ... even if the count is even
+      [1, 800, 1],
+    ])('%i options in %i high -> %i rows', (rows, height, expected) => {
+      expect(visibleRowCount(rows, height)).toBe(expected);
     });
   });
 
-  describe('initialRowIndex (the first frame, before measuring)', () => {
+  describe('initialRowIndex', () => {
     it('is 0 when nothing is chosen', () => {
-      expect(initialRowIndex(-1, 201, 800)).toBe(0);
+      expect(initialRowIndex(-1, 201, 11)).toBe(0);
     });
 
-    it('starts above the chosen row so it lands near the middle', () => {
-      // 800 high window: sheet list ~ (800 - 48) x 0.8 - 54 = 547 -> 11 rows
-      expect(initialRowIndex(180, 201, 800)).toBe(180 - 5);
-      expect(initialRowIndex(183, 201, 800)).toBe(183 - 5);
+    it('puts the chosen row in the middle of the visible rows', () => {
+      expect(initialRowIndex(180, 201, 11)).toBe(180 - 5);
+      expect(initialRowIndex(183, 201, 11)).toBe(183 - 5);
+      expect(initialRowIndex(100, 201, 3)).toBe(100 - 1);
     });
 
     it('stays inside the list at both ends and for short lists', () => {
-      expect(initialRowIndex(0, 201, 800)).toBe(0);
-      expect(initialRowIndex(200, 201, 800)).toBe(201 - 11);
-      expect(initialRowIndex(1, 3, 800)).toBe(0);
-    });
-
-    it('uses fewer rows on a short screen', () => {
-      // 400 high: list ~ (400 - 48) x 0.8 - 54 = 227 -> 4 rows
-      expect(initialRowIndex(100, 201, 400)).toBe(100 - 1);
+      expect(initialRowIndex(0, 201, 11)).toBe(0);
+      expect(initialRowIndex(200, 201, 11)).toBe(201 - 11);
+      expect(initialRowIndex(1, 3, 3)).toBe(0);
     });
   });
 });

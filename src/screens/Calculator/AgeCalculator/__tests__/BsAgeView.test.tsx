@@ -5,9 +5,8 @@ import {
   userEvent,
   within,
   act,
-  fireEvent,
 } from '@testing-library/react-native';
-import { FlatList, StyleSheet } from 'react-native';
+import { Dimensions, FlatList, StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 
 import { calculateAge } from '../../../../features/age';
@@ -18,6 +17,7 @@ import type { PreferencesRepository } from '../../../../storage';
 import { createAppStore } from '../../../../store';
 import { appColors } from '../../../../theme/colors';
 import { toDevanagariDigits } from '../../../../utils';
+import { visibleRowCount } from '../../../../components/common/Dropdown';
 import { BsAgeView } from '../BsAgeView';
 
 jest.mock('../../../../features/age', () => {
@@ -66,6 +66,13 @@ async function choose(
   option: string,
 ) {
   await user.press(dropdown(group, part));
+  await pressOption(user, option);
+}
+
+async function pressOption(
+  user: ReturnType<typeof userEvent.setup>,
+  option: string,
+) {
   await user.press(screen.getByRole('radio', { name: option }));
 }
 
@@ -96,7 +103,26 @@ const result = () => screen.queryByTestId('age-result');
 const radios = () =>
   screen.getAllByRole('radio').map(node => node.props.accessibilityLabel);
 
+/** Every option the open list holds (not just the rows built so far). */
+const listData = () =>
+  (
+    screen.getByTestId('dropdown-list').props.data as {
+      value: string;
+      label: string;
+    }[]
+  ).map(option => option.label);
+
+/**
+ * The list builds only the rows around its opening position. These tests pick
+ * options anywhere in the range, so by default they run on a window tall
+ * enough to show every row; the "list position" tests use the real size.
+ */
+const NORMAL_WINDOW = { ...Dimensions.get('window') };
+const setWindowHeight = (height: number) =>
+  Dimensions.set({ window: { ...NORMAL_WINDOW, height } });
+
 beforeEach(() => {
+  setWindowHeight(20000);
   jest.mocked(calculateAge).mockClear();
 });
 
@@ -125,11 +151,13 @@ describe('BsAgeView: fields', () => {
 
     await user.press(dropdown(START, L['age.field.year']));
 
-    const years = radios();
+    // The list renders only what is near the top at first; its data is all 201.
+    const years = listData();
     expect(years).toHaveLength(201);
     expect(years[0]).toBe('1900');
     expect(years[200]).toBe('2100');
     expect(years[100]).toBe('2000');
+    expect(years.every((y, i) => y === String(1900 + i))).toBe(true);
   });
 
   it.each(['1900', '2100'])('selects the boundary year %s', async year => {
@@ -565,101 +593,143 @@ describe('BsAgeView: dropdown widths', () => {
 });
 
 describe('BsAgeView: list position', () => {
+  // The first frame must already be positioned: nothing may scroll afterwards.
   const scrollToOffset = jest.spyOn(FlatList.prototype, 'scrollToOffset');
+  const scrollToIndex = jest.spyOn(FlatList.prototype, 'scrollToIndex');
+  const scrollToEnd = jest.spyOn(FlatList.prototype, 'scrollToEnd');
 
   beforeEach(() => {
-    scrollToOffset.mockClear().mockImplementation(() => undefined);
+    scrollToOffset.mockClear();
+    scrollToIndex.mockClear();
+    scrollToEnd.mockClear();
   });
   afterAll(() => {
     scrollToOffset.mockRestore();
+    scrollToIndex.mockRestore();
+    scrollToEnd.mockRestore();
   });
 
-  const layoutList = (height: number) =>
-    fireEvent(screen.getByTestId('dropdown-list'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: 300, height } },
+  /** Opens a list the way a phone shows it: the real window size. */
+  const openNormally = async (
+    user: ReturnType<typeof userEvent.setup>,
+    group: string,
+  ) => {
+    await act(async () => {
+      setWindowHeight(NORMAL_WINDOW.height);
+    });
+    await user.press(dropdown(group, L['age.field.year']));
+  };
+  const backToTall = () =>
+    act(async () => {
+      setWindowHeight(20000);
     });
 
+  const noCorrection = () => {
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    expect(scrollToIndex).not.toHaveBeenCalled();
+    expect(scrollToEnd).not.toHaveBeenCalled();
+  };
+
+  // The list is `visible` rows tall; the first rendered row is the chosen
+  // row minus half of that, so the chosen row is in the middle.
+  const visible = () => visibleRowCount(201, Dimensions.get('window').height);
+  const middle = () => Math.floor(visible() / 2);
+
+  it('the list is exactly the visible rows tall (so centring is exact)', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await openNormally(user, START);
+    expect(
+      StyleSheet.flatten(screen.getByTestId('dropdown-list').props.style),
+    ).toMatchObject({ height: visible() * 48 });
+  });
+
   it.each([
-    ['2080', START, 180],
-    ['2083', END, 183],
+    ['2080', START],
+    ['2083', END],
   ])(
-    'opens the %s year list centred on the chosen year, not at 1900',
-    async (year, group, index) => {
+    'opens the %s year list on the chosen year in the middle, with no later scroll',
+    async (year, group) => {
       const { ui, user } = setup();
       await render(ui);
       await choose(user, group, L['age.field.year'], year);
 
-      await user.press(dropdown(group, L['age.field.year']));
-      layoutList(480); // ten rows visible
+      await openNormally(user, group);
 
-      // The chosen row's top minus half of (list height - row height): centred.
-      expect(scrollToOffset).toHaveBeenCalledWith({
-        offset: index * 48 - (480 - 48) / 2,
-        animated: false,
-      });
-      // The chosen year and its neighbours are rendered around the centre.
       const shown = radios();
-      const y = Number(year);
-      for (let n = y - 4; n <= y + 4; n += 1) {
-        expect(shown).toContain(String(n));
-      }
+      // First rendered row is the chosen year minus the rows above the middle.
+      expect(shown[0]).toBe(String(Number(year) - middle()));
+      expect(shown[middle()]).toBe(year);
+      expect(shown).not.toContain('1900');
+      noCorrection();
     },
   );
 
-  it('Start and End years position independently', async () => {
+  it('opens quickly: only the visible rows plus a small buffer are built', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await choose(user, START, L['age.field.year'], '2080');
+    await openNormally(user, START);
+    expect(radios().length).toBeLessThan(40);
+  });
+
+  it('Start and End years open independently, each around its own year', async () => {
     const { ui, user } = setup();
     await render(ui);
     await choose(user, START, L['age.field.year'], '2080');
     await choose(user, END, L['age.field.year'], '2083');
 
-    await user.press(dropdown(END, L['age.field.year']));
-    layoutList(480);
-    expect(scrollToOffset).toHaveBeenLastCalledWith({
-      offset: 183 * 48 - 216,
-      animated: false,
-    });
+    await openNormally(user, END);
+    expect(radios()[middle()]).toBe('2083');
     await user.press(screen.getByRole('radio', { name: '2083' }));
 
-    await user.press(dropdown(START, L['age.field.year']));
-    layoutList(480);
-    expect(scrollToOffset).toHaveBeenLastCalledWith({
-      offset: 180 * 48 - 216,
-      animated: false,
-    });
+    await openNormally(user, START);
+    expect(radios()[middle()]).toBe('2080');
+    noCorrection();
   });
 
-  it('does not scroll when no year is chosen (existing top-of-list behavior)', async () => {
+  it('after choosing a new year the list reopens around it', async () => {
+    const { ui, user } = setup();
+    await render(ui);
+    await choose(user, START, L['age.field.year'], '2080');
+
+    await user.press(dropdown(START, L['age.field.year']));
+    await user.press(screen.getByRole('radio', { name: '2090' }));
+    expect(dropdown(START, L['age.field.year']).props.accessibilityLabel).toBe(
+      `${START} – ${L['age.field.year']}: 2090`,
+    );
+
+    await openNormally(user, START);
+    expect(radios()[middle()]).toBe('2090');
+    expect(radios()).not.toContain('2080');
+  });
+
+  it('with no year chosen the list opens at the top (existing behavior)', async () => {
     const { ui, user } = setup();
     await render(ui);
 
-    await user.press(dropdown(START, L['age.field.year']));
-    layoutList(480);
+    await openNormally(user, START);
 
-    expect(scrollToOffset).not.toHaveBeenCalled();
+    expect(radios()[0]).toBe('1900');
+    noCorrection();
   });
 
-  it('keeps the list centred offset inside the list at both ends', async () => {
+  it('keeps the chosen year inside the list at both ends', async () => {
     const { ui, user } = setup();
     await render(ui);
     await choose(user, START, L['age.field.year'], '1900');
-    await user.press(dropdown(START, L['age.field.year']));
-    layoutList(480);
-    expect(scrollToOffset).toHaveBeenLastCalledWith({
-      offset: 0,
-      animated: false,
-    });
+    await openNormally(user, START);
+    expect(radios()[0]).toBe('1900');
     await user.press(screen.getByRole('radio', { name: '1900' }));
 
+    await backToTall();
     await choose(user, START, L['age.field.year'], '2100');
-    await user.press(dropdown(START, L['age.field.year']));
-    layoutList(480);
-    expect(scrollToOffset).toHaveBeenLastCalledWith({
-      offset: 201 * 48 - 480,
-      animated: false,
-    });
+    await openNormally(user, START);
+    expect(radios()[0]).toBe(String(2100 - visible() + 1));
+    expect(radios()).toContain('2100');
   });
 
-  it('Nepali: the same position, with Devanagari labels', async () => {
+  it('Nepali: same position, Devanagari labels', async () => {
     const { ui, user, store } = setup();
     await render(ui);
     await act(async () => {
@@ -668,15 +738,18 @@ describe('BsAgeView: list position', () => {
     const group = np['age.bs.startDate'];
     await choose(user, group, np['age.field.year'], '२०८०');
 
-    await user.press(dropdown(group, np['age.field.year']));
-    layoutList(480);
-
-    expect(scrollToOffset).toHaveBeenLastCalledWith({
-      offset: 180 * 48 - 216,
-      animated: false,
+    await act(async () => {
+      setWindowHeight(NORMAL_WINDOW.height);
     });
+    await user.press(dropdown(group, np['age.field.year']));
+
+    expect(radios()[middle()]).toBe('२०८०');
+    expect(radios().every(label => /^[०-९]{4}$/.test(label))).toBe(true);
+    noCorrection();
   });
 });
+
+afterAll(() => setWindowHeight(NORMAL_WINDOW.height));
 
 describe('BsAgeView: numerals', () => {
   it('shows English digits in English: values, options and selection', async () => {
@@ -717,7 +790,7 @@ describe('BsAgeView: numerals', () => {
     // The End year has no selection, so its list opens at 1900 with every option.
     const e = np['age.bs.endDate'];
     await user.press(dropdown(e, np['age.field.year']));
-    const years = radios();
+    const years = listData();
     expect(years).toHaveLength(201);
     expect(years[0]).toBe('१९००');
     expect(years[200]).toBe('२१००');
@@ -729,7 +802,8 @@ describe('BsAgeView: numerals', () => {
     await user.press(screen.getByRole('radio', { name: '२०८०' }));
 
     await user.press(dropdown(s, np['age.field.day']));
-    const days = radios();
+    const days = listData();
+    expect(days).toHaveLength(32);
     expect(days[0]).toBe('०१');
     expect(days[31]).toBe('३२');
     expect(days.every(label => /^[०-९]{2}$/.test(label))).toBe(true);

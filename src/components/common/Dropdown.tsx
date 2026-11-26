@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -6,7 +6,6 @@ import {
   Text,
   useWindowDimensions,
   View,
-  type LayoutChangeEvent,
 } from 'react-native';
 
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
@@ -51,40 +50,74 @@ const BACKDROP_PADDING = 24;
 const SHEET_CHROME = 16 + 38;
 
 /**
- * The row to start the list at so the chosen row lands near the middle of the
- * visible rows. Used for the first frame; `centeredOffset` then corrects it
- * from the real measured height. Pure, so it can be tested.
+ * How many rows the list shows at once: as many whole rows as fit in the
+ * sheet, never more than there are options, and always an odd number so the
+ * chosen row can sit exactly in the middle.
+ */
+export function visibleRowCount(
+  rowCount: number,
+  windowHeight: number,
+): number {
+  const listMax =
+    (windowHeight - 2 * BACKDROP_PADDING) * SHEET_MAX_FRACTION - SHEET_CHROME;
+  const fit = Math.max(1, Math.floor(listMax / ROW_HEIGHT));
+  const rows = Math.max(1, Math.min(rowCount, fit));
+  return rows % 2 === 1 || rows === rowCount ? rows : rows - 1;
+}
+
+/**
+ * The row to start the list at so the chosen row sits in the middle of the
+ * visible rows. The list is exactly `visibleRowCount` rows tall, so this is
+ * exact on the first frame; no later correction is needed. Pure, so it can be
+ * tested.
  */
 export function initialRowIndex(
   selectedIndex: number,
   rowCount: number,
-  windowHeight: number,
+  visibleRows: number,
 ): number {
   if (selectedIndex < 0) {
     return 0;
   }
-  const listMax =
-    (windowHeight - 2 * BACKDROP_PADDING) * SHEET_MAX_FRACTION - SHEET_CHROME;
-  const visibleRows = Math.max(
-    1,
-    Math.floor(Math.min(rowCount * ROW_HEIGHT, listMax) / ROW_HEIGHT),
-  );
-  const first = selectedIndex - Math.floor((visibleRows - 1) / 2);
+  const first = selectedIndex - Math.floor(visibleRows / 2);
   return Math.min(Math.max(0, first), Math.max(0, rowCount - visibleRows));
 }
 
-/** Scroll offset that centres a row in a list `viewHeight` tall (never past the ends). */
-export function centeredOffset(
-  selectedIndex: number,
-  rowCount: number,
-  viewHeight: number,
-): number {
-  const centred = selectedIndex * ROW_HEIGHT - (viewHeight - ROW_HEIGHT) / 2;
-  return Math.min(
-    Math.max(0, centred),
-    Math.max(0, rowCount * ROW_HEIGHT - viewHeight),
-  );
+/** Extra rows rendered beyond the visible ones on the first frame. */
+const RENDER_BUFFER = 6;
+
+interface OptionRowProps {
+  label: string;
+  isSelected: boolean;
+  onPick: () => void;
+  styles: ReturnType<typeof createStyles>;
+  checkColor: string;
 }
+
+const OptionRow = memo(function OptionRowView({
+  label,
+  isSelected,
+  onPick,
+  styles,
+  checkColor,
+}: OptionRowProps) {
+  return (
+    <Pressable
+      style={styles.item}
+      onPress={onPick}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: isSelected }}
+      accessibilityLabel={label}
+    >
+      <Text style={styles.itemLabel} numberOfLines={2}>
+        {label}
+      </Text>
+      {isSelected ? (
+        <Icon name="checkmark" size={20} color={checkColor} />
+      ) : null}
+    </Pressable>
+  );
+});
 
 /**
  * A single-choice dropdown: a field showing the current choice that opens a
@@ -104,28 +137,12 @@ export function Dropdown<Value extends string>({
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
-  const listRef = useRef<FlatList<DropdownOption<Value>>>(null);
   const { height: windowHeight } = useWindowDimensions();
   const selectedIndex = options.findIndex(option => option.value === value);
   const selected = options[selectedIndex];
   const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
   const shown = selected?.label ?? placeholder ?? '';
-
-  // Once the list has its real height, centre the chosen row exactly. This
-  // corrects the first-frame estimate and does not depend on when rows lay out.
-  const centreSelected = (event: LayoutChangeEvent) => {
-    if (selectedIndex < 0) {
-      return;
-    }
-    listRef.current?.scrollToOffset({
-      offset: centeredOffset(
-        selectedIndex,
-        options.length,
-        event.nativeEvent.layout.height,
-      ),
-      animated: false,
-    });
-  };
+  const visibleRows = visibleRowCount(options.length, windowHeight);
 
   const choose = (next: Value) => {
     setOpen(false);
@@ -168,7 +185,7 @@ export function Dropdown<Value extends string>({
       <Modal
         visible={open}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => setOpen(false)}
       >
         <View style={styles.backdrop}>
@@ -182,49 +199,35 @@ export function Dropdown<Value extends string>({
               {fullLabel}
             </Text>
             <FlatList
-              ref={listRef}
               data={options}
               keyExtractor={option => option.value}
+              // Exactly the visible rows tall, so the chosen row can be put in
+              // the middle by the very first frame (no measuring, no jump).
+              style={[styles.list, { height: visibleRows * ROW_HEIGHT }]}
               getItemLayout={(_, index) => ({
                 length: ROW_HEIGHT,
                 offset: ROW_HEIGHT * index,
                 index,
               })}
-              // Start already at the chosen row (first frame), so there is no
-              // visible jump from the top. Without a choice: the top, as before.
               initialScrollIndex={initialRowIndex(
                 selectedIndex,
                 options.length,
-                windowHeight,
+                visibleRows,
               )}
-              // Render every row: the lists are short (at most ~200 rows) and
-              // this keeps every option reachable by accessibility tools.
-              initialNumToRender={options.length}
-              onLayout={centreSelected}
+              // Only the visible rows (plus a few) are built when it opens;
+              // the rest are created as the user scrolls.
+              initialNumToRender={visibleRows + RENDER_BUFFER}
+              windowSize={7}
               testID="dropdown-list"
-              renderItem={({ item: option }) => {
-                const isSelected = option.value === value;
-                return (
-                  <Pressable
-                    style={styles.item}
-                    onPress={() => choose(option.value)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: isSelected }}
-                    accessibilityLabel={option.label}
-                  >
-                    <Text style={styles.itemLabel} numberOfLines={2}>
-                      {option.label}
-                    </Text>
-                    {isSelected ? (
-                      <Icon
-                        name="checkmark"
-                        size={20}
-                        color={theme.colors.primary}
-                      />
-                    ) : null}
-                  </Pressable>
-                );
-              }}
+              renderItem={({ item: option }) => (
+                <OptionRow
+                  label={option.label}
+                  isSelected={option.value === value}
+                  onPick={() => choose(option.value)}
+                  styles={styles}
+                  checkColor={theme.colors.primary}
+                />
+              )}
             />
           </View>
         </View>
@@ -283,6 +286,7 @@ const createStyles = (theme: AppTheme) => ({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+  list: { flexGrow: 0 },
   item: {
     height: ROW_HEIGHT,
     paddingHorizontal: 16,
