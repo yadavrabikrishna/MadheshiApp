@@ -32,6 +32,11 @@ interface DropdownProps<Value extends string> {
   groupLabel?: string;
   /** Tighter padding and gap, for narrow fields side by side in a row. */
   compact?: boolean;
+  /**
+   * Where the list opens while nothing is chosen (it does not select it and
+   * the placeholder stays). Once a value is chosen, that value wins.
+   */
+  defaultScrollValue?: Value;
   /** Accessible name of the dismiss area behind the list (already localized). */
   closeLabel: string;
 }
@@ -133,6 +138,7 @@ export function Dropdown<Value extends string>({
   placeholder,
   groupLabel,
   compact = false,
+  defaultScrollValue,
 }: DropdownProps<Value>) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -140,6 +146,11 @@ export function Dropdown<Value extends string>({
   const { height: windowHeight } = useWindowDimensions();
   const selectedIndex = options.findIndex(option => option.value === value);
   const selected = options[selectedIndex];
+  const defaultIndex =
+    defaultScrollValue === undefined
+      ? -1
+      : options.findIndex(option => option.value === defaultScrollValue);
+  const scrollIndex = selectedIndex >= 0 ? selectedIndex : defaultIndex;
   const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
   const shown = selected?.label ?? placeholder ?? '';
   const visibleRows = visibleRowCount(options.length, windowHeight);
@@ -210,7 +221,7 @@ export function Dropdown<Value extends string>({
                 index,
               })}
               initialScrollIndex={initialRowIndex(
-                selectedIndex,
+                scrollIndex,
                 options.length,
                 visibleRows,
               )}

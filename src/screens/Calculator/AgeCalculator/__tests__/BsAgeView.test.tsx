@@ -704,14 +704,70 @@ describe('BsAgeView: list position', () => {
     expect(radios()).not.toContain('2080');
   });
 
-  it('with no year chosen the list opens at the top (existing behavior)', async () => {
+  it.each([
+    ['Start', START, '2080'],
+    ['End', END, '2083'],
+  ])(
+    '%s Year with nothing chosen opens around %s and keeps the placeholder',
+    async (_name, group, year) => {
+      const { ui, user } = setup();
+      await render(ui);
+
+      await act(async () => {
+        setWindowHeight(NORMAL_WINDOW.height);
+      });
+      await user.press(dropdown(group, L['age.field.year']));
+
+      expect(radios()[middle()]).toBe(year);
+      expect(radios()).not.toContain('1900');
+      // Nothing is selected: no row is checked.
+      expect(
+        screen
+          .getAllByRole('radio')
+          .some(row => row.props.accessibilityState?.selected),
+      ).toBe(false);
+      noCorrection();
+      await user.press(screen.getByRole('radio', { name: year }));
+      expect(
+        dropdown(group, L['age.field.year']).props.accessibilityLabel,
+      ).toBe(`${group} – ${L['age.field.year']}: ${year}`);
+    },
+  );
+
+  it('the placeholder stays until a year is chosen', async () => {
+    const { ui } = setup();
+    await render(ui);
+    for (const group of [START, END]) {
+      expect(
+        dropdown(group, L['age.field.year']).props.accessibilityLabel,
+      ).toBe(
+        `${group} – ${L['age.field.year']}: ${L['age.field.placeholder']}`,
+      );
+    }
+  });
+
+  it('a chosen year overrides the default; the other date keeps its own', async () => {
     const { ui, user } = setup();
     await render(ui);
+    await choose(user, START, L['age.field.year'], '2075');
 
     await openNormally(user, START);
+    expect(radios()[middle()]).toBe('2075');
+    await user.press(screen.getByRole('radio', { name: '2075' }));
 
-    expect(radios()[0]).toBe('1900');
-    noCorrection();
+    await openNormally(user, END);
+    expect(radios()[middle()]).toBe('2083');
+  });
+
+  it('Nepali: the default position shows Devanagari digits', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+      setWindowHeight(NORMAL_WINDOW.height);
+    });
+    await user.press(dropdown(np['age.bs.endDate'], np['age.field.year']));
+    expect(radios()[middle()]).toBe('२०८३');
   });
 
   it('keeps the chosen year inside the list at both ends', async () => {

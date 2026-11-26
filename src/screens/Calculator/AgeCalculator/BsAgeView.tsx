@@ -14,6 +14,9 @@ import { toDevanagariDigits } from '../../../utils';
  * State is local to this view: nothing is stored or sent anywhere.
  */
 
+/** Where each Year list opens until a year is chosen (not preselected). */
+const DEFAULT_SCROLL_YEAR = { start: '2080', end: '2083' } as const;
+
 const FIRST_YEAR = 1900;
 const LAST_YEAR = 2100;
 const YEARS = Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, i) =>
@@ -133,6 +136,7 @@ export function BsAgeView() {
               {...common}
               label={t('age.field.year')}
               options={yearOptions}
+              defaultScrollValue={DEFAULT_SCROLL_YEAR[name]}
               value={parts.year}
               onChange={value => change(name, 'year', value)}
             />

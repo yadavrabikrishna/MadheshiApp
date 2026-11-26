@@ -145,3 +145,46 @@ describe('Dropdown: where the list opens', () => {
     });
   });
 });
+
+describe('Dropdown: defaultScrollValue', () => {
+  const many = Array.from({ length: 50 }, (_, i) => ({
+    value: String(i),
+    label: `Item ${i}`,
+  }));
+  const open = async (value: string, defaultScrollValue?: string) => {
+    await render(
+      <Provider store={store()}>
+        <Dropdown
+          label="Pick"
+          options={many}
+          value={value}
+          onChange={() => undefined}
+          closeLabel="Close"
+          placeholder="Select"
+          defaultScrollValue={defaultScrollValue}
+        />
+      </Provider>,
+    );
+    await userEvent.setup().press(screen.getByRole('button'));
+    return screen.getAllByRole('radio').map(r => r.props.accessibilityLabel);
+  };
+
+  it('opens around the default while nothing is chosen, still showing the placeholder', async () => {
+    const labels = await open('', '30');
+    expect(labels).toContain('Item 30');
+    expect(labels).not.toContain('Item 0');
+    expect(screen.getByRole('button').props.accessibilityLabel).toBe(
+      'Pick: Select',
+    );
+  });
+
+  it('a chosen value wins over the default', async () => {
+    const labels = await open('10', '30');
+    expect(labels).toContain('Item 10');
+    expect(labels).not.toContain('Item 30');
+  });
+
+  it('opens at the top with no default, or a default that is not an option', async () => {
+    expect((await open(''))[0]).toBe('Item 0');
+  });
+});
