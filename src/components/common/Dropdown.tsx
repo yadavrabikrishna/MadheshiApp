@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { useTranslation } from '../../i18n';
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { Icon } from './Icon';
 
@@ -144,6 +145,9 @@ export function Dropdown<Value extends string>({
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
   const { height: windowHeight } = useWindowDimensions();
+  // Option labels may contain digits; Nepali shows them as Devanagari. The
+  // option VALUES are never converted.
+  const { formatDigits } = useTranslation();
   const selectedIndex = options.findIndex(option => option.value === value);
   const selected = options[selectedIndex];
   const defaultIndex =
@@ -152,7 +156,7 @@ export function Dropdown<Value extends string>({
       : options.findIndex(option => option.value === defaultScrollValue);
   const scrollIndex = selectedIndex >= 0 ? selectedIndex : defaultIndex;
   const fullLabel = groupLabel ? `${groupLabel} – ${label}` : label;
-  const shown = selected?.label ?? placeholder ?? '';
+  const shown = formatDigits(selected?.label ?? placeholder ?? '');
   const visibleRows = visibleRowCount(options.length, windowHeight);
 
   const choose = (next: Value) => {
@@ -232,7 +236,7 @@ export function Dropdown<Value extends string>({
               testID="dropdown-list"
               renderItem={({ item: option }) => (
                 <OptionRow
-                  label={option.label}
+                  label={formatDigits(option.label)}
                   isSelected={option.value === value}
                   onPick={() => choose(option.value)}
                   styles={styles}

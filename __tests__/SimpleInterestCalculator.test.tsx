@@ -24,6 +24,7 @@ import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppBootstrap, AppRoot } from '../src/app';
+import { localizeDigits } from '../src/i18n';
 import { en } from '../src/i18n/resources/en';
 import { np } from '../src/i18n/resources/np';
 import { themes } from '../src/theme';
@@ -350,7 +351,9 @@ describe('Simple Interest calculator', () => {
       screen.getByRole('button', { name: np['simpleInterest.calculate'] }),
     );
     expect(
-      screen.getByText(np['simpleInterest.error.principalInvalid']),
+      screen.getByText(
+        localizeDigits('np', np['simpleInterest.error.principalInvalid']),
+      ),
     ).toBeOnTheScreen();
 
     await fireEvent.changeText(
@@ -373,7 +376,7 @@ describe('Simple Interest calculator', () => {
     expect(
       screen.getByText(np['simpleInterest.result.title']),
     ).toBeOnTheScreen();
-    expect(screen.getByText('रु. 6,000')).toBeOnTheScreen();
+    expect(screen.getByText('रु. ६,०००')).toBeOnTheScreen();
   });
 
   it('accepts Devanagari digits typed into a date', async () => {
@@ -511,14 +514,14 @@ describe('Simple Interest calculator: theme and language changes', () => {
     await user.press(screen.getByRole('radio', { name: 'नेपाली' }));
 
     expect(field(np['simpleInterest.principal.label']).props.value).toBe(
-      '1,00,000',
+      '१,००,०००',
     );
-    expect(field(np['simpleInterest.rate.label']).props.value).toBe('2.5');
+    expect(field(np['simpleInterest.rate.label']).props.value).toBe('२.५');
     expect(field(np['simpleInterest.startDate.label']).props.value).toBe(
-      '2025/01/01',
+      '२०२५/०१/०१',
     );
     expect(field(np['simpleInterest.endDate.label']).props.value).toBe(
-      '2025/04/01',
+      '२०२५/०४/०१',
     );
   });
 
@@ -539,21 +542,21 @@ describe('Simple Interest calculator: theme and language changes', () => {
     expect(
       screen.getByText(np['simpleInterest.result.title']),
     ).toBeOnTheScreen();
-    expect(screen.getByText('रु. 6,000')).toBeOnTheScreen();
-    expect(screen.getByText('रु. 1,06,000')).toBeOnTheScreen();
+    expect(screen.getByText('रु. ६,०००')).toBeOnTheScreen();
+    expect(screen.getByText('रु. १,०६,०००')).toBeOnTheScreen();
     expect(field(np['simpleInterest.principal.label']).props.value).toBe(
-      '1,00,000',
+      '१,००,०००',
     );
 
     await user.press(
       screen.getByRole('button', { name: np['header.switchToDark'] }),
     );
-    expect(screen.getByText('रु. 1,06,000')).toBeOnTheScreen();
+    expect(screen.getByText('रु. १,०६,०००')).toBeOnTheScreen();
     expect(
       screen.getByText(np['simpleInterest.result.title']),
     ).toBeOnTheScreen();
-    expect(screen.getByText('रु. 6,000')).toBeOnTheScreen();
-    expect(field(np['simpleInterest.rate.label']).props.value).toBe('2');
+    expect(screen.getByText('रु. ६,०००')).toBeOnTheScreen();
+    expect(field(np['simpleInterest.rate.label']).props.value).toBe('२');
   });
 
   it('keeps a valid result across a theme change in English', async () => {
@@ -974,9 +977,9 @@ describe('Simple Interest result card layout', () => {
     expect(
       within(screen.getByTestId('result-card-image')).getByText('ब्याज दर'),
     ).toBeOnTheScreen();
-    expect(screen.getByText('2% प्रति महिना')).toBeOnTheScreen();
-    expect(screen.getByText('अवधि: 0 वर्ष, 3 महिना, 0 दिन')).toBeOnTheScreen();
-    expect(screen.getByText('2025/01/01 – 2025/04/01')).toBeOnTheScreen();
+    expect(screen.getByText('२% प्रति महिना')).toBeOnTheScreen();
+    expect(screen.getByText('अवधि: ० वर्ष, ३ महिना, ० दिन')).toBeOnTheScreen();
+    expect(screen.getByText('२०२५/०१/०१ – २०२५/०४/०१')).toBeOnTheScreen();
   });
 });
 
@@ -1116,14 +1119,14 @@ describe('Simple Interest calculator: copy result summary (Issue #35)', () => {
   const nepaliSummary = [
     'घरेलु ब्याजको नतिजा',
     '',
-    'मूलधन: रु. 1,00,000',
-    'ब्याज दर: 2% प्रति महिना',
-    'सुरु मिति: 2025/01/01',
-    'अन्तिम मिति: 2025/04/01',
-    'अवधि: 0 वर्ष, 3 महिना, 0 दिन',
+    'मूलधन: रु. १,००,०००',
+    'ब्याज दर: २% प्रति महिना',
+    'सुरु मिति: २०२५/०१/०१',
+    'अन्तिम मिति: २०२५/०४/०१',
+    'अवधि: ० वर्ष, ३ महिना, ० दिन',
     '',
-    'घरेलु ब्याज: रु. 6,000',
-    'जम्मा रकम: रु. 1,06,000',
+    'घरेलु ब्याज: रु. ६,०००',
+    'जम्मा रकम: रु. १,०६,०००',
   ].join('\n');
 
   const copyButton = () =>

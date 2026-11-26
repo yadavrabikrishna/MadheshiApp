@@ -325,7 +325,7 @@ describe('BsAgeView: calculation', () => {
 
     const card = within(screen.getByTestId('age-result'));
     expect(
-      card.getByLabelText(`${np['age.result.years']}: 10`),
+      card.getByLabelText(`${np['age.result.years']}: १०`),
     ).toBeOnTheScreen();
     expect(card.getByText(np['age.notice.body'])).toBeOnTheScreen();
   });
@@ -846,11 +846,14 @@ describe('BsAgeView: numerals', () => {
     // The End year has no selection, so its list opens at 1900 with every option.
     const e = np['age.bs.endDate'];
     await user.press(dropdown(e, np['age.field.year']));
+    // The option data stays ASCII; only what is shown is Devanagari.
     const years = listData();
     expect(years).toHaveLength(201);
-    expect(years[0]).toBe('१९००');
-    expect(years[200]).toBe('२१००');
-    expect(years.every(label => /^[०-९]{4}$/.test(label))).toBe(true);
+    expect(years[0]).toBe('1900');
+    expect(years[200]).toBe('2100');
+    expect(years.every(label => /^[0-9]{4}$/.test(label))).toBe(true);
+    expect(radios()[0]).toBe('१९००');
+    expect(radios().every(label => /^[०-९]{4}$/.test(label))).toBe(true);
     await user.press(screen.getByRole('radio', { name: '२०८०' }));
     // The chosen Start year's list is centred on it and still Devanagari.
     await user.press(dropdown(s, np['age.field.year']));
@@ -860,9 +863,12 @@ describe('BsAgeView: numerals', () => {
     await user.press(dropdown(s, np['age.field.day']));
     const days = listData();
     expect(days).toHaveLength(32);
-    expect(days[0]).toBe('०१');
-    expect(days[31]).toBe('३२');
-    expect(days.every(label => /^[०-९]{2}$/.test(label))).toBe(true);
+    expect(days[0]).toBe('01');
+    expect(days[31]).toBe('32');
+    expect(days.every(label => /^[0-9]{2}$/.test(label))).toBe(true);
+    expect(radios()[0]).toBe('०१');
+    expect(radios()[31]).toBe('३२');
+    expect(radios().every(label => /^[०-९]{2}$/.test(label))).toBe(true);
   });
 
   it('only converts the display: calculateAge still gets ASCII YYYY/MM/DD in Nepali', async () => {
@@ -909,5 +915,29 @@ describe('BsAgeView: numerals', () => {
     expect(
       dropdown(START, L['age.field.year']).props.accessibilityLabel,
     ).toContain('2080');
+  });
+});
+
+describe('BsAgeView: Nepali result digits', () => {
+  it('shows Devanagari result values in Nepali and ASCII in English', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await pickDate(user, START, '2070', '04', '05', 'Shrawan');
+    await pickDate(user, END, '2080', '04', '05', 'Shrawan');
+    await user.press(screen.getByRole('button', { name: L['age.calculate'] }));
+    expect(
+      within(screen.getByTestId('age-result')).getByText('10'),
+    ).toBeOnTheScreen();
+
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    expect(
+      within(screen.getByTestId('age-result')).getByText('१०'),
+    ).toBeOnTheScreen();
+    expect(calculateAge).toHaveBeenLastCalledWith({
+      startDate: '2070/04/05',
+      endDate: '2080/04/05',
+    });
   });
 });

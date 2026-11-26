@@ -41,17 +41,19 @@ export function SimpleInterestResultCard({
   rateConfig,
   showDates = true,
 }: SimpleInterestResultCardProps) {
-  const { t } = useTranslation();
+  const { t, formatDigits } = useTranslation();
   const mode = INTEREST_MODE_TEXT[type];
   const styles = useThemedStyles(createStyles);
   const { copy, feedback } = useCopyResult(() =>
-    buildSimpleInterestSummary(
-      result,
-      enteredRate,
-      rateConfig,
-      t,
-      type,
-      showDates,
+    formatDigits(
+      buildSimpleInterestSummary(
+        result,
+        enteredRate,
+        rateConfig,
+        t,
+        type,
+        showDates,
+      ),
     ),
   );
 
@@ -65,7 +67,13 @@ export function SimpleInterestResultCard({
     mode.fileNamePrefix,
   );
 
-  const display = getSimpleInterestDisplay(result, enteredRate, rateConfig, t);
+  // The display text is localized here (Nepali digits); the result itself and
+  // the entered rate stay ASCII.
+  const display = Object.fromEntries(
+    Object.entries(
+      getSimpleInterestDisplay(result, enteredRate, rateConfig, t),
+    ).map(([key, text]) => [key, formatDigits(text)]),
+  ) as unknown as ReturnType<typeof getSimpleInterestDisplay>;
   const dateRangeText = `${display.startDate} – ${display.endDate}`;
   const durationLine = `${t('simpleInterest.result.duration')}: ${
     display.duration

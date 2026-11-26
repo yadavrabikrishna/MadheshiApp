@@ -107,6 +107,16 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Global Nepali numeral formatting + AD approximation hint, 2026-11-26 (branch `feature/nepali-numeral-formatting`, created from `feature/ad-age-calculator-ui` (PR #71, not yet merged) with the owner's approval because the AD UI only exists there; PR to `develop`, owner review and manual merge required; no GitHub issue)
+
+- AD hint: `AdAgeView` now shows the same `Approximate result` hint as BS (always visible, moves into the result card once there is a result) with its own wording (`age.ad.notice.body`, en/np): every month counts as 30 days and every year as 12 months. The AD calculation is unchanged.
+- Central numerals: new `src/i18n/localizeDigits.ts` (`localizeDigits(language, text)`, reusing `toDevanagariDigits`; idempotent so no double conversion). `translate()` localizes Nepali strings (labels, hints, placeholders, errors); `useTranslation()` also returns `formatDigits`; `TextField` (and so `MaskedField`) shows Devanagari digits and placeholder in Nepali and reports ASCII (it also accepts typed Devanagari digits; separators and caret positions are unaffected because digits map one-to-one); `Dropdown` localizes field and row labels (option values stay ASCII). Age results, the Simple/Compound result card, its copied summary, the normalized duration and the Settings rate helper use `formatDigits`. The Age views no longer convert on their own.
+- Behaviour change to flag: Nepali Interest results, inputs and copied summaries previously showed ASCII digits; they now show Devanagari digits (the requested global behaviour). Existing Interest tests were updated accordingly. English UI is unchanged.
+- Tests: new `src/i18n/__tests__/localizeDigits.test.tsx` (conversion, English unchanged, mixed text, no double conversion, `translate`, `formatDigits`, TextField/MaskedField/Dropdown display vs ASCII values); AD/BS hint and Nepali result tests; Interest and tabs tests updated.
+- Checks run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (50 suites / 1181 tests) all passed.
+- Not verified on a physical device: Devanagari digits while typing in the real Android keyboard and caret behaviour in masked fields; Devanagari font rendering/line height; AD hint layout.
+- Next action: owner review (merge #71 first, then this PR).
+
 ### Checkpoint — Issue #69 (AD Age Calculator UI), 2026-11-26 (branch `feature/ad-age-calculator-ui` from `develop` @ `4797964`; PR to `develop` with `Closes #69`, owner review and manual merge required)
 
 - Completed: `AdAgeView.tsx` replaces the placeholder with a Start/End form of equal-width Year (1900–2100), Month (January–December, English/Nepali via new `age.ad.month.1..12` keys) and Day (01–30) dropdowns using the shared `Dropdown`. Empty Start Year opens around 2025 and End Year around 2026 via `defaultScrollValue` (scroll only, placeholders kept); a chosen year wins, independently. Nepali shows Devanagari digits; values and `calculateAge()` input stay ASCII `YYYY/MM/DD`. Results (years, months, days, zeros included) and localized errors reuse the BS patterns; no approximation notice; edits clear stale results/errors. No calculation, parser, BS UI, navigation or dependency change.

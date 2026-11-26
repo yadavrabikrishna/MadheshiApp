@@ -25,6 +25,9 @@ jest.mock('../src/storage/database', () => ({
 }));
 
 // The first render loads React Navigation and every screen (see App.test.tsx).
+import { en } from '../src/i18n/resources/en';
+import { np } from '../src/i18n/resources/np';
+
 jest.setTimeout(60000);
 
 // The AD Age calculator is implemented (Issue #69): it is recognised by its
@@ -36,8 +39,9 @@ const DESCRIPTIONS = {
     simple: 'Principal amount',
     compound:
       'The compound interest calculator will be implemented in a later task.',
-    // The BS Age calculator is implemented (Issue #65): its approximation notice title.
-    ageBs: 'Approximate result',
+    // The BS Age calculator is implemented (Issue #65): recognised by its own
+    // approximation wording (the AD view has a different one).
+    ageBs: en['age.notice.body'],
     landTerai: 'The Terai land calculator will be implemented in a later task.',
     landHill:
       'The Hill / Mountain land calculator will be implemented in a later task.',
@@ -45,7 +49,7 @@ const DESCRIPTIONS = {
   np: {
     simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-    ageBs: 'अनुमानित नतिजा',
+    ageBs: np['age.notice.body'],
     landTerai: 'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },

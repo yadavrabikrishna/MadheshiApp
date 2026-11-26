@@ -98,6 +98,13 @@ src/
   hard-coded hex values in components.
 - **Strings come from `src/i18n/resources`.** Add every new key to `en.ts` and
   `np.ts`; the compiler fails if Nepali is missing one.
+- **Digits are localized for display only, in one place** (`src/i18n/localizeDigits.ts`).
+  In Nepali, `translate()`/`t()`, `TextField`/`MaskedField` (display and
+  placeholder), `Dropdown` (field and rows) and `useTranslation().formatDigits`
+  show Devanagari digits (०-९); English is unchanged. Values, input state,
+  `YYYY/MM/DD` strings, calculation inputs, storage, API data and test ids stay
+  ASCII; inputs accept either kind of digit and report ASCII. Screens format
+  composed result text with `formatDigits`; do not add other converters.
 - **Icons go through `components/common/Icon`.**
 - **Dependencies are injected** into the store (`createAppStore`) so tests can use
   a fake or a Node SQLite database instead of the device driver.

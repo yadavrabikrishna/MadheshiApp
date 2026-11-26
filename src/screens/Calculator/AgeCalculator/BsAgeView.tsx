@@ -5,7 +5,6 @@ import { Button, Dropdown, FieldError } from '../../../components';
 import { calculateAge, type AgeErrorCode } from '../../../features/age';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
-import { toDevanagariDigits } from '../../../utils';
 
 /**
  * Age calculator for BS (Bikram Sambat) dates. Each date is three dropdowns
@@ -71,7 +70,7 @@ interface Result {
 }
 
 export function BsAgeView() {
-  const { t, language } = useTranslation();
+  const { t, formatDigits } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const [dates, setDates] = useState<Record<DateName, DateParts>>({
     start: EMPTY_DATE,
@@ -105,16 +104,14 @@ export function BsAgeView() {
     }
   };
 
-  // Digits are converted for display only: the option values (and the
-  // YYYY/MM/DD passed to calculateAge) stay ASCII in every language.
-  const show = (text: string) =>
-    language === 'np' ? toDevanagariDigits(text) : text;
-  const yearOptions = YEARS.map(value => ({ value, label: show(value) }));
+  // Option labels carry plain ASCII digits; the shared Dropdown shows them in
+  // the active language's digits. Values and the YYYY/MM/DD string stay ASCII.
+  const yearOptions = YEARS.map(value => ({ value, label: value }));
   const monthOptions = MONTH_NUMBERS.map((value, index) => ({
     value,
-    label: `${show(value)} – ${t(MONTH_KEYS[index])}`,
+    label: `${value} – ${t(MONTH_KEYS[index])}`,
   }));
-  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: show(value) }));
+  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: value }));
 
   const renderDate = (name: DateName, label: string) => {
     const parts = dates[name];
@@ -213,9 +210,11 @@ export function BsAgeView() {
                 key={key}
                 style={styles.unit}
                 accessible
-                accessibilityLabel={`${t(key)}: ${value}`}
+                accessibilityLabel={`${t(key)}: ${formatDigits(String(value))}`}
               >
-                <Text style={styles.unitValue}>{value}</Text>
+                <Text style={styles.unitValue}>
+                  {formatDigits(String(value))}
+                </Text>
                 <Text style={styles.unitLabel}>{t(key)}</Text>
               </View>
             ))}

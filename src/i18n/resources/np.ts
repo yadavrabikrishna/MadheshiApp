@@ -43,6 +43,8 @@ export const np: Translations = {
   'age.error.startDateInvalid': 'सुरु मितिको वर्ष, महिना र दिन छान्नुहोस्।',
   'age.error.endDateInvalid': 'अन्तिम मितिको वर्ष, महिना र दिन छान्नुहोस्।',
   'age.error.endBeforeStart': 'अन्तिम मिति सुरु मितिभन्दा अगाडि हुन सक्दैन।',
+  'age.ad.notice.body':
+    'यो नतिजा अनुमानित हो। यो सरल तरिकाले निकालिएको हो: हरेक महिना ३० दिन र हरेक वर्ष १२ महिना मानिएको छ, वास्तविक पात्रो अनुसार होइन।',
   'age.ad.month.1': 'जनवरी',
   'age.ad.month.2': 'फेब्रुअरी',
   'age.ad.month.3': 'मार्च',
