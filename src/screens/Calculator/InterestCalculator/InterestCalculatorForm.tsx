@@ -55,7 +55,7 @@ interface InterestCalculatorFormProps {
 export function InterestCalculatorForm({
   config,
 }: InterestCalculatorFormProps) {
-  const { t } = useTranslation();
+  const { t, formatDigits } = useTranslation();
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const reducer = useMemo(
@@ -313,10 +313,12 @@ export function InterestCalculatorForm({
             ) : null}
             {directDuration.ok ? (
               <Text style={styles.normalized} testID="normalized-duration">
-                {`${t('simpleInterest.duration.normalized')}: ${formatDuration(
-                  directDuration.duration,
-                  t,
-                )}`}
+                {formatDigits(
+                  `${t('simpleInterest.duration.normalized')}: ${formatDuration(
+                    directDuration.duration,
+                    t,
+                  )}`,
+                )}
               </Text>
             ) : null}
             <Text style={styles.dateHint}>

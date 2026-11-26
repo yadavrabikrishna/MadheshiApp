@@ -142,11 +142,13 @@ describe('AdAgeView: fields', () => {
     expect(screen.getAllByText(L['age.field.placeholder'])).toHaveLength(6);
   });
 
-  it('is not the placeholder screen and has no BS approximation notice', async () => {
+  it('is not the placeholder screen and shows its own approximation hint at the bottom', async () => {
     const { ui } = setup();
     await render(ui);
-    expect(screen.queryByTestId('age-approximation-notice')).toBeNull();
-    expect(screen.queryByText(L['age.notice.title'])).toBeNull();
+    expect(screen.getByText(L['age.notice.title'])).toBeOnTheScreen();
+    expect(screen.getByText(L['age.ad.notice.body'])).toBeOnTheScreen();
+    // The AD hint is not the BS wording.
+    expect(screen.queryByText(L['age.notice.body'])).toBeNull();
     expect(screen.queryByText(L['calculator.age.ad.description'])).toBeNull();
   });
 
@@ -333,7 +335,13 @@ describe('AdAgeView: calculation', () => {
     expect(card.getByLabelText('Years: 0')).toBeOnTheScreen();
     expect(card.getByLabelText('Months: 1')).toBeOnTheScreen();
     expect(card.getByLabelText('Days: 20')).toBeOnTheScreen();
-    expect(screen.queryByTestId('age-approximation-notice')).toBeNull();
+    // The hint moves inside the result card, once.
+    expect(
+      within(screen.getByTestId('age-result')).getByText(
+        L['age.ad.notice.body'],
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByText(L['age.ad.notice.body'])).toHaveLength(1);
   });
 
   it('the boundary values 1900/01/01 and 2100/12/30 are passed as written', async () => {
@@ -488,5 +496,60 @@ describe('AdAgeView: validation and stale state', () => {
     expect(
       screen.queryByText(new RegExp(L['age.error.endDateInvalid'])),
     ).toBeNull();
+  });
+});
+
+describe('AdAgeView: approximation hint and Nepali numerals', () => {
+  it('shows the hint at the bottom, after the form, explaining 30-day months and 12-month years', async () => {
+    const { ui } = setup();
+    await render(ui);
+    expect(L['age.ad.notice.body']).toMatch(/30 days/);
+    expect(L['age.ad.notice.body']).toMatch(/12 months/);
+    expect(screen.getByText(L['age.notice.title'])).toBeOnTheScreen();
+    expect(screen.getByText(L['age.ad.notice.body'])).toBeOnTheScreen();
+    // It is the last thing on the screen, after the Calculate button.
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf('age-approximation-notice')).toBeGreaterThan(
+      tree.indexOf(L['age.calculate']),
+    );
+  });
+
+  it('is localized in Nepali (same title wording as BS, AD body)', async () => {
+    const { ui, store } = setup();
+    await render(ui);
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    expect(screen.getByText(np['age.notice.title'])).toBeOnTheScreen();
+    expect(screen.getByText(np['age.ad.notice.body'])).toBeOnTheScreen();
+    expect(screen.queryByText(en['age.ad.notice.body'])).toBeNull();
+    expect(np['age.ad.notice.body']).toMatch(/३० दिन/);
+    expect(np['age.ad.notice.body']).toMatch(/१२ महिना/);
+  });
+
+  it('Nepali result values are Devanagari; English stay ASCII; the API gets ASCII dates', async () => {
+    const { ui, user, store } = setup();
+    await render(ui);
+    await pickDate(user, START, '1990', '06', '15', 'June');
+    await pickDate(user, END, '2026', '11', '25', 'November');
+    await user.press(calculate());
+    const card = () => within(screen.getByTestId('age-result'));
+    expect(card().getByText('36')).toBeOnTheScreen();
+    expect(card().getByText('5')).toBeOnTheScreen();
+    expect(card().getByText('10')).toBeOnTheScreen();
+
+    await act(async () => {
+      await store.dispatch(setLanguage('np'));
+    });
+    expect(card().getByText('३६')).toBeOnTheScreen();
+    expect(card().getByText('५')).toBeOnTheScreen();
+    expect(card().getByText('१०')).toBeOnTheScreen();
+    expect(
+      card().getByLabelText(`${np['age.result.years']}: ३६`),
+    ).toBeOnTheScreen();
+    expect(calculateAge).toHaveBeenLastCalledWith({
+      startDate: '1990/06/15',
+      endDate: '2026/11/25',
+    });
   });
 });

@@ -10,6 +10,8 @@ import {
   type TextInputSelectionChangeEvent,
 } from 'react-native';
 
+import { useTranslation } from '../../i18n';
+import { toAsciiDigits } from '../../utils';
 import { useAppTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { FieldError } from './FieldError';
 
@@ -93,6 +95,7 @@ export function TextField({
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const invalid = invalidProp || errors.length > 0;
+  const { formatDigits } = useTranslation();
 
   return (
     <View style={[styles.field, containerStyle]}>
@@ -110,10 +113,14 @@ export function TextField({
         <TextInput
           ref={ref}
           style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
+          // Display only: the value (and what onChangeText reports) is ASCII;
+          // Nepali shows Devanagari digits and accepts either kind typed.
+          value={formatDigits(value)}
+          onChangeText={text => onChangeText(toAsciiDigits(text))}
           keyboardType={keyboardType}
-          placeholder={placeholder}
+          placeholder={
+            placeholder === undefined ? undefined : formatDigits(placeholder)
+          }
           placeholderTextColor={theme.colors.textSecondary}
           selectionColor={theme.colors.primary}
           maxLength={maxLength}

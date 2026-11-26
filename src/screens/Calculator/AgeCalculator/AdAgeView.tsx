@@ -5,7 +5,6 @@ import { Button, Dropdown, FieldError } from '../../../components';
 import { calculateAge, type AgeErrorCode } from '../../../features/age';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
-import { toDevanagariDigits } from '../../../utils';
 
 /**
  * Age calculator for AD (Gregorian) dates. Each date is three dropdowns
@@ -72,7 +71,7 @@ interface Result {
 }
 
 export function AdAgeView() {
-  const { t, language } = useTranslation();
+  const { t, formatDigits } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const [dates, setDates] = useState<Record<DateName, DateParts>>({
     start: EMPTY_DATE,
@@ -106,16 +105,14 @@ export function AdAgeView() {
     }
   };
 
-  // Digits are converted for display only: the option values (and the
-  // YYYY/MM/DD passed to calculateAge) stay ASCII in every language.
-  const show = (text: string) =>
-    language === 'np' ? toDevanagariDigits(text) : text;
-  const yearOptions = YEARS.map(value => ({ value, label: show(value) }));
+  // Option labels carry plain ASCII digits; the shared Dropdown shows them in
+  // the active language's digits. Values and the YYYY/MM/DD string stay ASCII.
+  const yearOptions = YEARS.map(value => ({ value, label: value }));
   const monthOptions = MONTH_NUMBERS.map((value, index) => ({
     value,
-    label: `${show(value)} – ${t(MONTH_KEYS[index])}`,
+    label: `${value} – ${t(MONTH_KEYS[index])}`,
   }));
-  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: show(value) }));
+  const dayOptions = DAY_NUMBERS.map(value => ({ value, label: value }));
 
   const renderDate = (name: DateName, label: string) => {
     const parts = dates[name];
@@ -172,6 +169,14 @@ export function AdAgeView() {
     );
   };
 
+  // One notice, always visible; with a result it sits inside the result card.
+  const notice = (
+    <View style={styles.notice} testID="age-approximation-notice">
+      <Text style={styles.noticeTitle}>{t('age.notice.title')}</Text>
+      <Text style={styles.noticeBody}>{t('age.ad.notice.body')}</Text>
+    </View>
+  );
+
   return (
     <ScrollView
       testID="age-ad-view"
@@ -207,15 +212,20 @@ export function AdAgeView() {
                 key={key}
                 style={styles.unit}
                 accessible
-                accessibilityLabel={`${t(key)}: ${value}`}
+                accessibilityLabel={`${t(key)}: ${formatDigits(String(value))}`}
               >
-                <Text style={styles.unitValue}>{value}</Text>
+                <Text style={styles.unitValue}>
+                  {formatDigits(String(value))}
+                </Text>
                 <Text style={styles.unitLabel}>{t(key)}</Text>
               </View>
             ))}
           </View>
+          {notice}
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.standaloneNotice}>{notice}</View>
+      )}
     </ScrollView>
   );
 }
@@ -261,4 +271,24 @@ const createStyles = (theme: AppTheme) =>
     },
     unitValue: { fontSize: 28, fontWeight: '700', color: theme.colors.text },
     unitLabel: { fontSize: 13, color: theme.colors.textSecondary },
+    standaloneNotice: { marginTop: 16 },
+    notice: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+    },
+    noticeTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    noticeBody: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.textSecondary,
+    },
   });

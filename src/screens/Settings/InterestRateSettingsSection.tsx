@@ -75,7 +75,7 @@ interface Props {
  * configuration layer), they are not part of the Calculator Settings draft.
  */
 export function InterestRateSettingsSection({ calculator }: Props) {
-  const { t } = useTranslation();
+  const { t, formatDigits } = useTranslation();
   const dispatch = useAppDispatch();
   const styles = useThemedStyles(createStyles);
   const config = useAppSelector(selectInterestRateConfig(calculator));
@@ -211,7 +211,7 @@ export function InterestRateSettingsSection({ calculator }: Props) {
         </View>
       ) : null}
 
-      <Text style={styles.helper}>{helper}</Text>
+      <Text style={styles.helper}>{formatDigits(helper)}</Text>
     </View>
   );
 }

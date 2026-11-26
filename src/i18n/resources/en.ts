@@ -44,6 +44,8 @@ export const en = {
   'age.error.endDateInvalid': 'Select the year, month and day of the end date.',
   'age.error.endBeforeStart':
     'The end date cannot be earlier than the start date.',
+  'age.ad.notice.body':
+    'This result is approximate. It is calculated in a simplified way: every month is counted as 30 days and every year as 12 months, not by the real calendar.',
   'age.ad.month.1': 'January',
   'age.ad.month.2': 'February',
   'age.ad.month.3': 'March',
