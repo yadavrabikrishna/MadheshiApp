@@ -107,6 +107,14 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #69 (AD Age Calculator UI), 2026-11-26 (branch `feature/ad-age-calculator-ui` from `develop` @ `4797964`; PR to `develop` with `Closes #69`, owner review and manual merge required)
+
+- Completed: `AdAgeView.tsx` replaces the placeholder with a Start/End form of equal-width Year (1900–2100), Month (January–December, English/Nepali via new `age.ad.month.1..12` keys) and Day (01–30) dropdowns using the shared `Dropdown`. Empty Start Year opens around 2025 and End Year around 2026 via `defaultScrollValue` (scroll only, placeholders kept); a chosen year wins, independently. Nepali shows Devanagari digits; values and `calculateAge()` input stay ASCII `YYYY/MM/DD`. Results (years, months, days, zeros included) and localized errors reuse the BS patterns; no approximation notice; edits clear stale results/errors. No calculation, parser, BS UI, navigation or dependency change.
+- Tests: new `AdAgeView.test.tsx` (28 tests); `__tests__/CalculatorTabs.test.tsx` now recognises the AD view by its `age-ad-view` test id instead of the removed placeholder text.
+- Checks run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (49 suites / 1163 tests) all passed.
+- Not verified on a physical device: AD default year positions (2025/2026), equal widths on narrow phones, Nepali month names in the dropdown.
+- Next action: owner review of the PR.
+
 ### Checkpoint — Issue #68 (AD age calculation integration and tests), 2026-11-26 (branch `feature/ad-age-calculator` from `develop` @ `3ea397d`; PR to `develop` with `Closes #68`, owner review and manual merge required)
 
 - Verified by inspection: AD uses the same pure `calculateAge({ startDate, endDate })` and the same fixed 30-day / 12-month algorithm (`src/features/date`) as BS; the shared parser stays calendar-neutral (year 4 digits, month 01–12, day 01–32). No production code change was needed.
@@ -114,6 +122,7 @@ Never report a check as passed unless it was executed and its output reviewed. N
 - Not changed: AD UI (Issue #69), BS UI, Interest, dependencies.
 - Checks run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (46 suites / 1067 tests) all passed.
 - Next action: owner review of the PR; Issue #69 (AD form) is not started.
+
 ### Checkpoint — Issue #65 (BS Age Calculator UI), 2026-11-25 (branch `feature/bs-age-calculator-ui` from `develop` @ `3ea397d`; PR to `develop` with `Closes #65`, owner review and manual merge required)
 
 - Completed: `BsAgeView` is now a working BS Age form (local component state only; no Redux, storage, backend, AD UI or conversion). Start Date and End Date each use three dropdowns: Year 1900-2100, Month (12 BS months in calendar order, shown as `01 – Baishakh` / `01 – वैशाख`; Latin digits like the rest of the app), Day 01-32 (never restricted by month or year). The chosen parts are joined into `YYYY/MM/DD` and passed to the shared `calculateAge()`; the view holds no parsing, validation or arithmetic. Results show Years / Months / Days including zeros; invalid start, invalid end and reversed range show localized field errors beside the relevant date; any edit clears the shown result and errors. The BS approximation notice (fixed 30-day month, 12-month year) is always visible and sits inside the result card once a result exists. en/np strings added; the old BS placeholder string was removed. `AdAgeView`, the AD/BS selector and navigation are unchanged.
