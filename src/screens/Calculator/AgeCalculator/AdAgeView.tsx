@@ -23,9 +23,9 @@ const YEARS = Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, i) =>
 );
 const pad = (n: number) => String(n).padStart(2, '0');
 const MONTH_NUMBERS = Array.from({ length: 12 }, (_, i) => pad(i + 1));
-// The AD form offers day 01-30 in every month; the shared calculation does
+// The AD form offers day 01-31 in every month; the shared calculation does
 // no calendar lookup (no real month lengths or leap years).
-const DAY_NUMBERS = Array.from({ length: 30 }, (_, i) => pad(i + 1));
+const DAY_NUMBERS = Array.from({ length: 31 }, (_, i) => pad(i + 1));
 
 const MONTH_KEYS: readonly TranslationKey[] = [
   'age.ad.month.1',
