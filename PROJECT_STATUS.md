@@ -107,6 +107,14 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #68 (AD age calculation integration and tests), 2026-11-26 (branch `feature/ad-age-calculator` from `develop` @ `3ea397d`; PR to `develop` with `Closes #68`, owner review and manual merge required)
+
+- Verified by inspection: AD uses the same pure `calculateAge({ startDate, endDate })` and the same fixed 30-day / 12-month algorithm (`src/features/date`) as BS; the shared parser stays calendar-neutral (year 4 digits, month 01–12, day 01–32). No production code change was needed.
+- Added `src/features/age/__tests__/adAge.test.ts` (AD-typical dates: same date, one day, 30-day and 12-month borrowing, year-boundary cascade, multi-year, shared boundaries, invalid/reversed inputs without throwing, leap/common-year and 28/31-day-month independence, static check that no `Date`/`Intl`/leap-year logic is used).
+- Not changed: AD UI (Issue #69), BS UI, Interest, dependencies.
+- Checks run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (46 suites / 1067 tests) all passed.
+- Next action: owner review of the PR; Issue #69 (AD form) is not started.
+
 ### Checkpoint — Issue #64 (Age calculation logic), 2026-11-24 (branch `feature/age-calculation-logic` from `develop` @ `17c4164`; PR to `develop` with `Closes #64`, owner review and manual merge required)
 
 - Completed: pure Age domain `src/features/age/ageCalculator.ts` (`calculateAge({startDate, endDate})` → `{ok, value:{startDate,endDate,years,months,days}}` or `{ok:false, errors}` with `startDateInvalid` / `endDateInvalid` / `endBeforeStart`; never throws). It uses the approved fixed borrowing algorithm (day borrow +30, month borrow +12) through the shared `calculateFixedDuration`; no AD/BS conversion, real month lengths, leap years or Gregorian rules. The BS result is approximate by design.
