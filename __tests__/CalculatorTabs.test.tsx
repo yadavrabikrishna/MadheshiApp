@@ -27,12 +27,15 @@ jest.mock('../src/storage/database', () => ({
 // The first render loads React Navigation and every screen (see App.test.tsx).
 jest.setTimeout(60000);
 
+// The AD Age calculator is implemented (Issue #69): it is recognised by its
+// root test id, as it has no text of its own that the BS view lacks.
+const AGE_AD_VIEW = 'age-ad-view';
+
 const DESCRIPTIONS = {
   en: {
     simple: 'Principal amount',
     compound:
       'The compound interest calculator will be implemented in a later task.',
-    ageAd: 'The AD age calculator will be implemented in a later task.',
     // The BS Age calculator is implemented (Issue #65): its approximation notice title.
     ageBs: 'Approximate result',
     landTerai: 'The Terai land calculator will be implemented in a later task.',
@@ -42,7 +45,6 @@ const DESCRIPTIONS = {
   np: {
     simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
-    ageAd: 'इस्वी संवत उमेर क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageBs: 'अनुमानित नतिजा',
     landTerai: 'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
@@ -258,7 +260,7 @@ describe('Age date system selector', () => {
     expect(dateSystemOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
     expect(dateSystemOption('AD (Gregorian)', false)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.ageBs)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.ageAd)).toBeNull();
+    expect(screen.queryByTestId(AGE_AD_VIEW)).toBeNull();
   });
 
   it('shows the matching placeholder for each date system', async () => {
@@ -267,13 +269,13 @@ describe('Age date system selector', () => {
 
     await user.press(dateSystemOption('AD (Gregorian)'));
     expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+    expect(screen.getByTestId(AGE_AD_VIEW)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.ageBs)).toBeNull();
 
     await user.press(dateSystemOption('BS (Bikram Sambat)'));
     expect(dateSystemOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.ageBs)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.ageAd)).toBeNull();
+    expect(screen.queryByTestId(AGE_AD_VIEW)).toBeNull();
   });
 
   it('updates both labels immediately when the language changes', async () => {
@@ -301,7 +303,7 @@ describe('Age date system selector', () => {
     await changeLanguage(user, 'English');
     expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
     expect(dateSystemOption('BS (Bikram Sambat)', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+    expect(screen.getByTestId(AGE_AD_VIEW)).toBeOnTheScreen();
   });
 
   it('appears only inside the Age calculator, not the Interest or Land selectors', async () => {
@@ -333,7 +335,7 @@ describe('Age date system selector', () => {
 
     expect(dateSystemOption('AD (Gregorian)', true)).toBeOnTheScreen();
     expect(dateSystemOption('BS (Bikram Sambat)', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+    expect(screen.getByTestId(AGE_AD_VIEW)).toBeOnTheScreen();
   });
 
   it('keeps the selected date system when navigating to another app tab and back', async () => {
@@ -472,7 +474,7 @@ describe('Land type selector', () => {
     await user.press(topTab('Age'));
     expect(landOption('BS (Bikram Sambat)', true)).toBeOnTheScreen();
     await user.press(landOption('AD (Gregorian)'));
-    expect(screen.getByText(DESCRIPTIONS.en.ageAd)).toBeOnTheScreen();
+    expect(screen.getByTestId(AGE_AD_VIEW)).toBeOnTheScreen();
 
     // Each keeps its own choice, independent of the Land selector.
     await user.press(topTab('Land'));
