@@ -105,6 +105,17 @@ export function TeraiLandView({
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        <Text style={styles.unitLabel}>{t('land.terai.unit.label')}</Text>
+        <SegmentedControl
+          options={TERAI_LAND_UNITS.map(id => ({
+            value: id,
+            label: t(`land.unit.${id}` as TranslationKey),
+          }))}
+          value={unit}
+          onChange={change(setUnit)}
+          accessibilityLabel={t('land.terai.unit.label')}
+        />
+
         <TextField
           ref={inputRef}
           label={t('land.terai.input.label')}
@@ -121,16 +132,6 @@ export function TeraiLandView({
           onBlur={() => keyboardForm.onFieldBlur(inputRef.current)}
         />
 
-        <Text style={styles.unitLabel}>{t('land.terai.unit.label')}</Text>
-        <SegmentedControl
-          options={TERAI_LAND_UNITS.map(id => ({
-            value: id,
-            label: t(`land.unit.${id}` as TranslationKey),
-          }))}
-          value={unit}
-          onChange={change(setUnit)}
-          accessibilityLabel={t('land.terai.unit.label')}
-        />
 
         <Button
           variant="primary"

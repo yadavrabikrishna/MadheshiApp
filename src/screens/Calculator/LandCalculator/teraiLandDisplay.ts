@@ -31,6 +31,15 @@ const GROUP_LAYOUT: {
   units: { field: string; labelKey: TranslationKey }[];
 }[] = [
   {
+    id: 'terai',
+    titleKey: 'land.group.terai',
+    units: [
+      { field: 'bigha', labelKey: 'land.unit.bigha' },
+      { field: 'kattha', labelKey: 'land.unit.kattha' },
+      { field: 'dhur', labelKey: 'land.unit.dhur' },
+    ],
+  },
+  {
     id: 'hilly',
     titleKey: 'land.group.hilly',
     units: [
@@ -38,15 +47,6 @@ const GROUP_LAYOUT: {
       { field: 'aana', labelKey: 'land.unit.aana' },
       { field: 'paisa', labelKey: 'land.unit.paisa' },
       { field: 'daam', labelKey: 'land.unit.daam' },
-    ],
-  },
-  {
-    id: 'terai',
-    titleKey: 'land.group.terai',
-    units: [
-      { field: 'bigha', labelKey: 'land.unit.bigha' },
-      { field: 'kattha', labelKey: 'land.unit.kattha' },
-      { field: 'dhur', labelKey: 'land.unit.dhur' },
     ],
   },
   {
