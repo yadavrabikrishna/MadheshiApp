@@ -6,13 +6,14 @@ import {
   useSaveResultImage,
   useShareResultImage,
 } from '../../../features/resultActions';
-import { useTranslation } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
-import { buildLandSummary, type LandDisplayGroup } from './teraiLandDisplay';
+import { buildLandSummary, type LandDisplayGroup } from './landDisplay';
 
-const FILE_NAME_PREFIX = 'terai-land-result-';
-
-interface TeraiLandResultCardProps {
+interface LandResultCardProps {
+  /** Card title and first line of the copied text, already translated. */
+  title: string;
+  /** Share / Save Image file name prefix (from the family configuration). */
+  fileNamePrefix: string;
   /** Already formatted for display (service formatter + the language's digits). */
   groups: LandDisplayGroup[];
   /** "Input: 2.5 Bigha", already formatted. */
@@ -20,18 +21,18 @@ interface TeraiLandResultCardProps {
 }
 
 /**
- * The Terai conversion result: Hilly, Terai and Other Units groups, with Copy,
+ * A land conversion result: Terai, Hilly and Other Units groups, with Copy,
  * Share and Save Image under them, the same pattern as the Interest result.
  * Copy sends the complete text; Share and Save use the card (not the action
  * row) as the image.
  */
-export function TeraiLandResultCard({
+export function LandResultCard({
+  title,
+  fileNamePrefix,
   groups,
   inputLine,
-}: TeraiLandResultCardProps) {
-  const { t } = useTranslation();
+}: LandResultCardProps) {
   const styles = useThemedStyles(createStyles);
-  const title = t('calculator.title.land.terai');
 
   const { copy, feedback } = useCopyResult(() =>
     buildLandSummary(title, inputLine, groups),
@@ -40,10 +41,10 @@ export function TeraiLandResultCard({
     captureRef,
     share,
     feedback: shareFeedback,
-  } = useShareResultImage(FILE_NAME_PREFIX);
+  } = useShareResultImage(fileNamePrefix);
   const { save, feedback: saveFeedback } = useSaveResultImage(
     captureRef,
-    FILE_NAME_PREFIX,
+    fileNamePrefix,
   );
 
   return (

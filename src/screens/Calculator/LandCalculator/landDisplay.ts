@@ -1,11 +1,11 @@
 import {
-  TERAI_LAND_UNITS,
+  LAND_FAMILY_UNITS,
   type LandConversionGroups,
-  type LandConversionService,
-  type TeraiLandMixedInput,
-  type TeraiLandUnit,
+  type LandConverter,
+  type LandUnit,
 } from '../../../features/land';
 import type { TranslationKey } from '../../../i18n';
+import { unitLabelKey } from './landFamilyConfig';
 
 export interface LandDisplayRow {
   label: string;
@@ -27,29 +27,27 @@ export function groupThousands(text: string): string {
   return fraction === undefined ? grouped : `${grouped}.${fraction}`;
 }
 
+/** The output units of each group, in display order. */
 const GROUP_LAYOUT: {
   id: LandDisplayGroup['id'];
   titleKey: TranslationKey;
-  units: { field: string; labelKey: TranslationKey }[];
+  units: readonly { field: string; labelKey: TranslationKey }[];
 }[] = [
   {
     id: 'terai',
     titleKey: 'land.group.terai',
-    units: [
-      { field: 'bigha', labelKey: 'land.unit.bigha' },
-      { field: 'kattha', labelKey: 'land.unit.kattha' },
-      { field: 'dhur', labelKey: 'land.unit.dhur' },
-    ],
+    units: LAND_FAMILY_UNITS.terai.map(field => ({
+      field,
+      labelKey: unitLabelKey(field),
+    })),
   },
   {
     id: 'hilly',
     titleKey: 'land.group.hilly',
-    units: [
-      { field: 'ropani', labelKey: 'land.unit.ropani' },
-      { field: 'aana', labelKey: 'land.unit.aana' },
-      { field: 'paisa', labelKey: 'land.unit.paisa' },
-      { field: 'daam', labelKey: 'land.unit.daam' },
-    ],
+    units: LAND_FAMILY_UNITS.hill.map(field => ({
+      field,
+      labelKey: unitLabelKey(field),
+    })),
   },
   {
     id: 'other',
@@ -71,7 +69,7 @@ const GROUP_LAYOUT: {
  */
 export function buildLandDisplay(
   groups: LandConversionGroups,
-  service: Pick<LandConversionService, 'formatValue'>,
+  service: Pick<LandConverter, 'formatValue'>,
   t: Translate,
   formatDigits: (text: string) => string,
 ): LandDisplayGroup[] {
@@ -93,28 +91,28 @@ export function buildLandDisplay(
 /** "Input: 2.5 Bigha": what was calculated, as shown on the card and copied. */
 export function buildInputLine(
   value: string,
-  unit: TeraiLandUnit,
+  unit: LandUnit,
   t: Translate,
   formatDigits: (text: string) => string,
 ): string {
-  const unitKey = `land.unit.${unit}` as TranslationKey;
   return formatDigits(
-    `${t('land.result.input')}: ${value.trim()} ${t(unitKey)}`,
+    `${t('land.result.input')}: ${value.trim()} ${t(unitLabelKey(unit))}`,
   );
 }
 
 /**
- * "Input: 1 Bigha, 4 Kattha, 10 Dhur": the mixed input as typed. Blank fields
- * are left out (they count as zero); fields are in Bigha, Kattha, Dhur order.
+ * "Input: 1 Bigha, 4 Kattha, 10 Dhur": the mixed input as typed, in the
+ * family's field order. Blank fields are left out (they count as zero).
  */
 export function buildMixedInputLine(
-  input: TeraiLandMixedInput,
+  units: readonly LandUnit[],
+  input: Partial<Record<LandUnit, string>>,
   t: Translate,
   formatDigits: (text: string) => string,
 ): string {
-  const parts = TERAI_LAND_UNITS.filter(unit => input[unit].trim() !== '').map(
-    unit => `${input[unit].trim()} ${t(`land.unit.${unit}` as TranslationKey)}`,
-  );
+  const parts = units
+    .filter(unit => (input[unit] ?? '').trim() !== '')
+    .map(unit => `${(input[unit] ?? '').trim()} ${t(unitLabelKey(unit))}`);
   return formatDigits(`${t('land.result.input')}: ${parts.join(', ')}`);
 }
 
