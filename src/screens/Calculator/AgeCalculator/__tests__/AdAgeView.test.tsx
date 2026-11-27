@@ -196,17 +196,17 @@ describe('AdAgeView: fields', () => {
     );
   });
 
-  it('Day lists 01 to 30 for every month and year', async () => {
+  it('Day lists 01 to 31 for every month and year', async () => {
     const { ui, user } = setup();
     await render(ui);
     await choose(user, START, L['age.field.year'], '2024');
     await choose(user, START, L['age.field.month'], '02 – February');
     await user.press(dropdown(START, L['age.field.day']));
     const days = radios();
-    expect(days).toHaveLength(30);
+    expect(days).toHaveLength(31);
     expect(days[0]).toBe('01');
-    expect(days[29]).toBe('30');
-    expect(days).not.toContain('31');
+    expect(days[30]).toBe('31');
+    expect(days).not.toContain('32');
   });
 
   it.each([START, END])(

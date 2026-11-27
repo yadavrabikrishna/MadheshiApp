@@ -141,7 +141,6 @@ const PLACEHOLDER = {
     'The compound interest calculator will be implemented in a later task.',
   // Implemented in Issue #65: the BS Age view's approximation notice title.
   ageBs: 'Approximate result',
-  terai: 'The Terai land calculator will be implemented in a later task.',
   basic:
     'The Basic Calculator interface and operations will be implemented in a future update.',
   basicNp:
@@ -466,8 +465,16 @@ describe('dynamic Calculator navigation', () => {
     ]);
 
     await user.press(topTab('Land'));
-    expect(radioLabels()).toEqual([]);
-    expect(screen.getByText(PLACEHOLDER.terai)).toBeOnTheScreen();
+    // No Land type selector; only the Terai view's own input mode and unit
+    // selectors.
+    expect(radioLabels()).toEqual([
+      'Single Unit',
+      'Mixed Units',
+      'Bigha',
+      'Kattha',
+      'Dhur',
+    ]);
+    expect(screen.getByTestId('land-terai-view')).toBeOnTheScreen();
   });
 
   it('Basic Calculator + Compound Interest: two separate destinations', async () => {
