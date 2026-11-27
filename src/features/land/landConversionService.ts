@@ -13,15 +13,18 @@ import {
   SQ_M_PER_SQ_FT,
 } from './registry';
 import {
-  TERAI_LAND_UNITS,
+  LAND_FAMILY_UNITS,
   type LandConversionGroups,
   type LandConversionOutcome,
   type LandConversionService,
+  type LandConverter,
   type LandErrorCode,
+  type LandFamily,
+  type LandInput,
+  type LandMixedInput,
   type LandMixedOutcome,
-  type TeraiLandInput,
-  type TeraiLandMixedInput,
-  type TeraiLandUnit,
+  type LandUnit,
+  type LandUnitOf,
 } from './types';
 
 /**
@@ -52,14 +55,24 @@ export const MAX_INPUT_LENGTH = 100;
 
 const SQ_FT_PER_KATTHA = new LandDecimal(SQ_FT_PER_BIGHA).div(KATTHA_PER_BIGHA);
 const SQ_FT_PER_DHUR = SQ_FT_PER_KATTHA.div(DHUR_PER_KATTHA);
-const SQ_FT_PER_AANA = new LandDecimal(SQ_FT_PER_ROPANI).div(AANA_PER_ROPANI);
+const SQ_FT_PER_ROPANI_D = new LandDecimal(SQ_FT_PER_ROPANI);
+const SQ_FT_PER_AANA = SQ_FT_PER_ROPANI_D.div(AANA_PER_ROPANI);
 const SQ_FT_PER_PAISA = SQ_FT_PER_AANA.div(PAISA_PER_AANA);
 const SQ_FT_PER_DAAM = SQ_FT_PER_PAISA.div(DAAM_PER_PAISA);
 
-const SQ_FT_PER_UNIT: Record<TeraiLandUnit, Decimal> = {
+/**
+ * The area of one of each input unit, in square feet: the ONE table every
+ * conversion (single or mixed, either family) reads. Derived exactly from the
+ * registry factors.
+ */
+const SQ_FT_PER_UNIT: Record<LandUnit, Decimal> = {
   bigha: new LandDecimal(SQ_FT_PER_BIGHA),
   kattha: SQ_FT_PER_KATTHA,
   dhur: SQ_FT_PER_DHUR,
+  ropani: SQ_FT_PER_ROPANI_D,
+  aana: SQ_FT_PER_AANA,
+  paisa: SQ_FT_PER_PAISA,
+  daam: SQ_FT_PER_DAAM,
 };
 
 const DECIMAL_TEXT = /^\d+(\.\d+)?$/;
@@ -170,44 +183,71 @@ function convertSquareFeet(squareFeet: Decimal): LandConversionGroups {
  * - Square feet, square metres, hectare and acre are exact strings (only a
  *   non-terminating ratio is cut, at 200 significant digits).
  * - `formatValue` is the single display formatter.
+ * - `convert` / `convertMixed` take either unit family (Terai or Hill /
+ *   Mountain) through one validation and conversion path. `convertTerai` and
+ *   `convertTeraiMixed` are thin compatibility wrappers for the Terai UI.
  */
-export const landConversionService: LandConversionService = {
-  convertTerai({ value, unit }: TeraiLandInput): LandConversionOutcome {
-    const parsed = parseLandInput(value);
-    if (!parsed.ok) {
-      return { ok: false, errors: [parsed.error] };
-    }
-    return {
-      ok: true,
-      value: convertSquareFeet(parsed.value.times(SQ_FT_PER_UNIT[unit])),
-    };
-  },
+function isLandUnit(unit: unknown): unit is LandUnit {
+  return typeof unit === 'string' && Object.hasOwn(SQ_FT_PER_UNIT, unit);
+}
 
-  convertTeraiMixed(input: TeraiLandMixedInput): LandMixedOutcome {
-    const fieldErrors: Partial<Record<TeraiLandUnit, LandErrorCode>> = {};
-    let squareFeet = new LandDecimal(0);
-    let filled = 0;
-    for (const unit of TERAI_LAND_UNITS) {
-      const parsed = parseLandInput(input?.[unit]);
-      if (parsed.ok) {
-        filled += 1;
-        squareFeet = squareFeet.plus(parsed.value.times(SQ_FT_PER_UNIT[unit]));
-      } else if (parsed.error !== 'empty') {
-        fieldErrors[unit] = parsed.error;
-      }
-    }
-    if (Object.keys(fieldErrors).length > 0) {
-      return { ok: false, fieldErrors };
-    }
-    if (filled === 0) {
-      return { ok: false, formError: 'empty', fieldErrors };
-    }
-    return { ok: true, value: convertSquareFeet(squareFeet) };
-  },
+function convert({ value, unit }: LandInput): LandConversionOutcome {
+  if (!isLandUnit(unit)) {
+    // A programming error (the UI only offers the known units), not user input.
+    throw new RangeError(`Unsupported land unit: ${String(unit)}`);
+  }
+  const parsed = parseLandInput(value);
+  if (!parsed.ok) {
+    return { ok: false, errors: [parsed.error] };
+  }
+  return {
+    ok: true,
+    value: convertSquareFeet(parsed.value.times(SQ_FT_PER_UNIT[unit])),
+  };
+}
 
-  formatValue(value: string): string {
-    return new LandDecimal(value)
-      .toDecimalPlaces(MAX_DISPLAY_DECIMALS, Decimal.ROUND_HALF_UP)
-      .toFixed();
-  },
+function convertMixed<F extends LandFamily>(
+  family: F,
+  input: LandMixedInput<F>,
+): LandMixedOutcome<LandUnitOf<F>> {
+  if (!Object.hasOwn(LAND_FAMILY_UNITS, family)) {
+    throw new RangeError(`Unsupported land family: ${String(family)}`);
+  }
+  const units = LAND_FAMILY_UNITS[family] as readonly LandUnitOf<F>[];
+  const fieldErrors: Partial<Record<LandUnitOf<F>, LandErrorCode>> = {};
+  let squareFeet = new LandDecimal(0);
+  let filled = 0;
+  for (const unit of units) {
+    const parsed = parseLandInput(
+      (input as Partial<Record<LandUnit, string>> | undefined)?.[unit],
+    );
+    if (parsed.ok) {
+      filled += 1;
+      squareFeet = squareFeet.plus(parsed.value.times(SQ_FT_PER_UNIT[unit]));
+    } else if (parsed.error !== 'empty') {
+      fieldErrors[unit] = parsed.error;
+    }
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { ok: false, fieldErrors };
+  }
+  if (filled === 0) {
+    return { ok: false, formError: 'empty', fieldErrors };
+  }
+  return { ok: true, value: convertSquareFeet(squareFeet) };
+}
+
+function formatValue(value: string): string {
+  return new LandDecimal(value)
+    .toDecimalPlaces(MAX_DISPLAY_DECIMALS, Decimal.ROUND_HALF_UP)
+    .toFixed();
+}
+
+export const landConversionService: LandConverter & LandConversionService = {
+  convert,
+  convertMixed,
+  formatValue,
+  // Compatibility wrappers (no logic of their own).
+  convertTerai: input => convert(input),
+  convertTeraiMixed: input => convertMixed('terai', input),
 };

@@ -107,6 +107,15 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #76: generic land conversion service, 2026-11-27 (branch `refactor/land-generic-conversion-service` from `develop` @ `405dd87`; committed and pushed; no PR requested)
+
+- Completed: the conversion service now takes both unit families. `landConversionService.convert({ value, unit })` (any of Bigha, Kattha, Dhur, Ropani, Aana, Paisa, Daam) and `convertMixed(family, input)` (`'terai'` or `'hill'`, one decimal per unit, blank = zero, at least one required, per-field errors) share one validation and conversion path: parse (same rules and 100-character limit), sum areas in square feet in one exact table (`SQ_FT_PER_UNIT`, derived from the registry), then the unchanged `convertSquareFeet` producing the existing Terai / Hilly / Other groups. `formatValue` is unchanged.
+- Compatibility: `convertTerai` and `convertTeraiMixed` remain as thin wrappers (no logic of their own) because the current Terai UI and its tests use them; `LandConversionService` (legacy contract) and the new `LandConverter` are both implemented by the one exported object. No UI file changed. Remove the wrappers when the UI moves to the generic API (#77/#78).
+- Types: `LandFamily`, `HillLandUnit`, `LandUnit`, `LandUnitOf`, `LandInput`, `LandMixedInput<F>`, `LandMixedOutcome<U>`, `HILL_LAND_UNITS`, `LAND_FAMILY_UNITS`. An unknown unit or family throws `RangeError` (a programming error). No React Native imports; no new factors; Decimal.js global config untouched.
+- Tests: new `landGenericConversion.test.ts` (58 tests): independent Hill vectors for 1 Ropani / Aana / Paisa / Daam (exact fractions), decimals, a Hill mixed reference (2 Ropani 3 Aana 1 Paisa 2 Daam = 12,107.09375 sq ft), Terai vectors through the generic API, wrappers equal the generic path, carry (3.99996 Daam to 1 Paisa, and into Aana/Ropani), blank/zero/malformed/negative/large per unit, length limit, round trips, family agreement, global-config and no-UI-import checks. Existing Terai tests unchanged and passing.
+- Out of scope and untouched: shared UI (#77), Hill / Mountain screen (#78).
+- Checks run (all passed): `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (53 suites / 1384 tests).
+
 ### Checkpoint — Issue #73 polish: Mixed Units one-row layout and keyboard navigation, 2026-11-27 (branch `feature/terai-land-calculator-ui`; part of PR #75)
 
 - Completed: in Mixed Units mode the Bigha, Kattha and Dhur inputs are one horizontal row of three equal columns (`flex: 1`, `minWidth: 0`, 8 dp gap; labels stay above each field; no fixed widths, so narrow screens do not overflow). Validation messages now appear under the row (the "at least one value" message once, per-field messages prefixed with the unit name, e.g. "Kattha: Enter a valid number..."), and the affected fields get the invalid border. Single Unit layout is unchanged.

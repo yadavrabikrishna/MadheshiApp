@@ -141,55 +141,56 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Issue #73 update (Single/Mixed input modes) committed and pushed to PR #75; awaiting physical-device testing and owner review
+**Handoff status:** Issue #76 (generic land conversion service) implemented, committed and pushed; no PR (not requested); awaiting owner review
 
 **Last updated:** 2026-11-27
 
 **Task**
 
-- GitHub Issue: #73 (Terai land calculator UI) and #74 (land conversion logic)
-- Pull Request: opened against `develop` from this branch (see the PR list for the URL); not merged
-- Objective: Terai land calculator UI wired to the real `decimal.js` conversion service
+- GitHub Issue: #76 (generalize the land conversion service for both land unit families). Follow-ups, NOT started and out of scope here: #77 (shared UI components) and #78 (Hill / Mountain calculator screen).
+- Pull Request: none yet (not requested)
+- Objective: one reusable, pure conversion API for Terai (Bigha, Kattha, Dhur) and Hill / Mountain (Ropani, Aana, Paisa, Daam) input, single-unit and mixed-unit.
 
 **Repository state**
 
-- Branch: `feature/terai-land-calculator-ui`
-- Base branch: `develop` (branched at `8a568a8`)
-- Latest commit: the branch head (the single feature commit on top of `8a568a8`)
-- Working tree: clean after the commit `feat(land): add mixed-unit input mode` (on top of `4eb51fd`)
-- Remote push status: pushed to `origin/feature/terai-land-calculator-ui`; PR #75 includes the input-mode update
+- Branch: `refactor/land-generic-conversion-service`
+- Base branch: `develop` @ `405dd87` (PR #75 merged)
+- Latest commit: the branch head, `refactor(land): generalize conversion service`
+- Working tree: clean after the commit
+- Remote push status: pushed to `origin/refactor/land-generic-conversion-service`
 
 **Progress**
 
-- Completed and verified: Terai view, result card, Copy/Share/Save Image, en/np strings; real service (`src/features/land/registry.ts`, `landConversionService.ts`); 88 service unit tests plus UI tests; review findings fixed (registry cites the spec section 4.4 and the three Government of Nepal references, stale/misleading comments corrected, `CalcDecimal` reuse reviewed and rejected: it keeps 100 digits and no `empty` error, and raising it would change the Interest calculators).
-- In progress: none. Latest polish: Mixed Units fields in one equal-width row with Next/Next/Done keyboard navigation (messages now under the row). Added since the PR commit: Single Unit / Mixed Units input modes (blank mixed fields = zero, at least one required, per-field errors), result order Terai, Hilly, Other Units.
-- Not started: physical-device testing.
+- Completed and verified: `LandConverter` (`convert({value, unit})`, `convertMixed(family, input)`, `formatValue`) in `src/features/land`; one `SQ_FT_PER_UNIT` table for all seven units (exact, from the registry); one validation/summing path; Terai `convertTerai` / `convertTeraiMixed` kept only as thin wrappers because the current Terai UI and its tests use them (no UI changes); new shared types (`LandFamily`, `HillLandUnit`, `LandUnit`, `LandUnitOf`, `LandInput`, `LandMixedInput`, `LandMixedOutcome<U>`, unit lists). Unknown unit/family throws `RangeError` (programming error, not user input).
+- Precision, rounding, carry, validation, formatting, input-length and Decimal.js settings are unchanged.
+- In progress: none.
+- Not started: #77, #78.
 
 **Changed files**
 
-- Committed: `src/features/land/**` (new), `src/screens/Calculator/LandCalculator/**`, `src/i18n/resources/en.ts` and `np.ts`, `__tests__/CalculatorTabs.test.tsx`, `__tests__/CalculatorSettings.test.tsx`, `AdAgeView.test.tsx` (Day 31), `PROJECT_STATUS.md`, this file.
-- Committed in the mixed-unit commit: `src/features/land/{types,index,landConversionService}.ts` (`convertTeraiMixed`), `landConversionService.test.ts`, `TeraiLandView.tsx`, `teraiLandDisplay.ts` (Terai-first order, mixed input line), `TeraiLandView.test.tsx`, `en.ts`/`np.ts`, `__tests__/CalculatorSettings.test.tsx`, `PROJECT_STATUS.md`, this file.
+- Committed: `src/features/land/types.ts`, `index.ts`, `landConversionService.ts`, new `src/features/land/__tests__/landGenericConversion.test.ts`, `PROJECT_STATUS.md`, this file.
+- Uncommitted: none.
 - Untracked: none.
 
 **Validation**
 
-- Commands/tests run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed on the current tree (52 suites / 1320 tests), including the new mixed-unit service and view tests.
-- Checks not run and why: Android build and on-device run (no device or emulator in this environment); the three Government of Nepal PDFs were cited from the spec and not independently opened.
+- Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
+- Results: all passed (53 suites / 1384 tests).
+- Not run: Android build / on-device (no UI change in this issue).
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Owner decisions required: review and merge the PR; confirm the Ropani = 5,476 sq ft convention (matches the approved spec).
-- Constraints that must not be changed: factors in `registry.ts` (exact, spec section 4.4); no new dependencies; do not edit `docs/notion/`.
+- Decision: compatibility wrappers are kept (the Terai UI uses them); remove them in #77/#78 when the UI moves to the generic API.
+- Constraints that must not be changed: the registry factors (spec section 4.4), 200-digit private Decimal clone, no new dependencies, `docs/notion/` untouched.
 
 **Next action**
 
-- Exact next step: test on a physical Android device (list below), then owner review and merge of PR #75.
+- Exact next step: owner review of the branch; then start #77 (shared UI) on a new branch from `develop`.
 
 **Handoff notes**
 
-- Device test list: both modes (switch between Single and Mixed; Mixed with 1 Bigha, 4 Kattha, 10 Dhur should show Terai 1/4/10, Hilly 16 Ropani 4 Aana 3 Paisa 2.843 Daam, 89,302.5 sq ft); blank mixed fields; decimal keyboard and keyboard avoidance; Calculate with Bigha/Kattha/Dhur (1 Bigha should show Ropani 13, Aana 5, Paisa 0, Daam 0.0351, Square feet 72,900); zero, negative and malformed inputs; Nepali language digits; Light and Dark themes; Copy, Share and Save Image; small-screen layout.
+- Hill reference vectors (independent, exact fractions): 1 Ropani = 5,476 sq ft = 1 Kattha 10.0466 Dhur; 1 Aana = 342.25 sq ft = 1.8779 Dhur; 1 Paisa = 85.5625 sq ft = 0.4695 Dhur; 1 Daam = 21.390625 sq ft = 0.1174 Dhur; 2 Ropani 3 Aana 1 Paisa 2 Daam = 12,107.09375 sq ft.
 
 ## Handoff quality checklist
 
