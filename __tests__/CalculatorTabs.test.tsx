@@ -2,7 +2,12 @@
  * Calculator top tabs (Interest / Age / Land): the real app tree, Redux store and
  * i18n, on a real (Node) SQLite database instead of the device driver.
  */
-import { render, screen, userEvent } from '@testing-library/react-native';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppBootstrap, AppRoot } from '../src/app';
@@ -33,6 +38,8 @@ jest.setTimeout(60000);
 // The AD Age calculator is implemented (Issue #69): it is recognised by its
 // root test id, as it has no text of its own that the BS view lacks.
 const AGE_AD_VIEW = 'age-ad-view';
+// The Terai Land calculator is implemented (Issue #73): its root test id.
+const LAND_TERAI_VIEW = 'land-terai-view';
 
 const DESCRIPTIONS = {
   en: {
@@ -42,7 +49,6 @@ const DESCRIPTIONS = {
     // The BS Age calculator is implemented (Issue #65): recognised by its own
     // approximation wording (the AD view has a different one).
     ageBs: en['age.notice.body'],
-    landTerai: 'The Terai land calculator will be implemented in a later task.',
     landHill:
       'The Hill / Mountain land calculator will be implemented in a later task.',
   },
@@ -50,7 +56,6 @@ const DESCRIPTIONS = {
     simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageBs: np['age.notice.body'],
-    landTerai: 'तराई जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },
 };
@@ -80,8 +85,19 @@ const topTab = (name: string) => screen.getByRole('tab', { name });
 const interestOption = (name: string, selected?: boolean) =>
   screen.getByRole('radio', { name, selected });
 const dateSystemOption = interestOption; // same shared SegmentedControl (radio) pattern
-const radioLabels = () =>
-  screen.queryAllByRole('radio').map(node => node.props.accessibilityLabel);
+// The selectors' radios only: the Terai calculator's own unit radios (Bigha,
+// Kattha, Dhur) are part of that calculator, not of a type selector.
+const radioLabels = () => {
+  const unitRadios = new Set(
+    screen.queryByTestId('land-terai-view')
+      ? within(screen.getByTestId('land-terai-view')).queryAllByRole('radio')
+      : [],
+  );
+  return screen
+    .queryAllByRole('radio')
+    .filter(node => !unitRadios.has(node))
+    .map(node => node.props.accessibilityLabel);
+};
 const tabLabels = () =>
   screen.getAllByRole('tab').map(node => node.props.accessibilityLabel);
 
@@ -119,12 +135,12 @@ describe('Calculator top tabs', () => {
     expect(screen.queryByText(DESCRIPTIONS.en.simple)).toBeNull();
 
     await user.press(topTab('Land'));
-    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.ageBs)).toBeNull();
 
     await user.press(topTab('Interest'));
     expect(screen.getByText(DESCRIPTIONS.en.simple)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.landTerai)).toBeNull();
+    expect(screen.queryByTestId(LAND_TERAI_VIEW)).toBeNull();
   });
 
   it('does not add the three tabs to the bottom navigation', async () => {
@@ -152,7 +168,7 @@ describe('Calculator top tabs', () => {
     await changeLanguage(user, 'नेपाली');
     expect(topTab('जमिन').props.accessibilityState.selected).toBe(true);
     expect(topTab('ब्याज').props.accessibilityState.selected).toBe(false);
-    expect(screen.getByText(DESCRIPTIONS.np.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
 
     await user.press(topTab('उमेर'));
     await changeLanguage(user, 'English');
@@ -165,9 +181,7 @@ describe('Interest type selector', () => {
   it('shows Simple Interest and Compound Interest, with Simple selected on the first launch', async () => {
     await launchOnCalculator();
 
-    expect(
-      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual([
+    expect(radioLabels()).toEqual([
       'Simple Interest',
       'Compound Interest',
       'Date range',
@@ -203,14 +217,15 @@ describe('Interest type selector', () => {
     const user = await launchOnCalculator();
 
     await changeLanguage(user, 'नेपाली');
-    expect(
-      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual(['घरेलु ब्याज', 'साहु ब्याज', 'मिति दायरा', 'सिधा अवधि']);
+    expect(radioLabels()).toEqual([
+      'घरेलु ब्याज',
+      'साहु ब्याज',
+      'मिति दायरा',
+      'सिधा अवधि',
+    ]);
 
     await changeLanguage(user, 'English');
-    expect(
-      screen.getAllByRole('radio').map(node => node.props.accessibilityLabel),
-    ).toEqual([
+    expect(radioLabels()).toEqual([
       'Simple Interest',
       'Compound Interest',
       'Date range',
@@ -247,7 +262,7 @@ describe('Interest type selector', () => {
     expect(screen.queryAllByRole('radio', { name: /Interest/ })).toHaveLength(
       0,
     );
-    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
 
     await user.press(topTab('Interest'));
     expect(interestOption('Simple Interest', true)).toBeOnTheScreen();
@@ -375,7 +390,7 @@ describe('Age date system selector', () => {
 
     await user.press(topTab('Age'));
     await user.press(topTab('Land'));
-    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
 
     // The Interest choice is kept, and Compound is still the default elsewhere.
     await user.press(topTab('Interest'));
@@ -396,7 +411,7 @@ describe('Land type selector', () => {
     expect(radioLabels()).toEqual(['Terai', 'Hill / Mountain']);
     expect(landOption('Terai', true)).toBeOnTheScreen();
     expect(landOption('Hill / Mountain', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
   });
 
@@ -407,11 +422,11 @@ describe('Land type selector', () => {
     await user.press(landOption('Hill / Mountain'));
     expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
     expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.landTerai)).toBeNull();
+    expect(screen.queryByTestId(LAND_TERAI_VIEW)).toBeNull();
 
     await user.press(landOption('Terai'));
     expect(landOption('Terai', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
     expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
   });
 
@@ -433,7 +448,7 @@ describe('Land type selector', () => {
     // Default (Terai) survives a language change.
     await changeLanguage(user, 'नेपाली');
     expect(landOption('तराई', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.np.landTerai)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
 
     // So does an explicit Hill / Mountain selection.
     await user.press(landOption('पहाड / हिमाल'));

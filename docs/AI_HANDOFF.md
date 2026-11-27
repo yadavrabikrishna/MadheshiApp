@@ -141,47 +141,55 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** No active handoff
+**Handoff status:** Implementation complete; awaiting physical-device testing and owner review
 
-**Last updated:** Not applicable
+**Last updated:** 2026-11-27
 
 **Task**
-- GitHub Issue:
-- Pull Request:
-- Objective:
+
+- GitHub Issue: #73 (Terai land calculator UI) and #74 (land conversion logic)
+- Pull Request: opened against `develop` from this branch (see the PR list for the URL); not merged
+- Objective: Terai land calculator UI wired to the real `decimal.js` conversion service
 
 **Repository state**
-- Branch:
-- Base branch:
-- Latest commit:
-- Working tree: (clean / uncommitted changes / untracked files)
-- Remote push status: (pushed / not pushed / unknown)
+
+- Branch: `feature/terai-land-calculator-ui`
+- Base branch: `develop` (branched at `8a568a8`)
+- Latest commit: the branch head (the single feature commit on top of `8a568a8`)
+- Working tree: clean after the commit
+- Remote push status: pushed to `origin/feature/terai-land-calculator-ui`
 
 **Progress**
-- Completed and verified:
-- In progress:
-- Not started:
+
+- Completed and verified: Terai view, result card, Copy/Share/Save Image, en/np strings; real service (`src/features/land/registry.ts`, `landConversionService.ts`); 88 service unit tests plus UI tests; review findings fixed (registry cites the spec section 4.4 and the three Government of Nepal references, stale/misleading comments corrected, `CalcDecimal` reuse reviewed and rejected: it keeps 100 digits and no `empty` error, and raising it would change the Interest calculators).
+- In progress: none.
+- Not started: physical-device testing.
 
 **Changed files**
-- Committed:
-- Uncommitted:
-- Untracked:
+
+- Committed: `src/features/land/**` (new), `src/screens/Calculator/LandCalculator/**`, `src/i18n/resources/en.ts` and `np.ts`, `__tests__/CalculatorTabs.test.tsx`, `__tests__/CalculatorSettings.test.tsx`, `AdAgeView.test.tsx` (Day 31), `PROJECT_STATUS.md`, this file.
+- Uncommitted: none.
+- Untracked: none.
 
 **Validation**
-- Commands/tests run:
-- Results:
-- Checks not run and why:
+
+- Commands/tests run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
+- Results: all passed on the final tree (52 suites / 1294 tests).
+- Checks not run and why: Android build and on-device run (no device or emulator in this environment); the three Government of Nepal PDFs were cited from the spec and not independently opened.
 
 **Known problems and decisions**
-- Errors/blockers:
-- Owner decisions required:
-- Constraints that must not be changed:
+
+- Errors/blockers: none.
+- Owner decisions required: review and merge the PR; confirm the Ropani = 5,476 sq ft convention (matches the approved spec).
+- Constraints that must not be changed: factors in `registry.ts` (exact, spec section 4.4); no new dependencies; do not edit `docs/notion/`.
 
 **Next action**
-- Exact next step:
+
+- Exact next step: test on a physical device (see the list below), then review and merge the PR.
 
 **Handoff notes**
-- Additional context needed by the next agent:
+
+- Device test list: decimal keyboard and keyboard avoidance; Calculate with Bigha/Kattha/Dhur (1 Bigha should show Ropani 13, Aana 5, Paisa 0, Daam 0.0351, Square feet 72,900); zero, negative and malformed inputs; Nepali language digits; Light and Dark themes; Copy, Share and Save Image; small-screen layout.
 
 ## Handoff quality checklist
 
