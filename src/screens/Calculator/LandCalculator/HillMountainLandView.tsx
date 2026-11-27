@@ -1,15 +1,18 @@
-import { ScreenPlaceholder } from '../../../components';
-import { useTranslation } from '../../../i18n';
+import type { LandConverter } from '../../../features/land';
+import { LandCalculator } from './LandCalculator';
+import { HILL_LAND_CONFIG } from './landFamilyConfig';
 
-/** Land calculator for Hill / Mountain land. Placeholder until implemented. */
-export function HillMountainLandView() {
-  const { t } = useTranslation();
+interface HillMountainLandViewProps {
+  /** The conversion service; the default is the app's real one. */
+  service?: LandConverter;
+}
 
-  return (
-    <ScreenPlaceholder
-      title={t('calculator.land.type.hillMountain')}
-      description={t('calculator.land.hillMountain.description')}
-      iconName="trail-sign-outline"
-    />
-  );
+/**
+ * The Hill / Mountain land calculator: the shared calculator with the Hill
+ * configuration (Ropani, Aana, Paisa, Daam).
+ */
+export function HillMountainLandView({
+  service,
+}: HillMountainLandViewProps = {}) {
+  return <LandCalculator config={HILL_LAND_CONFIG} service={service} />;
 }

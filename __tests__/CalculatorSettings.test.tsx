@@ -528,8 +528,22 @@ describe('dynamic Calculator navigation', () => {
     expect(topTabLabels()).toEqual(['Interest', 'Age', 'Land']);
     for (const tab of ['Interest', 'Age', 'Land']) {
       await user.press(topTab(tab));
-      // No group selector; only the Simple Interest view's rate-mode radios.
-      expect(radioLabels()).toEqual(tab === 'Interest' ? RATE_MODE_RADIOS : []);
+      // No group selector; only the calculator's own radios (Simple Interest
+      // rate modes, or the Hill / Mountain input mode and units).
+      expect(radioLabels()).toEqual(
+        {
+          Interest: RATE_MODE_RADIOS,
+          Age: [],
+          Land: [
+            'Single Unit',
+            'Mixed Units',
+            'Ropani',
+            'Aana',
+            'Paisa',
+            'Daam',
+          ],
+        }[tab],
+      );
     }
   });
 

@@ -118,8 +118,6 @@ export const np: Translations = {
   'land.error.malformed': 'मान्य सङ्ख्या राख्नुहोस्, जस्तै 1 वा 2.5।',
   'land.error.mixedEmpty': 'कम्तीमा एउटा मान राख्नुहोस्।',
   'land.error.negative': 'जग्गाको क्षेत्रफल ऋणात्मक हुन सक्दैन।',
-  'calculator.land.hillMountain.description':
-    'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
 
   'calculator.basic.title': 'सामान्य क्यालकुलेटर',
   'calculator.basic.description':

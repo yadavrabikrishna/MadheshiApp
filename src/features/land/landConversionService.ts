@@ -16,7 +16,6 @@ import {
   LAND_FAMILY_UNITS,
   type LandConversionGroups,
   type LandConversionOutcome,
-  type LandConversionService,
   type LandConverter,
   type LandErrorCode,
   type LandFamily,
@@ -184,8 +183,7 @@ function convertSquareFeet(squareFeet: Decimal): LandConversionGroups {
  *   non-terminating ratio is cut, at 200 significant digits).
  * - `formatValue` is the single display formatter.
  * - `convert` / `convertMixed` take either unit family (Terai or Hill /
- *   Mountain) through one validation and conversion path. `convertTerai` and
- *   `convertTeraiMixed` are thin compatibility wrappers for the Terai UI.
+ *   Mountain) through one validation and conversion path.
  */
 function isLandUnit(unit: unknown): unit is LandUnit {
   return typeof unit === 'string' && Object.hasOwn(SQ_FT_PER_UNIT, unit);
@@ -243,11 +241,8 @@ function formatValue(value: string): string {
     .toFixed();
 }
 
-export const landConversionService: LandConverter & LandConversionService = {
+export const landConversionService: LandConverter = {
   convert,
   convertMixed,
   formatValue,
-  // Compatibility wrappers (no logic of their own).
-  convertTerai: input => convert(input),
-  convertTeraiMixed: input => convertMixed('terai', input),
 };

@@ -54,10 +54,7 @@ export const TERAI_LAND_CONFIG: LandFamilyConfig<'terai'> = {
   },
 };
 
-/**
- * Ready for the Hill / Mountain calculator (Issue #78). Not used by any
- * screen yet: the Land tab still shows the placeholder for Hill / Mountain.
- */
+/** The Hill / Mountain calculator (Issue #78): see `HillMountainLandView`. */
 export const HILL_LAND_CONFIG: LandFamilyConfig<'hill'> = {
   family: 'hill',
   units: LAND_FAMILY_UNITS.hill,

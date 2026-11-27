@@ -1,7 +1,7 @@
 /**
  * The shared, configuration-driven land calculator (Issue #77), exercised with
- * the Hill / Mountain configuration (not yet shown on any screen) and the real
- * conversion service. The Terai configuration's behaviour is covered in
+ * the Hill / Mountain configuration and the real conversion service (the Hill /
+ * Mountain screen itself is tested in HillMountainLandView.test.tsx). The Terai configuration's behaviour is covered in
  * TeraiLandView.test.tsx.
  */
 import {

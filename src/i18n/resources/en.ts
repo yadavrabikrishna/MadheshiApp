@@ -119,8 +119,6 @@ export const en = {
   'land.error.malformed': 'Enter a valid number, for example 1 or 2.5.',
   'land.error.negative': 'The land area cannot be negative.',
   'land.error.mixedEmpty': 'Enter at least one value.',
-  'calculator.land.hillMountain.description':
-    'The Hill / Mountain land calculator will be implemented in a later task.',
 
   'calculator.basic.title': 'Basic Calculator',
   'calculator.basic.description':

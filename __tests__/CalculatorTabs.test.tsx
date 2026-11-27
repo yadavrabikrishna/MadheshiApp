@@ -38,8 +38,10 @@ jest.setTimeout(60000);
 // The AD Age calculator is implemented (Issue #69): it is recognised by its
 // root test id, as it has no text of its own that the BS view lacks.
 const AGE_AD_VIEW = 'age-ad-view';
-// The Terai Land calculator is implemented (Issue #73): its root test id.
+// The Terai and Hill / Mountain Land calculators are implemented (Issues #73,
+// #78): their root test ids.
 const LAND_TERAI_VIEW = 'land-terai-view';
+const LAND_HILL_VIEW = 'land-hill-view';
 
 const DESCRIPTIONS = {
   en: {
@@ -49,14 +51,11 @@ const DESCRIPTIONS = {
     // The BS Age calculator is implemented (Issue #65): recognised by its own
     // approximation wording (the AD view has a different one).
     ageBs: en['age.notice.body'],
-    landHill:
-      'The Hill / Mountain land calculator will be implemented in a later task.',
   },
   np: {
     simple: 'मूलधन रकम',
     compound: 'साहु ब्याज क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
     ageBs: np['age.notice.body'],
-    landHill: 'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',
   },
 };
 
@@ -85,17 +84,19 @@ const topTab = (name: string) => screen.getByRole('tab', { name });
 const interestOption = (name: string, selected?: boolean) =>
   screen.getByRole('radio', { name, selected });
 const dateSystemOption = interestOption; // same shared SegmentedControl (radio) pattern
-// The selectors' radios only: the Terai calculator's own unit radios (Bigha,
-// Kattha, Dhur) are part of that calculator, not of a type selector.
+// The selectors' radios only: a Land calculator's own radios (input mode and
+// units) are part of that calculator, not of a type selector.
 const radioLabels = () => {
-  const unitRadios = new Set(
-    screen.queryByTestId('land-terai-view')
-      ? within(screen.getByTestId('land-terai-view')).queryAllByRole('radio')
-      : [],
+  const ownRadios = new Set(
+    [LAND_TERAI_VIEW, LAND_HILL_VIEW].flatMap(id =>
+      screen.queryByTestId(id)
+        ? within(screen.getByTestId(id)).queryAllByRole('radio')
+        : [],
+    ),
   );
   return screen
     .queryAllByRole('radio')
-    .filter(node => !unitRadios.has(node))
+    .filter(node => !ownRadios.has(node))
     .map(node => node.props.accessibilityLabel);
 };
 const tabLabels = () =>
@@ -412,22 +413,22 @@ describe('Land type selector', () => {
     expect(landOption('Terai', true)).toBeOnTheScreen();
     expect(landOption('Hill / Mountain', false)).toBeOnTheScreen();
     expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
+    expect(screen.queryByTestId(LAND_HILL_VIEW)).toBeNull();
   });
 
-  it('shows the matching placeholder for each land type', async () => {
+  it('shows the matching calculator for each land type', async () => {
     const user = await launchOnCalculator();
     await user.press(topTab('Land'));
 
     await user.press(landOption('Hill / Mountain'));
     expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_HILL_VIEW)).toBeOnTheScreen();
     expect(screen.queryByTestId(LAND_TERAI_VIEW)).toBeNull();
 
     await user.press(landOption('Terai'));
     expect(landOption('Terai', true)).toBeOnTheScreen();
     expect(screen.getByTestId(LAND_TERAI_VIEW)).toBeOnTheScreen();
-    expect(screen.queryByText(DESCRIPTIONS.en.landHill)).toBeNull();
+    expect(screen.queryByTestId(LAND_HILL_VIEW)).toBeNull();
   });
 
   it('updates both labels immediately when the language changes', async () => {
@@ -455,7 +456,7 @@ describe('Land type selector', () => {
     await changeLanguage(user, 'English');
     expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
     expect(landOption('Terai', false)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_HILL_VIEW)).toBeOnTheScreen();
   });
 
   it('appears only inside the Land calculator', async () => {
@@ -478,7 +479,7 @@ describe('Land type selector', () => {
     await user.press(topTab('Land'));
 
     expect(landOption('Hill / Mountain', true)).toBeOnTheScreen();
-    expect(screen.getByText(DESCRIPTIONS.en.landHill)).toBeOnTheScreen();
+    expect(screen.getByTestId(LAND_HILL_VIEW)).toBeOnTheScreen();
   });
 
   it('leaves the Interest and Age selectors and tabs unchanged', async () => {

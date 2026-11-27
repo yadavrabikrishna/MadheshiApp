@@ -23,14 +23,14 @@ import type { LandConversionGroups, TeraiLandUnit } from '../types';
 const D = Decimal.clone({ precision: 200 });
 
 const convert = (value: string, unit: TeraiLandUnit): LandConversionGroups => {
-  const outcome = landConversionService.convertTerai({ value, unit });
+  const outcome = landConversionService.convert({ value, unit });
   if (!outcome.ok) {
     throw new Error(`unexpected ${outcome.errors.join(',')}`);
   }
   return outcome.value;
 };
 const errorsOf = (value: unknown, unit: TeraiLandUnit = 'bigha') => {
-  const outcome = landConversionService.convertTerai({
+  const outcome = landConversionService.convert({
     value: value as string,
     unit,
   });
@@ -488,9 +488,9 @@ describe('independence from the UI', () => {
   });
 });
 
-describe('mixed units (convertTeraiMixed)', () => {
+describe('mixed units (convertMixed, Terai)', () => {
   const mixed = (bigha: string, kattha: string, dhur: string) =>
-    landConversionService.convertTeraiMixed({ bigha, kattha, dhur });
+    landConversionService.convertMixed('terai', { bigha, kattha, dhur });
   const okValue = (bigha: string, kattha: string, dhur: string) => {
     const outcome = mixed(bigha, kattha, dhur);
     if (!outcome.ok) {

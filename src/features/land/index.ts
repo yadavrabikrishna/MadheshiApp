@@ -6,7 +6,6 @@ export {
   type HillLandUnit,
   type LandConversionGroups,
   type LandConversionOutcome,
-  type LandConversionService,
   type LandConverter,
   type LandErrorCode,
   type LandFamily,
@@ -15,7 +14,5 @@ export {
   type LandMixedOutcome,
   type LandUnit,
   type LandUnitOf,
-  type TeraiLandInput,
-  type TeraiLandMixedInput,
   type TeraiLandUnit,
 } from './types';
