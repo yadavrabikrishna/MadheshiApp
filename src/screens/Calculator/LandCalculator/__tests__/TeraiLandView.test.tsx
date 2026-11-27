@@ -29,7 +29,7 @@ import { Provider } from 'react-redux';
 
 import {
   type LandConversionGroups,
-  type LandConversionService,
+  type LandConverter,
   type LandErrorCode,
 } from '../../../../features/land';
 import { setLanguage, setTheme } from '../../../../features/preferences';
@@ -40,7 +40,7 @@ import { createAppStore } from '../../../../store';
 import { appColors } from '../../../../theme/colors';
 import { installFakeClipboard } from '../../../../test-utils/fakeClipboard';
 import { TeraiLandView } from '../TeraiLandView';
-import { groupThousands } from '../teraiLandDisplay';
+import { groupThousands } from '../landDisplay';
 
 jest.setTimeout(30000);
 
@@ -57,7 +57,7 @@ const FAKE: LandConversionGroups = {
 
 /** A fake that validates like the contract describes, with fixed outputs. */
 function makeService() {
-  const convertTerai = jest.fn(({ value }: { value: string; unit: string }) => {
+  const convert = jest.fn(({ value }: { value: string; unit: string }) => {
     const text = value.trim();
     const errors: LandErrorCode[] = [];
     if (text === '') {
@@ -72,13 +72,12 @@ function makeService() {
       : { ok: true as const, value: FAKE };
   });
   // Mixed: blank = zero, at least one value, per-field errors (as the contract).
-  const convertTeraiMixed = jest.fn(
-    (input: Record<'bigha' | 'kattha' | 'dhur', string>) => {
-      const fieldErrors: Partial<Record<keyof typeof input, LandErrorCode>> =
-        {};
+  const convertMixed = jest.fn(
+    (_family: string, input: Record<string, string>) => {
+      const fieldErrors: Record<string, LandErrorCode> = {};
       let filled = 0;
-      for (const unit of ['bigha', 'kattha', 'dhur'] as const) {
-        const text = input[unit].trim();
+      for (const [unit, raw] of Object.entries(input)) {
+        const text = raw.trim();
         if (text === '') {
           continue;
         }
@@ -102,13 +101,17 @@ function makeService() {
     String(Number(Number(value).toFixed(2))),
   );
   return {
-    convertTerai,
-    convertTeraiMixed,
+    convert,
+    convertMixed,
     formatValue,
-  } satisfies LandConversionService;
+  } as unknown as LandConverter & {
+    convert: jest.Mock;
+    convertMixed: jest.Mock;
+    formatValue: jest.Mock;
+  };
 }
 
-function setup(service: LandConversionService = makeService()) {
+function setup(service: LandConverter = makeService()) {
   const store = createAppStore({
     preferencesRepository: {
       saveLanguage: jest.fn().mockResolvedValue(undefined),
@@ -179,7 +182,7 @@ describe('TeraiLandView: calculating', () => {
     await render(ui);
     await enter(user, '2.5');
     await user.press(screen.getByRole('radio', { name: L['land.unit.dhur'] }));
-    expect(service.convertTerai).not.toHaveBeenCalled();
+    expect(service.convert).not.toHaveBeenCalled();
     expect(result()).toBeNull();
   });
 
@@ -191,8 +194,8 @@ describe('TeraiLandView: calculating', () => {
       screen.getByRole('radio', { name: L['land.unit.kattha'] }),
     );
     await user.press(calculate());
-    expect(service.convertTerai).toHaveBeenCalledTimes(1);
-    expect(service.convertTerai).toHaveBeenCalledWith({
+    expect(service.convert).toHaveBeenCalledTimes(1);
+    expect(service.convert).toHaveBeenCalledWith({
       value: '2.5',
       unit: 'kattha',
     });
@@ -253,7 +256,7 @@ describe('TeraiLandView: calculating', () => {
     expect(result()).toBeNull();
     await user.press(calculate());
     expect(result()).not.toBeNull();
-    expect(service.convertTerai).toHaveBeenLastCalledWith({
+    expect(service.convert).toHaveBeenLastCalledWith({
       value: '12',
       unit: 'bigha',
     });
@@ -261,11 +264,11 @@ describe('TeraiLandView: calculating', () => {
     await user.press(screen.getByRole('radio', { name: L['land.unit.dhur'] }));
     expect(result()).toBeNull();
     await user.press(calculate());
-    expect(service.convertTerai).toHaveBeenLastCalledWith({
+    expect(service.convert).toHaveBeenLastCalledWith({
       value: '12',
       unit: 'dhur',
     });
-    expect(service.convertTerai).toHaveBeenCalledTimes(3);
+    expect(service.convert).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -310,7 +313,7 @@ describe('TeraiLandView: validation feedback from the service', () => {
     for (const text of ['0', '0.0001', '123456789012345678901234567890']) {
       await enter(user, text);
       await user.press(calculate());
-      expect(service.convertTerai).toHaveBeenLastCalledWith({
+      expect(service.convert).toHaveBeenLastCalledWith({
         value: text,
         unit: 'bigha',
       });
@@ -371,7 +374,7 @@ describe('TeraiLandView: Nepali and numerals', () => {
     await user.press(
       screen.getByRole('button', { name: np['land.terai.calculate'] }),
     );
-    expect(service.convertTerai).toHaveBeenCalledWith({
+    expect(service.convert).toHaveBeenCalledWith({
       value: '2.5',
       unit: 'bigha',
     });
@@ -563,7 +566,7 @@ describe('TeraiLandView: theme and translations', () => {
     await user.press(calculate());
     await useNepali(store);
     expect(screen.getByText(np['land.group.other'])).toBeOnTheScreen();
-    expect(service.convertTerai).toHaveBeenCalledTimes(1);
+    expect(service.convert).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -579,7 +582,7 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
       await user.type(mixedField(unit as 'bigha' | 'kattha' | 'dhur'), text);
     }
   }
-  async function openMixed(service?: LandConversionService) {
+  async function openMixed(service?: LandConverter) {
     const ctx = setup(service);
     await render(ctx.ui);
     await ctx.user.press(mode(L['land.mode.mixed']));
@@ -616,22 +619,22 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
   it('typing in mixed mode never calls the service or shows results', async () => {
     const { user, service } = await openMixed();
     await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
-    expect(service.convertTeraiMixed).not.toHaveBeenCalled();
-    expect(service.convertTerai).not.toHaveBeenCalled();
+    expect(service.convertMixed).not.toHaveBeenCalled();
+    expect(service.convert).not.toHaveBeenCalled();
     expect(result()).toBeNull();
   });
 
-  it('Calculate sends the three typed texts to convertTeraiMixed, once', async () => {
+  it('Calculate sends the three typed texts to convertMixed, once', async () => {
     const { user, service } = await openMixed();
     await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
     await user.press(calculate());
-    expect(service.convertTeraiMixed).toHaveBeenCalledTimes(1);
-    expect(service.convertTeraiMixed).toHaveBeenCalledWith({
+    expect(service.convertMixed).toHaveBeenCalledTimes(1);
+    expect(service.convertMixed).toHaveBeenCalledWith('terai', {
       bigha: '1',
       kattha: '4',
       dhur: '10',
     });
-    expect(service.convertTerai).not.toHaveBeenCalled();
+    expect(service.convert).not.toHaveBeenCalled();
     expect(result()).not.toBeNull();
   });
 
@@ -639,7 +642,7 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
     const { user, service } = await openMixed();
     await fill(user, { kattha: '4' });
     await user.press(calculate());
-    expect(service.convertTeraiMixed).toHaveBeenCalledWith({
+    expect(service.convertMixed).toHaveBeenCalledWith('terai', {
       bigha: '',
       kattha: '4',
       dhur: '',
@@ -679,7 +682,7 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
       screen.getByText(new RegExp(L['land.error.mixedEmpty'])),
     ).toBeOnTheScreen();
     expect(result()).toBeNull();
-    expect(service.convertTeraiMixed).toHaveBeenCalledTimes(1);
+    expect(service.convertMixed).toHaveBeenCalledTimes(1);
   });
 
   it('shows the error beside the bad field only, and no result', async () => {
@@ -703,7 +706,7 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
     await user.type(mixedField('kattha'), '2');
     expect(result()).toBeNull();
     await user.press(calculate());
-    expect(service.convertTeraiMixed).toHaveBeenLastCalledWith({
+    expect(service.convertMixed).toHaveBeenLastCalledWith('terai', {
       bigha: '1',
       kattha: '2',
       dhur: '',
@@ -740,16 +743,16 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
     expect(input().props.value).toBe('2.5');
   });
 
-  it('Single mode still calls convertTerai, not convertTeraiMixed', async () => {
+  it('Single mode still calls convert, not convertMixed', async () => {
     const { ui, user, service } = setup();
     await render(ui);
     await enter(user, '1.5');
     await user.press(calculate());
-    expect(service.convertTerai).toHaveBeenCalledWith({
+    expect(service.convert).toHaveBeenCalledWith({
       value: '1.5',
       unit: 'bigha',
     });
-    expect(service.convertTeraiMixed).not.toHaveBeenCalled();
+    expect(service.convertMixed).not.toHaveBeenCalled();
   });
 
   it('Nepali labels, input line digits and copied text for a mixed result', async () => {

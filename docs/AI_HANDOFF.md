@@ -141,56 +141,55 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Issue #76 (generic land conversion service) implemented, committed and pushed; no PR (not requested); awaiting owner review
+**Handoff status:** Issue #77 (reusable configurable land calculator UI) implemented, committed and pushed; no PR (not requested); awaiting owner review
 
 **Last updated:** 2026-11-27
 
 **Task**
 
-- GitHub Issue: #76 (generalize the land conversion service for both land unit families). Follow-ups, NOT started and out of scope here: #77 (shared UI components) and #78 (Hill / Mountain calculator screen).
+- GitHub Issue: #77 (extract the reusable, configuration-driven land calculator UI). Next, NOT started: #78 (Hill / Mountain calculator screen).
 - Pull Request: none yet (not requested)
-- Objective: one reusable, pure conversion API for Terai (Bigha, Kattha, Dhur) and Hill / Mountain (Ropani, Aana, Paisa, Daam) input, single-unit and mixed-unit.
+- Objective: Terai uses a shared configurable calculator; Hill / Mountain configuration is ready but not enabled.
 
 **Repository state**
 
-- Branch: `refactor/land-generic-conversion-service`
-- Base branch: `develop` @ `405dd87` (PR #75 merged)
-- Latest commit: the branch head, `refactor(land): generalize conversion service`
+- Branch: `refactor/shared-land-calculator-ui`
+- Base branch: `develop` @ `6cf7d51` (includes #76 / PR #79)
+- Latest commit: the branch head, `refactor(land): extract reusable calculator UI`
 - Working tree: clean after the commit
-- Remote push status: pushed to `origin/refactor/land-generic-conversion-service`
+- Remote push status: pushed to `origin/refactor/shared-land-calculator-ui`
 
 **Progress**
 
-- Completed and verified: `LandConverter` (`convert({value, unit})`, `convertMixed(family, input)`, `formatValue`) in `src/features/land`; one `SQ_FT_PER_UNIT` table for all seven units (exact, from the registry); one validation/summing path; Terai `convertTerai` / `convertTeraiMixed` kept only as thin wrappers because the current Terai UI and its tests use them (no UI changes); new shared types (`LandFamily`, `HillLandUnit`, `LandUnit`, `LandUnitOf`, `LandInput`, `LandMixedInput`, `LandMixedOutcome<U>`, unit lists). Unknown unit/family throws `RangeError` (programming error, not user input).
-- Precision, rounding, carry, validation, formatting, input-length and Decimal.js settings are unchanged.
+- Completed and verified: `landFamilyConfig.ts`, `LandCalculator.tsx`, `LandResultCard.tsx`, `landDisplay.ts` (renamed from the Terai-named files), `TeraiLandView.tsx` as a thin wrapper, `land.hill.*` strings (en + np), and tests. The view uses the generic `convert` / `convertMixed` API; Mixed Units and Next/Done navigation work for any number of fields.
 - In progress: none.
-- Not started: #77, #78.
+- Not started: #78 (wire `HILL_LAND_CONFIG` into the Land tab in place of `HillMountainLandView`); on-device testing.
 
 **Changed files**
 
-- Committed: `src/features/land/types.ts`, `index.ts`, `landConversionService.ts`, new `src/features/land/__tests__/landGenericConversion.test.ts`, `PROJECT_STATUS.md`, this file.
+- Committed: `src/screens/Calculator/LandCalculator/{LandCalculator.tsx,LandResultCard.tsx,landDisplay.ts,landFamilyConfig.ts,TeraiLandView.tsx}` (two renamed), tests `LandCalculator.test.tsx`, `landFamilyConfig.test.ts`, `landDisplay.test.ts`, updated `TeraiLandView.test.tsx`, `src/i18n/resources/en.ts` and `np.ts`, `PROJECT_STATUS.md`, this file.
 - Uncommitted: none.
 - Untracked: none.
 
 **Validation**
 
 - Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed (53 suites / 1384 tests).
-- Not run: Android build / on-device (no UI change in this issue).
+- Results: all passed (56 suites / 1427 tests).
+- Not run: Android build / on-device.
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Decision: compatibility wrappers are kept (the Terai UI uses them); remove them in #77/#78 when the UI moves to the generic API.
-- Constraints that must not be changed: the registry factors (spec section 4.4), 200-digit private Decimal clone, no new dependencies, `docs/notion/` untouched.
+- Decisions: the Terai-named string keys (`land.terai.*`, `land.mixed.hint`, `land.quickRef.*`) are kept to avoid churn; Hill uses new `land.hill.*` keys; `land.terai.calculate` and `land.mixed.placeholder` are shared by both configs. The Terai compatibility wrappers in the service are now unused by the UI and can be removed in #78 if desired.
+- Constraints that must not be changed: registry factors, no new dependencies, `docs/notion/` untouched, no route/tab added.
 
 **Next action**
 
-- Exact next step: owner review of the branch; then start #77 (shared UI) on a new branch from `develop`.
+- Exact next step: owner review; then #78 on a new branch from `develop`: render `<LandCalculator config={HILL_LAND_CONFIG} />` from `HillMountainLandView` and check the four-field row on a narrow Android screen.
 
 **Handoff notes**
 
-- Hill reference vectors (independent, exact fractions): 1 Ropani = 5,476 sq ft = 1 Kattha 10.0466 Dhur; 1 Aana = 342.25 sq ft = 1.8779 Dhur; 1 Paisa = 85.5625 sq ft = 0.4695 Dhur; 1 Daam = 21.390625 sq ft = 0.1174 Dhur; 2 Ropani 3 Aana 1 Paisa 2 Daam = 12,107.09375 sq ft.
+- Terai device checks from the previous task still apply (both modes, keyboard Next/Done, Nepali digits, themes, Copy/Share/Save).
 
 ## Handoff quality checklist
 
