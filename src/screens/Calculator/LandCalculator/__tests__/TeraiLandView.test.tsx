@@ -10,6 +10,7 @@ import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -17,7 +18,13 @@ import {
 } from '@testing-library/react-native';
 import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
-import { StyleSheet } from 'react-native';
+import {
+  Keyboard,
+  StyleSheet,
+  TextInput,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Provider } from 'react-redux';
 
 import {
@@ -834,5 +841,117 @@ describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
     await user.type(mixedField('kattha'), '0');
     await user.press(calculate());
     expect(result()).not.toBeNull();
+  });
+
+  describe('layout and keyboard navigation', () => {
+    const fieldContainers = () =>
+      screen.getByTestId('land-mixed-row').children as unknown as {
+        props: { style?: StyleProp<ViewStyle> };
+      }[];
+
+    // Same technique as the Simple Interest tests: the mocked TextInput's
+    // focus() records which field it was called on.
+    const focusMock = () =>
+      (TextInput.prototype as unknown as { focus: jest.Mock }).focus;
+    const focusedLabels = () =>
+      focusMock().mock.contexts.map(
+        (instance: { props: { accessibilityLabel: string } }) =>
+          instance.props.accessibilityLabel,
+      );
+
+    it('renders Bigha, Kattha and Dhur in ONE horizontal row with equal-width columns', async () => {
+      await openMixed();
+      const row = screen.getByTestId('land-mixed-row');
+      expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
+      const columns = fieldContainers();
+      expect(columns).toHaveLength(3);
+      const styles = columns.map(c => StyleSheet.flatten(c.props.style) ?? {});
+      // Same flex weight (and no fixed width) = same width; minWidth 0 keeps
+      // a narrow screen from overflowing.
+      for (const style of styles) {
+        expect(style).toMatchObject({ flex: 1, minWidth: 0 });
+        expect(style.width).toBeUndefined();
+      }
+      expect(new Set(styles.map(st => JSON.stringify(st))).size).toBe(1);
+      // In the order Bigha, Kattha, Dhur, each labelled.
+      const labels = within(row)
+        .getAllByText(/./)
+        .map(node => node.props.children);
+      expect(labels.slice(0, 3)).toEqual([
+        L['land.unit.bigha'],
+        L['land.unit.kattha'],
+        L['land.unit.dhur'],
+      ]);
+    });
+
+    it('the Single Unit layout has no mixed row', async () => {
+      const { ui } = setup();
+      await render(ui);
+      expect(screen.queryByTestId('land-mixed-row')).toBeNull();
+    });
+
+    it('shows Next on Bigha and Kattha, Done on Dhur, with the decimal keyboard kept', async () => {
+      await openMixed();
+      expect(mixedField('bigha').props.returnKeyType).toBe('next');
+      expect(mixedField('kattha').props.returnKeyType).toBe('next');
+      expect(mixedField('dhur').props.returnKeyType).toBe('done');
+      for (const unit of ['bigha', 'kattha', 'dhur'] as const) {
+        expect(mixedField(unit).props.keyboardType).toBe('decimal-pad');
+      }
+      // Next keeps the keyboard open; Done closes it.
+      expect(mixedField('bigha').props.submitBehavior).toBe('submit');
+      expect(mixedField('kattha').props.submitBehavior).toBe('submit');
+      expect(mixedField('dhur').props.submitBehavior).toBe('blurAndSubmit');
+    });
+
+    it('Next on Bigha focuses Kattha; Next on Kattha focuses Dhur; neither dismisses the keyboard', async () => {
+      const dismiss = jest.spyOn(Keyboard, 'dismiss');
+      const { user } = await openMixed();
+      dismiss.mockClear();
+      focusMock().mockClear();
+      await user.type(mixedField('bigha'), '1');
+      fireEvent(mixedField('bigha'), 'submitEditing');
+      expect(focusedLabels()).toEqual([L['land.unit.kattha']]);
+      expect(dismiss).not.toHaveBeenCalled();
+
+      await user.type(mixedField('kattha'), '4');
+      fireEvent(mixedField('kattha'), 'submitEditing');
+      expect(focusedLabels()).toEqual([
+        L['land.unit.kattha'],
+        L['land.unit.dhur'],
+      ]);
+      expect(dismiss).not.toHaveBeenCalled();
+      dismiss.mockRestore();
+    });
+
+    it('Done on Dhur dismisses the keyboard', async () => {
+      const dismiss = jest.spyOn(Keyboard, 'dismiss');
+      const { user } = await openMixed();
+      await user.type(mixedField('dhur'), '10');
+      dismiss.mockClear();
+      focusMock().mockClear();
+      fireEvent(mixedField('dhur'), 'submitEditing');
+      expect(dismiss).toHaveBeenCalledTimes(1);
+      expect(focusedLabels()).toEqual([]);
+      dismiss.mockRestore();
+    });
+
+    it('keeps typed values and shows validation messages (per field and shared) under the row', async () => {
+      const { user } = await openMixed();
+      await fill(user, { bigha: '1', kattha: 'abc' });
+      await user.press(calculate());
+      expect(mixedField('bigha').props.value).toBe('1');
+      expect(mixedField('kattha').props.value).toBe('abc');
+      expect(
+        screen.getByText(
+          `${L['land.unit.kattha']}: ${L['land.error.malformed']}`,
+        ),
+      ).toBeOnTheScreen();
+      expect(
+        within(screen.getByTestId('land-mixed-row')).queryByText(
+          new RegExp(L['land.error.malformed']),
+        ),
+      ).toBeNull();
+    });
   });
 });

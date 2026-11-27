@@ -10,6 +10,7 @@ import {
 
 import {
   Button,
+  FieldError,
   SegmentedControl,
   TextField,
   useKeyboardAwareForm,
@@ -196,33 +197,55 @@ export function TeraiLandView({
         ) : (
           <View style={styles.mixedGroup} testID="land-mixed-inputs">
             <Text style={styles.hint}>{t('land.mixed.hint')}</Text>
-            {TERAI_LAND_UNITS.map((field, index) => {
-              const fieldErrors: string[] = [];
-              if (mixedErrors[field]) {
-                fieldErrors.push(t(ERROR_KEY[mixedErrors[field]]));
-              }
-              // "At least one value" is a form error: shown on the first field.
-              if (index === 0 && mixedEmpty) {
-                fieldErrors.push(t('land.error.mixedEmpty'));
-              }
-              const ref = mixedRefs[field];
-              return (
-                <TextField
+            {/* One row, three equal columns; the messages share the space
+                under the row so a narrow column never has to wrap them. */}
+            <View style={styles.mixedRow} testID="land-mixed-row">
+              {TERAI_LAND_UNITS.map((field, index) => {
+                const ref = mixedRefs[field];
+                const next = TERAI_LAND_UNITS[index + 1];
+                return (
+                  <TextField
+                    key={field}
+                    ref={ref}
+                    label={t(`land.unit.${field}` as TranslationKey)}
+                    value={mixed[field]}
+                    onChangeText={changeMixed(field)}
+                    keyboardType="decimal-pad"
+                    placeholder={t('land.mixed.placeholder')}
+                    invalid={mixedEmpty || mixedErrors[field] !== undefined}
+                    containerStyle={styles.mixedField}
+                    // Next moves to the following field and keeps the
+                    // keyboard open; the last field's Done closes it.
+                    returnKeyType={next ? 'next' : 'done'}
+                    submitBehavior={next ? 'submit' : 'blurAndSubmit'}
+                    onSubmitEditing={
+                      next
+                        ? () => mixedRefs[next].current?.focus()
+                        : () => Keyboard.dismiss()
+                    }
+                    onFocus={() => keyboardForm.onFieldFocus(ref.current)}
+                    onBlur={() => keyboardForm.onFieldBlur(ref.current)}
+                  />
+                );
+              })}
+            </View>
+            {mixedEmpty ? (
+              <FieldError
+                message={t('land.error.mixedEmpty')}
+                prefix={t('simpleInterest.error.prefix')}
+              />
+            ) : null}
+            {TERAI_LAND_UNITS.map(field => {
+              const code = mixedErrors[field];
+              return code ? (
+                <FieldError
                   key={field}
-                  ref={ref}
-                  label={t(`land.unit.${field}` as TranslationKey)}
-                  value={mixed[field]}
-                  onChangeText={changeMixed(field)}
-                  keyboardType="decimal-pad"
-                  placeholder={t('land.mixed.placeholder')}
-                  errors={fieldErrors}
-                  errorPrefix={t('simpleInterest.error.prefix')}
-                  returnKeyType="done"
-                  submitBehavior="blurAndSubmit"
-                  onFocus={() => keyboardForm.onFieldFocus(ref.current)}
-                  onBlur={() => keyboardForm.onFieldBlur(ref.current)}
+                  message={`${t(`land.unit.${field}` as TranslationKey)}: ${t(
+                    ERROR_KEY[code],
+                  )}`}
+                  prefix={t('simpleInterest.error.prefix')}
                 />
-              );
+              ) : null;
             })}
           </View>
         )}
@@ -269,6 +292,10 @@ const createStyles = (theme: AppTheme) =>
     flex: { flex: 1 },
     content: { padding: 16, gap: 12 },
     mixedGroup: { gap: 12 },
+    // Equal columns: flex 1 gives each the same basis; minWidth 0 lets the
+    // input shrink instead of overflowing a narrow screen.
+    mixedRow: { flexDirection: 'row', gap: 8 },
+    mixedField: { flex: 1, minWidth: 0, marginBottom: 0 },
     hint: {
       fontSize: 13,
       color: theme.colors.textSecondary,

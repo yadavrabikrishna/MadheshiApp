@@ -162,7 +162,7 @@ Before implementing the next step, run the smallest relevant checks to establish
 **Progress**
 
 - Completed and verified: Terai view, result card, Copy/Share/Save Image, en/np strings; real service (`src/features/land/registry.ts`, `landConversionService.ts`); 88 service unit tests plus UI tests; review findings fixed (registry cites the spec section 4.4 and the three Government of Nepal references, stale/misleading comments corrected, `CalcDecimal` reuse reviewed and rejected: it keeps 100 digits and no `empty` error, and raising it would change the Interest calculators).
-- In progress: none. Added since the PR commit: Single Unit / Mixed Units input modes (blank mixed fields = zero, at least one required, per-field errors), result order Terai, Hilly, Other Units.
+- In progress: none. Latest polish: Mixed Units fields in one equal-width row with Next/Next/Done keyboard navigation (messages now under the row). Added since the PR commit: Single Unit / Mixed Units input modes (blank mixed fields = zero, at least one required, per-field errors), result order Terai, Hilly, Other Units.
 - Not started: physical-device testing.
 
 **Changed files**

@@ -107,6 +107,15 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #73 polish: Mixed Units one-row layout and keyboard navigation, 2026-11-27 (branch `feature/terai-land-calculator-ui`; part of PR #75)
+
+- Completed: in Mixed Units mode the Bigha, Kattha and Dhur inputs are one horizontal row of three equal columns (`flex: 1`, `minWidth: 0`, 8 dp gap; labels stay above each field; no fixed widths, so narrow screens do not overflow). Validation messages now appear under the row (the "at least one value" message once, per-field messages prefixed with the unit name, e.g. "Kattha: Enter a valid number..."), and the affected fields get the invalid border. Single Unit layout is unchanged.
+- Keyboard: Bigha and Kattha show Next (keyboard stays open, focus moves to Kattha / Dhur); Dhur shows Done and dismisses the keyboard. Uses the existing `TextField` props (`returnKeyType`, `submitBehavior`, `onSubmitEditing`); decimal keyboard unchanged; no new dependency.
+- Unchanged: conversion service and factors, Decimal.js behaviour, calculation and validation rules, Calculate button, result order, Copy/Share/Save, localization and Nepali digits.
+- Tests: 6 new view tests (one-row equal-width layout, Next/Next/Done return keys, Next focuses Kattha then Dhur without dismissing, Done dismisses, values and messages preserved).
+- Checks run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (all passed: 52 suites / 1326 tests).
+- Manual Android testing still required: the three-column row on narrow screens and with large fonts/Nepali digits, Next/Done behaviour on the real decimal keyboard, and error layout under the row.
+
 ### Checkpoint — Issue #73 update: Single Unit / Mixed Units input modes, 2026-11-27 (branch `feature/terai-land-calculator-ui`; committed and pushed on top of `4eb51fd` as `feat(land): add mixed-unit input mode`; part of PR #75)
 
 - Completed: the updated Issue #73 requirements. The Terai calculator now has an input mode selector first: **Single Unit** (one decimal input + Bigha/Kattha/Dhur selector, unchanged) and **Mixed Units** (three decimal inputs: Bigha, Kattha, Dhur, for example 1 Bigha, 4 Kattha, 10 Dhur). Both use the one Calculate button (no recalculation while typing; editing or switching mode clears the old result/errors) and the existing result card with Copy / Share / Save Image.
