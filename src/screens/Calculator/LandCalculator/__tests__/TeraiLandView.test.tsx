@@ -64,11 +64,41 @@ function makeService() {
       ? { ok: false as const, errors }
       : { ok: true as const, value: FAKE };
   });
+  // Mixed: blank = zero, at least one value, per-field errors (as the contract).
+  const convertTeraiMixed = jest.fn(
+    (input: Record<'bigha' | 'kattha' | 'dhur', string>) => {
+      const fieldErrors: Partial<Record<keyof typeof input, LandErrorCode>> =
+        {};
+      let filled = 0;
+      for (const unit of ['bigha', 'kattha', 'dhur'] as const) {
+        const text = input[unit].trim();
+        if (text === '') {
+          continue;
+        }
+        filled += 1;
+        if (text.startsWith('-')) {
+          fieldErrors[unit] = 'negative';
+        } else if (!/^\d+(\.\d+)?$/.test(text)) {
+          fieldErrors[unit] = 'malformed';
+        }
+      }
+      if (Object.keys(fieldErrors).length > 0) {
+        return { ok: false as const, fieldErrors };
+      }
+      return filled === 0
+        ? { ok: false as const, formError: 'empty' as const, fieldErrors }
+        : { ok: true as const, value: FAKE };
+    },
+  );
   // A deliberately visible fake formatter: it trims to 2 places.
   const formatValue = jest.fn((value: string) =>
     String(Number(Number(value).toFixed(2))),
   );
-  return { convertTerai, formatValue } satisfies LandConversionService;
+  return {
+    convertTerai,
+    convertTeraiMixed,
+    formatValue,
+  } satisfies LandConversionService;
 }
 
 function setup(service: LandConversionService = makeService()) {
@@ -409,16 +439,16 @@ describe('TeraiLandView: Copy, Share and Save Image (shared implementation)', ()
         'Land (Terai)',
         'Input: 2.5 Bigha',
         '',
+        'Terai · बिघा',
+        'Bigha: 44',
+        'Kattha: 55',
+        'Dhur: 66',
+        '',
         'Hilly · रोपनी',
         'Ropani: 11',
         'Aana: 22',
         'Paisa: 33',
         'Daam: 0.4',
-        '',
-        'Terai · बिघा',
-        'Bigha: 44',
-        'Kattha: 55',
-        'Dhur: 66',
         '',
         'Other Units',
         'Square feet: 72,900',
@@ -527,5 +557,282 @@ describe('TeraiLandView: theme and translations', () => {
     await useNepali(store);
     expect(screen.getByText(np['land.group.other'])).toBeOnTheScreen();
     expect(service.convertTerai).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TeraiLandView: input modes (Single Unit / Mixed Units)', () => {
+  const mode = (name: string) => screen.getByRole('radio', { name });
+  const mixedField = (unit: 'bigha' | 'kattha' | 'dhur') =>
+    screen.getByLabelText(L[`land.unit.${unit}`]);
+  async function fill(
+    user: ReturnType<typeof userEvent.setup>,
+    values: Partial<Record<'bigha' | 'kattha' | 'dhur', string>>,
+  ) {
+    for (const [unit, text] of Object.entries(values)) {
+      await user.type(mixedField(unit as 'bigha' | 'kattha' | 'dhur'), text);
+    }
+  }
+  async function openMixed(service?: LandConversionService) {
+    const ctx = setup(service);
+    await render(ctx.ui);
+    await ctx.user.press(mode(L['land.mode.mixed']));
+    return ctx;
+  }
+
+  it('starts in Single Unit mode with both mode options shown first', async () => {
+    const { ui } = setup();
+    await render(ui);
+    expect(mode(L['land.mode.single']).props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(mode(L['land.mode.mixed']).props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(input()).toBeOnTheScreen();
+    expect(screen.queryByTestId('land-mixed-inputs')).toBeNull();
+  });
+
+  it('Mixed mode shows three decimal inputs and hides the single input and unit selector', async () => {
+    await openMixed();
+    for (const unit of ['bigha', 'kattha', 'dhur'] as const) {
+      expect(mixedField(unit).props.keyboardType).toBe('decimal-pad');
+    }
+    expect(screen.queryByLabelText(L['land.terai.input.label'])).toBeNull();
+    expect(
+      screen.queryByRole('radio', { name: L['land.unit.dhur'] }),
+    ).toBeNull();
+    expect(screen.getByText(L['land.mixed.hint'])).toBeOnTheScreen();
+    expect(calculate()).toBeOnTheScreen();
+    expect(screen.getByTestId('land-quick-reference')).toBeOnTheScreen();
+  });
+
+  it('typing in mixed mode never calls the service or shows results', async () => {
+    const { user, service } = await openMixed();
+    await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
+    expect(service.convertTeraiMixed).not.toHaveBeenCalled();
+    expect(service.convertTerai).not.toHaveBeenCalled();
+    expect(result()).toBeNull();
+  });
+
+  it('Calculate sends the three typed texts to convertTeraiMixed, once', async () => {
+    const { user, service } = await openMixed();
+    await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
+    await user.press(calculate());
+    expect(service.convertTeraiMixed).toHaveBeenCalledTimes(1);
+    expect(service.convertTeraiMixed).toHaveBeenCalledWith({
+      bigha: '1',
+      kattha: '4',
+      dhur: '10',
+    });
+    expect(service.convertTerai).not.toHaveBeenCalled();
+    expect(result()).not.toBeNull();
+  });
+
+  it('blank fields are sent as blank (the service treats them as zero)', async () => {
+    const { user, service } = await openMixed();
+    await fill(user, { kattha: '4' });
+    await user.press(calculate());
+    expect(service.convertTeraiMixed).toHaveBeenCalledWith({
+      bigha: '',
+      kattha: '4',
+      dhur: '',
+    });
+    expect(result()).not.toBeNull();
+  });
+
+  it('shows the groups in the order Terai, Hilly, Other Units, with the mixed input line', async () => {
+    const { user } = await openMixed();
+    await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
+    await user.press(calculate());
+    const titles = within(screen.getByTestId('land-result-image'))
+      .getAllByRole('header')
+      .map(h => h.props.children);
+    expect(titles).toEqual([
+      L['calculator.title.land.terai'],
+      L['land.group.terai'],
+      L['land.group.hilly'],
+      L['land.group.other'],
+    ]);
+    expect(
+      screen.getByText('Input: 1 Bigha, 4 Kattha, 10 Dhur'),
+    ).toBeOnTheScreen();
+  });
+
+  it('the input line leaves blank fields out', async () => {
+    const { user } = await openMixed();
+    await fill(user, { bigha: '2', dhur: '5' });
+    await user.press(calculate());
+    expect(screen.getByText('Input: 2 Bigha, 5 Dhur')).toBeOnTheScreen();
+  });
+
+  it('all blank shows the "at least one value" error and no result', async () => {
+    const { user, service } = await openMixed();
+    await user.press(calculate());
+    expect(
+      screen.getByText(new RegExp(L['land.error.mixedEmpty'])),
+    ).toBeOnTheScreen();
+    expect(result()).toBeNull();
+    expect(service.convertTeraiMixed).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the error beside the bad field only, and no result', async () => {
+    const { user } = await openMixed();
+    await fill(user, { bigha: '1', kattha: 'abc', dhur: '-5' });
+    await user.press(calculate());
+    expect(
+      screen.getAllByText(new RegExp(L['land.error.malformed'])),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByText(new RegExp(L['land.error.negative'])),
+    ).toHaveLength(1);
+    expect(result()).toBeNull();
+  });
+
+  it('editing a field clears the old result and errors; recalculation uses the new input', async () => {
+    const { user, service } = await openMixed();
+    await fill(user, { bigha: '1' });
+    await user.press(calculate());
+    expect(result()).not.toBeNull();
+    await user.type(mixedField('kattha'), '2');
+    expect(result()).toBeNull();
+    await user.press(calculate());
+    expect(service.convertTeraiMixed).toHaveBeenLastCalledWith({
+      bigha: '1',
+      kattha: '2',
+      dhur: '',
+    });
+    expect(screen.getByText('Input: 1 Bigha, 2 Kattha')).toBeOnTheScreen();
+
+    await user.clear(mixedField('bigha'));
+    await user.clear(mixedField('kattha'));
+    await user.press(calculate());
+    expect(result()).toBeNull();
+    await user.type(mixedField('dhur'), 'x');
+    await user.press(calculate());
+    expect(
+      screen.getByText(new RegExp(L['land.error.malformed'])),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByText(new RegExp(L['land.error.mixedEmpty'])),
+    ).toBeNull();
+  });
+
+  it('switching mode clears the result and keeps each mode’s own text', async () => {
+    const { user } = await openMixed();
+    await fill(user, { bigha: '1' });
+    await user.press(calculate());
+    expect(result()).not.toBeNull();
+
+    await user.press(mode(L['land.mode.single']));
+    expect(result()).toBeNull();
+    await enter(user, '2.5');
+    await user.press(mode(L['land.mode.mixed']));
+    expect(result()).toBeNull();
+    expect(mixedField('bigha').props.value).toBe('1');
+    await user.press(mode(L['land.mode.single']));
+    expect(input().props.value).toBe('2.5');
+  });
+
+  it('Single mode still calls convertTerai, not convertTeraiMixed', async () => {
+    const { ui, user, service } = setup();
+    await render(ui);
+    await enter(user, '1.5');
+    await user.press(calculate());
+    expect(service.convertTerai).toHaveBeenCalledWith({
+      value: '1.5',
+      unit: 'bigha',
+    });
+    expect(service.convertTeraiMixed).not.toHaveBeenCalled();
+  });
+
+  it('Nepali labels, input line digits and copied text for a mixed result', async () => {
+    const clipboard = installFakeClipboard();
+    const { user, store } = await openMixed();
+    await useNepali(store);
+    expect(
+      screen.getByRole('radio', { name: np['land.mode.single'] }),
+    ).toBeOnTheScreen();
+    await user.type(screen.getByLabelText(np['land.unit.bigha']), '1');
+    await user.type(screen.getByLabelText(np['land.unit.kattha']), '4');
+    await user.type(screen.getByLabelText(np['land.unit.dhur']), '10');
+    await user.press(
+      screen.getByRole('button', { name: np['land.terai.calculate'] }),
+    );
+    expect(
+      screen.getByText('इनपुट: १ बिघा, ४ कठ्ठा, १० धुर'),
+    ).toBeOnTheScreen();
+    await user.press(
+      screen.getByRole('button', { name: np['resultActions.copy'] }),
+    );
+    expect(clipboard.content).toContain('इनपुट: १ बिघा, ४ कठ्ठा, १० धुर');
+    expect(clipboard.content).not.toMatch(/[0-9]/);
+  });
+
+  it('Copy, Share and Save use the complete mixed result', async () => {
+    const clipboard = installFakeClipboard();
+    const { user } = await openMixed();
+    await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
+    await user.press(calculate());
+    await user.press(screen.getByRole('button', { name: 'Copy' }));
+    expect(clipboard.content?.split('\n').slice(0, 4)).toEqual([
+      'Land (Terai)',
+      'Input: 1 Bigha, 4 Kattha, 10 Dhur',
+      '',
+      'Terai · बिघा',
+    ]);
+    expect(clipboard.content).toContain('Acre: 1.23');
+    // Share and Save use the same card (their behaviour is tested above);
+    // here: both are offered, and the captured card holds the mixed input.
+    expect(screen.getByRole('button', { name: 'Share' })).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Save Image' }),
+    ).toBeOnTheScreen();
+    expect(
+      within(screen.getByTestId('land-result-image')).getByText(
+        'Input: 1 Bigha, 4 Kattha, 10 Dhur',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('with the real service: 1 Bigha, 4 Kattha, 10 Dhur gives the real values', async () => {
+    const { store } = setup();
+    await render(
+      <Provider store={store}>
+        <TeraiLandView />
+      </Provider>,
+    );
+    const user = userEvent.setup();
+    await user.press(mode(L['land.mode.mixed']));
+    await fill(user, { bigha: '1', kattha: '4', dhur: '10' });
+    await user.press(calculate());
+    const row = (group: string, label: string, text: string) =>
+      expect(
+        within(screen.getByTestId(`land-group-${group}`)).getByLabelText(
+          `${label}: ${text}`,
+        ),
+      ).toBeOnTheScreen();
+    row('terai', 'Bigha', '1');
+    row('terai', 'Kattha', '4');
+    row('terai', 'Dhur', '10');
+    row('hilly', 'Ropani', '16');
+    row('hilly', 'Aana', '4');
+    row('hilly', 'Paisa', '3');
+    row('hilly', 'Daam', '2.843');
+    row('other', 'Square feet', '89,302.5');
+    row('other', 'Square metres', '8,296.4737');
+    row('other', 'Hectare', '0.8296');
+    row('other', 'Acre', '2.0501');
+
+    // Blank-only is rejected; all zeros is valid.
+    await user.clear(mixedField('bigha'));
+    await user.clear(mixedField('kattha'));
+    await user.clear(mixedField('dhur'));
+    await user.press(calculate());
+    expect(
+      screen.getByText(new RegExp(L['land.error.mixedEmpty'])),
+    ).toBeOnTheScreen();
+    await user.type(mixedField('kattha'), '0');
+    await user.press(calculate());
+    expect(result()).not.toBeNull();
   });
 });

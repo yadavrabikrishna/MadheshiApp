@@ -12,13 +12,16 @@ import {
   SQ_M_PER_HECTARE,
   SQ_M_PER_SQ_FT,
 } from './registry';
-import type {
-  LandConversionGroups,
-  LandConversionOutcome,
-  LandConversionService,
-  LandErrorCode,
-  TeraiLandInput,
-  TeraiLandUnit,
+import {
+  TERAI_LAND_UNITS,
+  type LandConversionGroups,
+  type LandConversionOutcome,
+  type LandConversionService,
+  type LandErrorCode,
+  type LandMixedOutcome,
+  type TeraiLandInput,
+  type TeraiLandMixedInput,
+  type TeraiLandUnit,
 } from './types';
 
 /**
@@ -117,12 +120,8 @@ function decompose(
 
 const text = (value: Decimal) => value.toFixed();
 
-/** The conversion itself, from an already validated value. */
-function convertValidated(
-  value: Decimal,
-  unit: TeraiLandUnit,
-): LandConversionGroups {
-  const squareFeet = value.times(SQ_FT_PER_UNIT[unit]);
+/** The conversion itself, from an area in square feet (the canonical base). */
+function convertSquareFeet(squareFeet: Decimal): LandConversionGroups {
   const squareMetres = squareFeet.times(SQ_M_PER_SQ_FT);
 
   // Hilly: total Daam -> Ropani / Aana / Paisa / Daam.
@@ -178,7 +177,32 @@ export const landConversionService: LandConversionService = {
     if (!parsed.ok) {
       return { ok: false, errors: [parsed.error] };
     }
-    return { ok: true, value: convertValidated(parsed.value, unit) };
+    return {
+      ok: true,
+      value: convertSquareFeet(parsed.value.times(SQ_FT_PER_UNIT[unit])),
+    };
+  },
+
+  convertTeraiMixed(input: TeraiLandMixedInput): LandMixedOutcome {
+    const fieldErrors: Partial<Record<TeraiLandUnit, LandErrorCode>> = {};
+    let squareFeet = new LandDecimal(0);
+    let filled = 0;
+    for (const unit of TERAI_LAND_UNITS) {
+      const parsed = parseLandInput(input?.[unit]);
+      if (parsed.ok) {
+        filled += 1;
+        squareFeet = squareFeet.plus(parsed.value.times(SQ_FT_PER_UNIT[unit]));
+      } else if (parsed.error !== 'empty') {
+        fieldErrors[unit] = parsed.error;
+      }
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      return { ok: false, fieldErrors };
+    }
+    if (filled === 0) {
+      return { ok: false, formError: 'empty', fieldErrors };
+    }
+    return { ok: true, value: convertSquareFeet(squareFeet) };
   },
 
   formatValue(value: string): string {

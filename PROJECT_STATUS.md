@@ -107,6 +107,17 @@ Never report a check as passed unless it was executed and its output reviewed. N
 
 ## Current handoff
 
+### Checkpoint — Issue #73 update: Single Unit / Mixed Units input modes, 2026-11-27 (branch `feature/terai-land-calculator-ui`; committed and pushed on top of `4eb51fd` as `feat(land): add mixed-unit input mode`; part of PR #75)
+
+- Completed: the updated Issue #73 requirements. The Terai calculator now has an input mode selector first: **Single Unit** (one decimal input + Bigha/Kattha/Dhur selector, unchanged) and **Mixed Units** (three decimal inputs: Bigha, Kattha, Dhur, for example 1 Bigha, 4 Kattha, 10 Dhur). Both use the one Calculate button (no recalculation while typing; editing or switching mode clears the old result/errors) and the existing result card with Copy / Share / Save Image.
+- Service: new `convertTeraiMixed({bigha, kattha, dhur})` on the `LandConversionService` contract. Blank or whitespace-only fields count as zero; at least one field must be filled (all blank = `formError: 'empty'`); malformed/negative fields are reported per field (`fieldErrors`); any bad field rejects the whole input. All-zero input is valid (same as single-unit zero). The total is summed exactly in square feet with `decimal.js` and goes through the same single conversion path as Single Unit (`convertSquareFeet`), so no factors or formulas are duplicated in the UI.
+- Result order changed to **Terai, Hilly, Other Units** (as the updated issue requires; it was Hilly first). The card/copy text/tests follow the new order. The input line for mixed input reads `Input: 1 Bigha, 4 Kattha, 10 Dhur` (blank fields omitted) and is built at render time so it follows the language.
+- Strings (en/np): `land.mode.*`, `land.mixed.hint`, `land.mixed.placeholder`, `land.error.mixedEmpty`.
+- Tests: 11 new service tests (reference: 1 Bigha 4 Kattha 10 Dhur = 89,302.5 sq ft = Hilly 16 Ropani 4 Aana 3 Paisa 2.843 Daam, computed independently with exact fractions; blank/whitespace/zero/decimal/large/malformed/negative/carry), 15 new view tests (both modes, no recalculation while typing, per-field errors, recalculation after edits, mode switching, Nepali digits, Copy text, real-service integration). `CalculatorSettings` test expects the new mode radios.
+- Checks run (all passed on this tree): `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand` (52 suites / 1320 tests).
+- Not verified: on a physical device (mixed-mode layout with three fields and the keyboard, small screens, Light/Dark by eye). The mode selector uses the existing segmented control (radio group) rather than a dropdown, for consistency with the current unit selector.
+- Next action: physical-device testing on Android, then owner review of PR #75.
+
 ### Checkpoint — Issues #73 (Terai Land Calculator UI) and #74 (land conversion logic), 2026-11-27 (branch `feature/terai-land-calculator-ui` from `develop` @ `8a568a8`; committed, pushed and PR opened)
 
 - #73 completed: the Terai view replaces the placeholder inside Calculator > Land: decimal input, Bigha/Kattha/Dhur selector, Calculate (no auto-recalculation), inline validation, result groups (Hilly, Terai, Other Units), Terai quick reference, Copy / Share / Save Image via the shared result-action hooks. English/Nepali strings; Devanagari digits via `formatDigits` at the UI boundary.

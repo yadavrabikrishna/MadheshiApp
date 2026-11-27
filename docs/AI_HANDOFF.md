@@ -141,7 +141,7 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Implementation complete; awaiting physical-device testing and owner review
+**Handoff status:** Issue #73 update (Single/Mixed input modes) committed and pushed to PR #75; awaiting physical-device testing and owner review
 
 **Last updated:** 2026-11-27
 
@@ -156,25 +156,25 @@ Before implementing the next step, run the smallest relevant checks to establish
 - Branch: `feature/terai-land-calculator-ui`
 - Base branch: `develop` (branched at `8a568a8`)
 - Latest commit: the branch head (the single feature commit on top of `8a568a8`)
-- Working tree: clean after the commit
-- Remote push status: pushed to `origin/feature/terai-land-calculator-ui`
+- Working tree: clean after the commit `feat(land): add mixed-unit input mode` (on top of `4eb51fd`)
+- Remote push status: pushed to `origin/feature/terai-land-calculator-ui`; PR #75 includes the input-mode update
 
 **Progress**
 
 - Completed and verified: Terai view, result card, Copy/Share/Save Image, en/np strings; real service (`src/features/land/registry.ts`, `landConversionService.ts`); 88 service unit tests plus UI tests; review findings fixed (registry cites the spec section 4.4 and the three Government of Nepal references, stale/misleading comments corrected, `CalcDecimal` reuse reviewed and rejected: it keeps 100 digits and no `empty` error, and raising it would change the Interest calculators).
-- In progress: none.
+- In progress: none. Added since the PR commit: Single Unit / Mixed Units input modes (blank mixed fields = zero, at least one required, per-field errors), result order Terai, Hilly, Other Units.
 - Not started: physical-device testing.
 
 **Changed files**
 
 - Committed: `src/features/land/**` (new), `src/screens/Calculator/LandCalculator/**`, `src/i18n/resources/en.ts` and `np.ts`, `__tests__/CalculatorTabs.test.tsx`, `__tests__/CalculatorSettings.test.tsx`, `AdAgeView.test.tsx` (Day 31), `PROJECT_STATUS.md`, this file.
-- Uncommitted: none.
+- Committed in the mixed-unit commit: `src/features/land/{types,index,landConversionService}.ts` (`convertTeraiMixed`), `landConversionService.test.ts`, `TeraiLandView.tsx`, `teraiLandDisplay.ts` (Terai-first order, mixed input line), `TeraiLandView.test.tsx`, `en.ts`/`np.ts`, `__tests__/CalculatorSettings.test.tsx`, `PROJECT_STATUS.md`, this file.
 - Untracked: none.
 
 **Validation**
 
 - Commands/tests run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed on the final tree (52 suites / 1294 tests).
+- Results: all passed on the current tree (52 suites / 1320 tests), including the new mixed-unit service and view tests.
 - Checks not run and why: Android build and on-device run (no device or emulator in this environment); the three Government of Nepal PDFs were cited from the spec and not independently opened.
 
 **Known problems and decisions**
@@ -185,11 +185,11 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 **Next action**
 
-- Exact next step: test on a physical device (see the list below), then review and merge the PR.
+- Exact next step: test on a physical Android device (list below), then owner review and merge of PR #75.
 
 **Handoff notes**
 
-- Device test list: decimal keyboard and keyboard avoidance; Calculate with Bigha/Kattha/Dhur (1 Bigha should show Ropani 13, Aana 5, Paisa 0, Daam 0.0351, Square feet 72,900); zero, negative and malformed inputs; Nepali language digits; Light and Dark themes; Copy, Share and Save Image; small-screen layout.
+- Device test list: both modes (switch between Single and Mixed; Mixed with 1 Bigha, 4 Kattha, 10 Dhur should show Terai 1/4/10, Hilly 16 Ropani 4 Aana 3 Paisa 2.843 Daam, 89,302.5 sq ft); blank mixed fields; decimal keyboard and keyboard avoidance; Calculate with Bigha/Kattha/Dhur (1 Bigha should show Ropani 13, Aana 5, Paisa 0, Daam 0.0351, Square feet 72,900); zero, negative and malformed inputs; Nepali language digits; Light and Dark themes; Copy, Share and Save Image; small-screen layout.
 
 ## Handoff quality checklist
 

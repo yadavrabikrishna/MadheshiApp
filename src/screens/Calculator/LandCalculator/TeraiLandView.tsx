@@ -20,12 +20,17 @@ import {
   type LandConversionGroups,
   type LandConversionService,
   type LandErrorCode,
+  type TeraiLandMixedInput,
   type TeraiLandUnit,
 } from '../../../features/land';
 import { useTranslation, type TranslationKey } from '../../../i18n';
 import { useThemedStyles, type AppTheme } from '../../../theme';
 import { TeraiLandResultCard } from './TeraiLandResultCard';
-import { buildInputLine, buildLandDisplay } from './teraiLandDisplay';
+import {
+  buildInputLine,
+  buildLandDisplay,
+  buildMixedInputLine,
+} from './teraiLandDisplay';
 
 const ERROR_KEY: Record<LandErrorCode, TranslationKey> = {
   empty: 'land.error.empty',
@@ -33,12 +38,21 @@ const ERROR_KEY: Record<LandErrorCode, TranslationKey> = {
   negative: 'land.error.negative',
 };
 
+type InputMode = 'single' | 'mixed';
+const INPUT_MODES: readonly InputMode[] = ['single', 'mixed'];
+
+const EMPTY_MIXED: TeraiLandMixedInput = { bigha: '', kattha: '', dhur: '' };
+
 /** What was calculated: kept so the card does not change while typing. */
 interface Calculated {
   groups: LandConversionGroups;
-  value: string;
-  unit: TeraiLandUnit;
+  /** What was entered; the card's input line is built at render so it follows the language. */
+  input:
+    | { kind: 'single'; value: string; unit: TeraiLandUnit }
+    | { kind: 'mixed'; fields: TeraiLandMixedInput };
 }
+
+type MixedErrors = Partial<Record<TeraiLandUnit, LandErrorCode>>;
 
 interface TeraiLandViewProps {
   /** The conversion service; the default is the app's real one. */
@@ -46,8 +60,8 @@ interface TeraiLandViewProps {
 }
 
 /**
- * Terai land calculator: one screen with the input, the unit, a Calculate
- * button and, only after a successful Calculate, the Hilly / Terai / Other
+ * Terai land calculator: one screen with an input mode (Single Unit or Mixed
+ * Units), its inputs, a Calculate button and, only after a successful Calculate, the Hilly / Terai / Other
  * result groups. All validation and conversion belong to the land conversion
  * service; this view only collects input and shows what the service returns.
  */
@@ -58,10 +72,18 @@ export function TeraiLandView({
   const styles = useThemedStyles(createStyles);
   const keyboardForm = useKeyboardAwareForm();
   const inputRef = useRef<TextInputInstance>(null);
+  const bighaRef = useRef<TextInputInstance>(null);
+  const katthaRef = useRef<TextInputInstance>(null);
+  const dhurRef = useRef<TextInputInstance>(null);
+  const mixedRefs = { bigha: bighaRef, kattha: katthaRef, dhur: dhurRef };
 
+  const [mode, setMode] = useState<InputMode>('single');
   const [value, setValue] = useState('');
   const [unit, setUnit] = useState<TeraiLandUnit>('bigha');
+  const [mixed, setMixed] = useState<TeraiLandMixedInput>(EMPTY_MIXED);
   const [errors, setErrors] = useState<LandErrorCode[]>([]);
+  const [mixedErrors, setMixedErrors] = useState<MixedErrors>({});
+  const [mixedEmpty, setMixedEmpty] = useState(false);
   const [calculated, setCalculated] = useState<Calculated | null>(null);
 
   // Typing or changing the unit never recalculates; it clears the old result
@@ -70,18 +92,44 @@ export function TeraiLandView({
     <T,>(setter: (next: T) => void) =>
     (next: T) => {
       setter(next);
-      setErrors([]);
-      setCalculated(null);
+      clearOutcome();
     };
+
+  const clearOutcome = () => {
+    setErrors([]);
+    setMixedErrors({});
+    setMixedEmpty(false);
+    setCalculated(null);
+  };
+
+  const changeMixed = (field: TeraiLandUnit) => (next: string) => {
+    setMixed(previous => ({ ...previous, [field]: next }));
+    clearOutcome();
+  };
 
   const calculate = () => {
     Keyboard.dismiss();
+    clearOutcome();
+    if (mode === 'mixed') {
+      const outcome = service.convertTeraiMixed(mixed);
+      if (outcome.ok) {
+        setCalculated({
+          groups: outcome.value,
+          input: { kind: 'mixed', fields: mixed },
+        });
+      } else {
+        setMixedErrors(outcome.fieldErrors);
+        setMixedEmpty(outcome.formError === 'empty');
+      }
+      return;
+    }
     const outcome = service.convertTerai({ value, unit });
     if (outcome.ok) {
-      setErrors([]);
-      setCalculated({ groups: outcome.value, value, unit });
+      setCalculated({
+        groups: outcome.value,
+        input: { kind: 'single', value, unit },
+      });
     } else {
-      setCalculated(null);
       setErrors(outcome.errors);
     }
   };
@@ -105,33 +153,79 @@ export function TeraiLandView({
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.unitLabel}>{t('land.terai.unit.label')}</Text>
+        <Text style={styles.unitLabel}>{t('land.mode.label')}</Text>
         <SegmentedControl
-          options={TERAI_LAND_UNITS.map(id => ({
+          options={INPUT_MODES.map(id => ({
             value: id,
-            label: t(`land.unit.${id}` as TranslationKey),
+            label: t(`land.mode.${id}` as TranslationKey),
           }))}
-          value={unit}
-          onChange={change(setUnit)}
-          accessibilityLabel={t('land.terai.unit.label')}
+          value={mode}
+          onChange={change(setMode)}
+          accessibilityLabel={t('land.mode.label')}
         />
 
-        <TextField
-          ref={inputRef}
-          label={t('land.terai.input.label')}
-          value={value}
-          onChangeText={change(setValue)}
-          keyboardType="decimal-pad"
-          placeholder={t('land.terai.input.placeholder')}
-          hint={t('land.terai.input.hint')}
-          errors={errors.map(code => t(ERROR_KEY[code]))}
-          errorPrefix={t('simpleInterest.error.prefix')}
-          returnKeyType="done"
-          submitBehavior="blurAndSubmit"
-          onFocus={() => keyboardForm.onFieldFocus(inputRef.current)}
-          onBlur={() => keyboardForm.onFieldBlur(inputRef.current)}
-        />
+        {mode === 'single' ? (
+          <>
+            <Text style={styles.unitLabel}>{t('land.terai.unit.label')}</Text>
+            <SegmentedControl
+              options={TERAI_LAND_UNITS.map(id => ({
+                value: id,
+                label: t(`land.unit.${id}` as TranslationKey),
+              }))}
+              value={unit}
+              onChange={change(setUnit)}
+              accessibilityLabel={t('land.terai.unit.label')}
+            />
 
+            <TextField
+              ref={inputRef}
+              label={t('land.terai.input.label')}
+              value={value}
+              onChangeText={change(setValue)}
+              keyboardType="decimal-pad"
+              placeholder={t('land.terai.input.placeholder')}
+              hint={t('land.terai.input.hint')}
+              errors={errors.map(code => t(ERROR_KEY[code]))}
+              errorPrefix={t('simpleInterest.error.prefix')}
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+              onFocus={() => keyboardForm.onFieldFocus(inputRef.current)}
+              onBlur={() => keyboardForm.onFieldBlur(inputRef.current)}
+            />
+          </>
+        ) : (
+          <View style={styles.mixedGroup} testID="land-mixed-inputs">
+            <Text style={styles.hint}>{t('land.mixed.hint')}</Text>
+            {TERAI_LAND_UNITS.map((field, index) => {
+              const fieldErrors: string[] = [];
+              if (mixedErrors[field]) {
+                fieldErrors.push(t(ERROR_KEY[mixedErrors[field]]));
+              }
+              // "At least one value" is a form error: shown on the first field.
+              if (index === 0 && mixedEmpty) {
+                fieldErrors.push(t('land.error.mixedEmpty'));
+              }
+              const ref = mixedRefs[field];
+              return (
+                <TextField
+                  key={field}
+                  ref={ref}
+                  label={t(`land.unit.${field}` as TranslationKey)}
+                  value={mixed[field]}
+                  onChangeText={changeMixed(field)}
+                  keyboardType="decimal-pad"
+                  placeholder={t('land.mixed.placeholder')}
+                  errors={fieldErrors}
+                  errorPrefix={t('simpleInterest.error.prefix')}
+                  returnKeyType="done"
+                  submitBehavior="blurAndSubmit"
+                  onFocus={() => keyboardForm.onFieldFocus(ref.current)}
+                  onBlur={() => keyboardForm.onFieldBlur(ref.current)}
+                />
+              );
+            })}
+          </View>
+        )}
 
         <Button
           variant="primary"
@@ -143,12 +237,20 @@ export function TeraiLandView({
           <View accessibilityLiveRegion="polite">
             <TeraiLandResultCard
               groups={display}
-              inputLine={buildInputLine(
-                calculated.value,
-                calculated.unit,
-                t,
-                formatDigits,
-              )}
+              inputLine={
+                calculated.input.kind === 'mixed'
+                  ? buildMixedInputLine(
+                      calculated.input.fields,
+                      t,
+                      formatDigits,
+                    )
+                  : buildInputLine(
+                      calculated.input.value,
+                      calculated.input.unit,
+                      t,
+                      formatDigits,
+                    )
+              }
             />
           </View>
         ) : null}
@@ -166,6 +268,11 @@ const createStyles = (theme: AppTheme) =>
   StyleSheet.create({
     flex: { flex: 1 },
     content: { padding: 16, gap: 12 },
+    mixedGroup: { gap: 12 },
+    hint: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+    },
     unitLabel: {
       fontSize: 14,
       fontWeight: '600',

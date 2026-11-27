@@ -465,8 +465,15 @@ describe('dynamic Calculator navigation', () => {
     ]);
 
     await user.press(topTab('Land'));
-    // No Land type selector; only the Terai view's own unit selector.
-    expect(radioLabels()).toEqual(['Bigha', 'Kattha', 'Dhur']);
+    // No Land type selector; only the Terai view's own input mode and unit
+    // selectors.
+    expect(radioLabels()).toEqual([
+      'Single Unit',
+      'Mixed Units',
+      'Bigha',
+      'Kattha',
+      'Dhur',
+    ]);
     expect(screen.getByTestId('land-terai-view')).toBeOnTheScreen();
   });
 

@@ -487,3 +487,131 @@ describe('independence from the UI', () => {
     }
   });
 });
+
+describe('mixed units (convertTeraiMixed)', () => {
+  const mixed = (bigha: string, kattha: string, dhur: string) =>
+    landConversionService.convertTeraiMixed({ bigha, kattha, dhur });
+  const okValue = (bigha: string, kattha: string, dhur: string) => {
+    const outcome = mixed(bigha, kattha, dhur);
+    if (!outcome.ok) {
+      throw new Error(`unexpected ${JSON.stringify(outcome)}`);
+    }
+    return outcome.value;
+  };
+
+  it('1 Bigha 4 Kattha 10 Dhur (independently computed reference)', () => {
+    // 72,900 + 4 x 3,645 + 10 x 182.25 = 89,302.5 sq ft = 490 Dhur
+    expect(okValue('1', '4', '10')).toMatchObject({
+      terai: { bigha: '1', kattha: '4', dhur: '10' },
+      hilly: { ropani: '16', aana: '4', paisa: '3', daam: '2.843' },
+      other: {
+        squareFeet: '89302.5',
+        squareMetres: '8296.4737296',
+        hectare: '0.82964737296',
+        acre: expect.stringMatching(/^2\.05010330578512396694/),
+      },
+    });
+  });
+
+  it('is the same area as the equivalent single-unit input', () => {
+    expect(okValue('1', '4', '10')).toEqual(convert('490', 'dhur'));
+    expect(okValue('1', '0', '0')).toEqual(convert('1', 'bigha'));
+    expect(okValue('0', '2', '0')).toEqual(convert('2', 'kattha'));
+    expect(okValue('1.5', '', '')).toEqual(convert('1.5', 'bigha'));
+  });
+
+  it('carries across units (the entered split is not kept)', () => {
+    expect(okValue('0', '0', '25').terai).toEqual({
+      bigha: '0',
+      kattha: '1',
+      dhur: '5',
+    });
+    expect(okValue('0', '25', '0').terai).toEqual({
+      bigha: '1',
+      kattha: '5',
+      dhur: '0',
+    });
+  });
+
+  it('blank and whitespace-only fields count as zero when one is filled', () => {
+    expect(okValue('', '4', '')).toEqual(convert('4', 'kattha'));
+    expect(okValue('  ', '', '10')).toEqual(convert('10', 'dhur'));
+    expect(okValue('2', '', '')).toEqual(convert('2', 'bigha'));
+  });
+
+  it('accepts decimals in any field', () => {
+    const sqft = new D('0.5')
+      .times('72900')
+      .plus(new D('0.5').times('3645'))
+      .plus(new D('0.5').times('182.25'));
+    expect(okValue('0.5', '0.5', '0.5').other.squareFeet).toBe(sqft.toFixed());
+  });
+
+  it('all-zero input is valid and gives zeros (zero follows the single rule)', () => {
+    for (const fields of [
+      ['0', '0', '0'],
+      ['0', '', ''],
+      ['', '0.0', ''],
+    ] as const) {
+      const r = okValue(fields[0], fields[1], fields[2]);
+      for (const group of [r.hilly, r.terai, r.other]) {
+        for (const value of Object.values(group)) {
+          expect(new D(value).isZero()).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('all blank is rejected with an empty form error', () => {
+    expect(mixed('', '', '')).toEqual({
+      ok: false,
+      formError: 'empty',
+      fieldErrors: {},
+    });
+    expect(mixed(' ', '\t', '  ')).toMatchObject({
+      ok: false,
+      formError: 'empty',
+    });
+  });
+
+  it('reports malformed and negative fields per field, never converting', () => {
+    expect(mixed('1', 'abc', '')).toEqual({
+      ok: false,
+      fieldErrors: { kattha: 'malformed' },
+    });
+    expect(mixed('-1', '2', '1e2')).toEqual({
+      ok: false,
+      fieldErrors: { bigha: 'negative', dhur: 'malformed' },
+    });
+    for (const bad of ['.5', '5.', '1,5', '+1', '1 2', '१२']) {
+      expect(mixed('1', bad, '')).toMatchObject({
+        ok: false,
+        fieldErrors: { kattha: 'malformed' },
+      });
+    }
+  });
+
+  it('one bad field rejects the whole input even if the others are valid', () => {
+    const outcome = mixed('1', '4', '-10');
+    expect(outcome.ok).toBe(false);
+  });
+
+  it('keeps exact precision with large values', () => {
+    const big = '123456789012345678901234567890';
+    const r = okValue(big, big, big);
+    const sqft = new D(big).times(new D('72900').plus('3645').plus('182.25'));
+    expect(r.other.squareFeet).toBe(sqft.toFixed());
+  });
+
+  it('is exact: an area split across fields equals the whole, with no rounding', () => {
+    // 0.1 + 0.2 style sums stay exact.
+    const r = okValue('0.1', '0.2', '0.3');
+    expect(r.other.squareFeet).toBe(
+      new D('0.1')
+        .times(72900)
+        .plus(new D('0.2').times(3645))
+        .plus(new D('0.3').times('182.25'))
+        .toFixed(),
+    );
+  });
+});

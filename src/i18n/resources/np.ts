@@ -82,6 +82,12 @@ export const np: Translations = {
   'land.terai.input.hint': 'सङ्ख्या राख्नुहोस्, जस्तै 1 वा 2.5।',
   'land.terai.input.placeholder': '2.5',
   'land.terai.unit.label': 'एकाइ',
+  'land.mode.label': 'इनपुट मोड',
+  'land.mode.single': 'एकल एकाइ',
+  'land.mode.mixed': 'मिश्रित एकाइ',
+  'land.mixed.hint':
+    'कुनै पनि खाना भर्नुहोस्, जस्तै 1 बिघा, 4 कठ्ठा, 10 धुर। खाली खानालाई शून्य मानिन्छ।',
+  'land.mixed.placeholder': '0',
   'land.terai.calculate': 'हिसाब गर्नुहोस्',
   'land.unit.bigha': 'बिघा',
   'land.unit.kattha': 'कठ्ठा',
@@ -102,6 +108,7 @@ export const np: Translations = {
   'land.quickRef.body': '1 बिघा = 20 कठ्ठा = 400 धुर',
   'land.error.empty': 'जग्गाको क्षेत्रफल राख्नुहोस्।',
   'land.error.malformed': 'मान्य सङ्ख्या राख्नुहोस्, जस्तै 1 वा 2.5।',
+  'land.error.mixedEmpty': 'कम्तीमा एउटा मान राख्नुहोस्।',
   'land.error.negative': 'जग्गाको क्षेत्रफल ऋणात्मक हुन सक्दैन।',
   'calculator.land.hillMountain.description':
     'पहाड / हिमाल जमिन क्यालकुलेटर पछिको कार्यमा तयार गरिनेछ।',

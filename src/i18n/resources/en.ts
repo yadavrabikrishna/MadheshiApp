@@ -84,6 +84,12 @@ export const en = {
   'land.terai.input.placeholder': '2.5',
   'land.terai.unit.label': 'Unit',
   'land.terai.calculate': 'Calculate',
+  'land.mode.label': 'Input mode',
+  'land.mode.single': 'Single Unit',
+  'land.mode.mixed': 'Mixed Units',
+  'land.mixed.hint':
+    'Fill any of the fields, for example 1 Bigha, 4 Kattha, 10 Dhur. A blank field counts as zero.',
+  'land.mixed.placeholder': '0',
   'land.unit.bigha': 'Bigha',
   'land.unit.kattha': 'Kattha',
   'land.unit.dhur': 'Dhur',
@@ -104,6 +110,7 @@ export const en = {
   'land.error.empty': 'Enter the land area.',
   'land.error.malformed': 'Enter a valid number, for example 1 or 2.5.',
   'land.error.negative': 'The land area cannot be negative.',
+  'land.error.mixedEmpty': 'Enter at least one value.',
   'calculator.land.hillMountain.description':
     'The Hill / Mountain land calculator will be implemented in a later task.',
 

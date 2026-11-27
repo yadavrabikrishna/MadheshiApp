@@ -1,7 +1,9 @@
-import type {
-  LandConversionGroups,
-  LandConversionService,
-  TeraiLandUnit,
+import {
+  TERAI_LAND_UNITS,
+  type LandConversionGroups,
+  type LandConversionService,
+  type TeraiLandMixedInput,
+  type TeraiLandUnit,
 } from '../../../features/land';
 import type { TranslationKey } from '../../../i18n';
 
@@ -62,7 +64,8 @@ const GROUP_LAYOUT: {
 ];
 
 /**
- * The three result groups as display text, in the required order. Values come
+ * The three result groups as display text, in the required order (Terai, Hilly,
+ * Other Units). Values come
  * from the conversion service's results and its formatter; this only adds
  * grouping and the language's digits. No conversion happens here.
  */
@@ -98,6 +101,21 @@ export function buildInputLine(
   return formatDigits(
     `${t('land.result.input')}: ${value.trim()} ${t(unitKey)}`,
   );
+}
+
+/**
+ * "Input: 1 Bigha, 4 Kattha, 10 Dhur": the mixed input as typed. Blank fields
+ * are left out (they count as zero); fields are in Bigha, Kattha, Dhur order.
+ */
+export function buildMixedInputLine(
+  input: TeraiLandMixedInput,
+  t: Translate,
+  formatDigits: (text: string) => string,
+): string {
+  const parts = TERAI_LAND_UNITS.filter(unit => input[unit].trim() !== '').map(
+    unit => `${input[unit].trim()} ${t(`land.unit.${unit}` as TranslationKey)}`,
+  );
+  return formatDigits(`${t('land.result.input')}: ${parts.join(', ')}`);
 }
 
 /** The complete result as plain text, for Copy. */
