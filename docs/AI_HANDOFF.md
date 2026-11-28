@@ -141,55 +141,55 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Issue #77 (reusable configurable land calculator UI) implemented, committed and pushed; no PR (not requested); awaiting owner review
+**Handoff status:** Issue #78 (Hill / Mountain land calculator) implemented, committed and pushed; no PR (not requested); awaiting owner review and Android device testing
 
 **Last updated:** 2026-11-27
 
 **Task**
 
-- GitHub Issue: #77 (extract the reusable, configuration-driven land calculator UI). Next, NOT started: #78 (Hill / Mountain calculator screen).
+- GitHub Issue: #78 (Hill / Mountain land calculator). #76 (service) and #77 (shared UI) are already merged into `develop`.
 - Pull Request: none yet (not requested)
-- Objective: Terai uses a shared configurable calculator; Hill / Mountain configuration is ready but not enabled.
+- Objective: the Hill / Mountain Land tab uses the shared `LandCalculator` with `HILL_LAND_CONFIG` and the generic conversion service.
 
 **Repository state**
 
-- Branch: `refactor/shared-land-calculator-ui`
-- Base branch: `develop` @ `6cf7d51` (includes #76 / PR #79)
-- Latest commit: the branch head, `refactor(land): extract reusable calculator UI`
+- Branch: `feature/hill-mountain-land-calculator`
+- Base branch: `develop` @ `f0e82d7` (includes #76, #77)
+- Latest commit: the branch head, `feat(land): implement Hill and Mountain calculator`
 - Working tree: clean after the commit
-- Remote push status: pushed to `origin/refactor/shared-land-calculator-ui`
+- Remote push status: pushed to `origin/feature/hill-mountain-land-calculator`
 
 **Progress**
 
-- Completed and verified: `landFamilyConfig.ts`, `LandCalculator.tsx`, `LandResultCard.tsx`, `landDisplay.ts` (renamed from the Terai-named files), `TeraiLandView.tsx` as a thin wrapper, `land.hill.*` strings (en + np), and tests. The view uses the generic `convert` / `convertMixed` API; Mixed Units and Next/Done navigation work for any number of fields.
+- Completed and verified: `HillMountainLandView` as a thin wrapper over the shared calculator; Terai compatibility wrappers and the old placeholder string removed; 21 real-service integration tests; tab and settings tests updated.
 - In progress: none.
-- Not started: #78 (wire `HILL_LAND_CONFIG` into the Land tab in place of `HillMountainLandView`); on-device testing.
+- Not started: Android device testing; opening a PR.
 
 **Changed files**
 
-- Committed: `src/screens/Calculator/LandCalculator/{LandCalculator.tsx,LandResultCard.tsx,landDisplay.ts,landFamilyConfig.ts,TeraiLandView.tsx}` (two renamed), tests `LandCalculator.test.tsx`, `landFamilyConfig.test.ts`, `landDisplay.test.ts`, updated `TeraiLandView.test.tsx`, `src/i18n/resources/en.ts` and `np.ts`, `PROJECT_STATUS.md`, this file.
+- Committed: `src/screens/Calculator/LandCalculator/{HillMountainLandView.tsx,landFamilyConfig.ts}`, `src/features/land/{types,index,landConversionService}.ts`, `src/i18n/resources/en.ts` and `np.ts`, tests (`HillMountainLandView.test.tsx` new; `LandCalculator.test.tsx`, `landConversionService.test.ts`, `landGenericConversion.test.ts`, `__tests__/CalculatorTabs.test.tsx`, `__tests__/CalculatorSettings.test.tsx` updated), `PROJECT_STATUS.md`, this file.
 - Uncommitted: none.
 - Untracked: none.
 
 **Validation**
 
 - Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed (56 suites / 1427 tests).
+- Results: all passed (57 suites / 1447 tests).
 - Not run: Android build / on-device.
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Decisions: the Terai-named string keys (`land.terai.*`, `land.mixed.hint`, `land.quickRef.*`) are kept to avoid churn; Hill uses new `land.hill.*` keys; `land.terai.calculate` and `land.mixed.placeholder` are shared by both configs. The Terai compatibility wrappers in the service are now unused by the UI and can be removed in #78 if desired.
-- Constraints that must not be changed: registry factors, no new dependencies, `docs/notion/` untouched, no route/tab added.
+- Decision: the compatibility wrappers were removed after confirming no UI code used them. The unused `calculator.land.terai.description` string (left over from before #73) was NOT touched (outside this issue).
+- Constraints that must not be changed: registry factors, no new dependencies, `docs/notion/` untouched, no new route or tab.
 
 **Next action**
 
-- Exact next step: owner review; then #78 on a new branch from `develop`: render `<LandCalculator config={HILL_LAND_CONFIG} />` from `HillMountainLandView` and check the four-field row on a narrow Android screen.
+- Exact next step: Android device testing (below), then owner review / PR when requested.
 
 **Handoff notes**
 
-- Terai device checks from the previous task still apply (both modes, keyboard Next/Done, Nepali digits, themes, Copy/Share/Save).
+- Android manual checks for Hill / Mountain: four equal-width fields in one row on small screens and with large fonts; keyboard Next through Ropani, Aana, Paisa and Done on Daam; Single Unit selector with four units; Nepali digits in the input line, results and quick reference; Light and Dark themes; Copy, Share and Save Image (file name starts `hill-land-result-`); error messages under the row; switching Terai <-> Hill / Mountain starts each clean. Plus the earlier Terai checks.
 
 ## Handoff quality checklist
 

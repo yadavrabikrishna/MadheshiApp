@@ -44,7 +44,7 @@ export type LandErrorCode = 'empty' | 'malformed' | 'negative';
 
 /**
  * Every output of one conversion, as exact decimal strings (never rounded or
- * formatted: display formatting is `LandConversionService.formatValue`).
+ * formatted: display formatting is `LandConverter.formatValue`).
  */
 export interface LandConversionGroups {
   /** Hilly · रोपनी */
@@ -69,9 +69,6 @@ export type LandMixedInput<F extends LandFamily = 'terai'> = Record<
   LandUnitOf<F>,
   string
 >;
-
-/** The Terai mixed input (kept for the Terai UI). */
-export type TeraiLandMixedInput = LandMixedInput<'terai'>;
 
 /** A single-unit input: a decimal string and the unit it is in. */
 export interface LandInput {
@@ -116,23 +113,5 @@ export interface LandConverter {
    * round-half-up, trailing zeros trimmed. No grouping and no Nepali digits
    * (the UI adds those at the presentation boundary).
    */
-  formatValue(value: string): string;
-}
-
-/** The Terai single-unit input of the compatibility wrapper. */
-export interface TeraiLandInput {
-  value: string;
-  unit: TeraiLandUnit;
-}
-
-/**
- * Compatibility wrappers for the existing Terai UI (and its tests). They only
- * delegate to `LandConverter` (`convert` / `convertMixed('terai', ...)`) and
- * hold no logic of their own; they can be removed when the UI moves to the
- * generic API.
- */
-export interface LandConversionService {
-  convertTerai(input: TeraiLandInput): LandConversionOutcome;
-  convertTeraiMixed(input: TeraiLandMixedInput): LandMixedOutcome;
   formatValue(value: string): string;
 }

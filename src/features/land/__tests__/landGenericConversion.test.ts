@@ -164,18 +164,6 @@ describe('Terai through the generic API (existing vectors stay valid)', () => {
       other: { squareFeet: '89302.5', squareMetres: '8296.4737296' },
     });
   });
-
-  it('the Terai compatibility wrappers are the same path as the generic API', () => {
-    expect(svc.convertTerai({ value: '2.5', unit: 'kattha' })).toEqual(
-      svc.convert({ value: '2.5', unit: 'kattha' }),
-    );
-    expect(
-      svc.convertTeraiMixed({ bigha: '1', kattha: '', dhur: 'x' }),
-    ).toEqual(svc.convertMixed('terai', { bigha: '1', kattha: '', dhur: 'x' }));
-    expect(
-      svc.convertTeraiMixed({ bigha: '1', kattha: '4', dhur: '10' }),
-    ).toEqual(terai('1', '4', '10'));
-  });
 });
 
 describe('mixed units: Hill / Mountain', () => {
