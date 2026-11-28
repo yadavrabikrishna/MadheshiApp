@@ -1,13 +1,13 @@
 <!-- GENERATED FILE — DO NOT EDIT MANUALLY. Edit Notion and sync. -->
 <!-- Source page ID: 4119628c857d814fb3ebd9946cab3701 -->
 <!-- Notion last edited: 2026-11-19T10:06:00.000Z -->
-<!-- Synced at: 2026-11-19T10:21:28+00:00 -->
+<!-- Synced at: 2026-11-28T13:58:54+00:00 -->
 
 # V1. Madheshi App — Functional Requirements & Calculation Rules
 
 **Source:** [V1. Madheshi App — Functional Requirements & Calculation Rules](https://app.notion.com/p/V1-Madheshi-App-Functional-Requirements-Calculation-Rules-4119628c857d814fb3ebd9946cab3701)  
 **Notion last edited:** 2026-11-19T10:06:00.000Z  
-**Snapshot synced:** 2026-11-19T10:21:28+00:00
+**Snapshot synced:** 2026-11-28T13:58:54+00:00
 
 ---
 
