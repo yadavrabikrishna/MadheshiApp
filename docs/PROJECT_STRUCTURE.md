@@ -34,6 +34,12 @@ src/
                                @react-native-camera-roll/camera-roll; asks for storage permission
                                only on Android 9 and earlier) and useSaveResultImage.ts (hook:
                                save + success/error feedback); public API via index.ts
+    simpleCalculator/          Pure Basic Calculator logic, no React: expressionEngine.ts
+                               (evaluateExpression: + - × ÷ mod and a postfix %, Decimal.js, no
+                               eval), calculatorInput.ts (the keypad state machine: pressKey
+                               decides what each key does and ignores invalid sequences, judged
+                               by the engine), formatResult.ts (display rounding to 10 places);
+                               `mod` is the remainder, `%` is percent; public API via index.ts
     date/                      Shared pure fixed-date arithmetic used by Interest and Age
                                (fixedDate.ts: YYYY/MM/DD validation + fixed 30-day/12-month
                                duration; no calendar rules); public API via index.ts
@@ -67,7 +73,8 @@ src/
                                  and the copied summary, simpleInterestSummary.ts = plain-text summary
       AgeCalculator/             AgeCalculatorView, AdAgeView, BsAgeView
       LandCalculator/            LandCalculatorView, TeraiLandView, HillMountainLandView
-      BasicCalculator/           BasicCalculatorView (placeholder; a feature of this app)
+      BasicCalculator/           BasicCalculatorView (display + keypad; a feature of this app),
+                                 CalculatorKeypad, keypadLayout.ts (key rows: C, DEL, mod, ÷ ...)
     Settings/                  SettingsScreen, CalculatorSettingsScreen (draft until Save),
                                InterestRateSettingsSection (per-calculator rate entry; applies at once)
   storage/                   SQLite: connection, versioned migrations, repositories

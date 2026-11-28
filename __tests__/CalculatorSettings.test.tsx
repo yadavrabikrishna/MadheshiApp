@@ -141,10 +141,6 @@ const PLACEHOLDER = {
     'The compound interest calculator will be implemented in a later task.',
   // Implemented in Issue #65: the BS Age view's approximation notice title.
   ageBs: 'Approximate result',
-  basic:
-    'The Basic Calculator interface and operations will be implemented in a future update.',
-  basicNp:
-    'सामान्य क्यालकुलेटरको इन्टरफेस र सञ्चालनहरू भविष्यको अपडेटमा तयार गरिनेछन्।',
 };
 
 async function changeLanguage(user: User, label: 'नेपाली' | 'English') {
@@ -351,7 +347,7 @@ describe('Calculator Settings screen', () => {
     await openCalculator(user);
     expect(topTabLabels()).toEqual([]); // a single calculator: no navigation
     expect(headerTitle()).toBe('Basic Calculator');
-    expect(screen.getByText(PLACEHOLDER.basic)).toBeOnTheScreen();
+    expect(basicCalculatorKey()).toBeOnTheScreen();
   });
 
   it('never saves an all-off selection, even after a restart', async () => {
@@ -487,7 +483,7 @@ describe('dynamic Calculator navigation', () => {
     expect(radioLabels()).toEqual(RATE_MODE_RADIOS);
 
     await user.press(topTab('Basic Calculator'));
-    expect(screen.getByText(PLACEHOLDER.basic)).toBeOnTheScreen();
+    expect(basicCalculatorKey()).toBeOnTheScreen();
     expect(radioLabels()).toEqual([]);
     expect(headerTitle()).toBe('Basic Calculator');
   });
@@ -517,7 +513,7 @@ describe('dynamic Calculator navigation', () => {
 
     expect(topTabLabels()).toEqual([]);
     expect(radioLabels()).toEqual([]);
-    expect(screen.getByText(PLACEHOLDER.basic)).toBeOnTheScreen();
+    expect(basicCalculatorKey()).toBeOnTheScreen();
   });
 
   it('hides a group selector when only one calculator of the group is enabled', async () => {
@@ -833,18 +829,24 @@ describe('dynamic header title', () => {
   });
 });
 
-describe('Basic Calculator placeholder', () => {
-  it('shows its localized title and a placeholder message, with no keypad', async () => {
+/** The Basic Calculator's "=" key, named in the language (it only exists on that calculator). */
+function basicCalculatorKey(language: 'en' | 'np' = 'en') {
+  return screen.getByRole('button', {
+    name: language === 'en' ? 'Equals' : 'बराबर',
+  });
+}
+
+describe('Basic Calculator', () => {
+  it('shows its localized title and the calculator keypad', async () => {
     const device = newDevice();
     await device.seed(only('basic'), 'basic');
     const user = await launchOnCalculator(device);
 
-    expect(screen.getByText(PLACEHOLDER.basic)).toBeOnTheScreen();
-    // Only the placeholder: no digit or operator buttons of any kind.
-    expect(screen.queryByRole('button', { name: /^[0-9+\-×÷=.]$/ })).toBeNull();
+    expect(basicCalculatorKey()).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: '7' })).toBeOnTheScreen();
 
     await changeLanguage(user, 'नेपाली');
-    expect(screen.getByText(PLACEHOLDER.basicNp)).toBeOnTheScreen();
+    expect(basicCalculatorKey('np')).toBeOnTheScreen();
     expect(headerTitle()).toBe('सामान्य क्यालकुलेटर');
   });
 });
