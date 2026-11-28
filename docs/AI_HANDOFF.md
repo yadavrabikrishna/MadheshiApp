@@ -12,16 +12,16 @@ This process reduces lost context; it does not guarantee that unfinished work is
 
 Use these sources in this order for their respective responsibilities:
 
-| Information | Authoritative source |
-|---|---|
+| Information                                                                    | Authoritative source                                                     |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | Approved V1 scope, product behavior, calculation rules and acceptance criteria | Notion source pages; read their generated snapshots under `docs/notion/` |
-| Shared coding rules and approved architecture | `AGENTS.md` |
-| Contribution, branch, commit and review workflow | `CONTRIBUTING.md` |
-| Current implementation and actual working state | Repository files, Git status, branch and commit history |
-| Task scope and acceptance criteria | Relevant GitHub Issue and its comments |
-| Proposed implementation and review feedback | Relevant GitHub Pull Request, commits and review comments |
-| Cross-task project progress | `PROJECT_STATUS.md` |
-| Current task's interruption/resumption details | This file's **Active task handoff** section, when populated |
+| Shared coding rules and approved architecture                                  | `AGENTS.md`                                                              |
+| Contribution, branch, commit and review workflow                               | `CONTRIBUTING.md`                                                        |
+| Current implementation and actual working state                                | Repository files, Git status, branch and commit history                  |
+| Task scope and acceptance criteria                                             | Relevant GitHub Issue and its comments                                   |
+| Proposed implementation and review feedback                                    | Relevant GitHub Pull Request, commits and review comments                |
+| Cross-task project progress                                                    | `PROJECT_STATUS.md`                                                      |
+| Current task's interruption/resumption details                                 | This file's **Active task handoff** section, when populated              |
 
 `CLAUDE.md` is an agent-specific entry point and must remain consistent with the shared instructions in `AGENTS.md`. Other agents should follow `AGENTS.md` and their own tool-specific entry points, if any.
 
@@ -141,55 +141,55 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Issue #78 (Hill / Mountain land calculator) implemented, committed and pushed; no PR (not requested); awaiting owner review and Android device testing
+**Handoff status:** Issue #82 (Simple Calculator calculation engine) implemented, committed and pushed; no PR (not requested); awaiting owner review
 
-**Last updated:** 2026-11-27
+**Last updated:** 2026-11-28
 
 **Task**
 
-- GitHub Issue: #78 (Hill / Mountain land calculator). #76 (service) and #77 (shared UI) are already merged into `develop`.
+- GitHub Issue: #82 (Simple Calculator calculation engine). The UI is the separate Issue #83 and is not started.
 - Pull Request: none yet (not requested)
-- Objective: the Hill / Mountain Land tab uses the shared `LandCalculator` with `HILL_LAND_CONFIG` and the generic conversion service.
+- Objective: a pure, safe expression engine for `+ - × ÷ %` with Decimal.js, usable by a later UI.
 
 **Repository state**
 
-- Branch: `feature/hill-mountain-land-calculator`
-- Base branch: `develop` @ `f0e82d7` (includes #76, #77)
-- Latest commit: the branch head, `feat(land): implement Hill and Mountain calculator`
+- Branch: `feature/simple-calculator-engine`
+- Base branch: `develop` @ `7cf2369`
+- Latest commit: the branch head, `feat(calculator): implement simple calculator expression engine`
 - Working tree: clean after the commit
-- Remote push status: pushed to `origin/feature/hill-mountain-land-calculator`
+- Remote push status: pushed to `origin/feature/simple-calculator-engine`
 
 **Progress**
 
-- Completed and verified: `HillMountainLandView` as a thin wrapper over the shared calculator; Terai compatibility wrappers and the old placeholder string removed; 21 real-service integration tests; tab and settings tests updated.
+- Completed and verified: `src/features/simpleCalculator/` engine and 105 unit tests; docs updated.
 - In progress: none.
-- Not started: Android device testing; opening a PR.
+- Not started: Simple Calculator UI (#83); opening a PR.
 
 **Changed files**
 
-- Committed: `src/screens/Calculator/LandCalculator/{HillMountainLandView.tsx,landFamilyConfig.ts}`, `src/features/land/{types,index,landConversionService}.ts`, `src/i18n/resources/en.ts` and `np.ts`, tests (`HillMountainLandView.test.tsx` new; `LandCalculator.test.tsx`, `landConversionService.test.ts`, `landGenericConversion.test.ts`, `__tests__/CalculatorTabs.test.tsx`, `__tests__/CalculatorSettings.test.tsx` updated), `PROJECT_STATUS.md`, this file.
+- Committed: `src/features/simpleCalculator/{expressionEngine,index}.ts`, `src/features/simpleCalculator/__tests__/expressionEngine.test.ts`, `PROJECT_STATUS.md`, this file.
 - Uncommitted: none.
 - Untracked: none.
 
 **Validation**
 
 - Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed (57 suites / 1447 tests).
-- Not run: Android build / on-device.
+- Results: all passed (58 suites / 1552 tests).
+- Not run: Android build (pure TypeScript).
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Decision: the compatibility wrappers were removed after confirming no UI code used them. The unused `calculator.land.terai.description` string (left over from before #73) was NOT touched (outside this issue).
-- Constraints that must not be changed: registry factors, no new dependencies, `docs/notion/` untouched, no new route or tab.
+- Decision: `%` is remainder with the sign of the left operand; incomplete input returns no value; see `PROJECT_STATUS.md` for the full rules.
+- Constraints that must not be changed: no `eval` / `Function`, no UI imports in the engine, no new dependencies, `docs/notion/` untouched.
 
 **Next action**
 
-- Exact next step: Android device testing (below), then owner review / PR when requested.
+- Exact next step: owner review; then Issue #83 (UI) when requested.
 
 **Handoff notes**
 
-- Android manual checks for Hill / Mountain: four equal-width fields in one row on small screens and with large fonts; keyboard Next through Ropani, Aana, Paisa and Done on Daam; Single Unit selector with four units; Nepali digits in the input line, results and quick reference; Light and Dark themes; Copy, Share and Save Image (file name starts `hill-land-result-`); error messages under the row; switching Terai <-> Hill / Mountain starts each clean. Plus the earlier Terai checks.
+- No device checks apply to the engine alone; the UI issue (#83) will need Android checks.
 
 ## Handoff quality checklist
 
