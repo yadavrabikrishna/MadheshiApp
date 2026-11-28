@@ -149,19 +149,19 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 - GitHub Issue: #82 (Simple Calculator calculation engine). The UI is the separate Issue #83 and is not started.
 - Pull Request: none yet (not requested)
-- Objective: a pure, safe expression engine for `+ - × ÷ %` with Decimal.js, usable by a later UI.
+- Objective: a pure, safe expression engine for `+ - × ÷`, `mod` (remainder) and a postfix `%` (percent) with Decimal.js, usable by a later UI.
 
 **Repository state**
 
 - Branch: `feature/simple-calculator-engine`
 - Base branch: `develop` @ `7cf2369`
-- Latest commit: the branch head, `feat(calculator): implement simple calculator expression engine`
+- Latest commit: the branch head, `feat(calculator): separate mod and percent in the expression engine` (on top of `ca52eb6`)
 - Working tree: clean after the commit
 - Remote push status: pushed to `origin/feature/simple-calculator-engine`
 
 **Progress**
 
-- Completed and verified: `src/features/simpleCalculator/` engine and 105 unit tests; docs updated.
+- Completed and verified: `src/features/simpleCalculator/` engine and 220 unit tests; docs updated.
 - In progress: none.
 - Not started: Simple Calculator UI (#83); opening a PR.
 
@@ -174,13 +174,13 @@ Before implementing the next step, run the smallest relevant checks to establish
 **Validation**
 
 - Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed (58 suites / 1552 tests).
+- Results: all passed (58 suites / 1667 tests).
 - Not run: Android build (pure TypeScript).
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Decision: `%` is remainder with the sign of the left operand; incomplete input returns no value; see `PROJECT_STATUS.md` for the full rules.
+- Decision: `mod` is the remainder (sign of the left operand); `%` is only the postfix percent sign (fraction for × ÷ mod, percent of the running total after + / -); `5%3` is invalid; incomplete input returns no value. See `PROJECT_STATUS.md` for the full rules.
 - Constraints that must not be changed: no `eval` / `Function`, no UI imports in the engine, no new dependencies, `docs/notion/` untouched.
 
 **Next action**
