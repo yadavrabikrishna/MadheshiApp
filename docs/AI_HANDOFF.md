@@ -141,55 +141,55 @@ Before implementing the next step, run the smallest relevant checks to establish
 
 > This section is for a currently interrupted task, not a permanent project history. Update it when a task is interrupted or handed to another agent. Clear it when the task is complete or no task is active.
 
-**Handoff status:** Issue #82 (Simple Calculator calculation engine) implemented, committed and pushed; no PR (not requested); awaiting owner review
+**Handoff status:** Issue #83 (Basic / Simple Calculator UI) implemented, committed and pushed; no PR (not requested); awaiting owner review and Android device testing
 
 **Last updated:** 2026-11-28
 
 **Task**
 
-- GitHub Issue: #82 (Simple Calculator calculation engine). The UI is the separate Issue #83 and is not started.
+- GitHub Issue: #83 (Simple Calculator UI). The engine (#82) is already merged into `develop` through PR #84.
 - Pull Request: none yet (not requested)
-- Objective: a pure, safe expression engine for `+ - × ÷`, `mod` (remainder) and a postfix `%` (percent) with Decimal.js, usable by a later UI.
+- Objective: a keypad calculator screen (expression, live result, `=`, continue, C, DEL, `mod` and `%` as separate keys) built on `evaluateExpression`.
 
 **Repository state**
 
-- Branch: `feature/simple-calculator-engine`
-- Base branch: `develop` @ `7cf2369`
-- Latest commit: the branch head, `feat(calculator): separate mod and percent in the expression engine` (on top of `ca52eb6`)
+- Branch: `feature/simple-calculator-ui`
+- Base branch: `develop` @ `aeeb124` (includes #82 / PR #84)
+- Latest commit: the branch head, `feat(calculator): implement simple calculator screen`
 - Working tree: clean after the commit
-- Remote push status: pushed to `origin/feature/simple-calculator-engine`
+- Remote push status: pushed to `origin/feature/simple-calculator-ui`
 
 **Progress**
 
-- Completed and verified: `src/features/simpleCalculator/` engine and 220 unit tests; docs updated.
+- Completed and verified: pure `calculatorInput.ts` (key state machine) and `formatResult.ts`; `BasicCalculatorView`, `CalculatorKeypad`, `keypadLayout.ts`; en/np strings; 179 new tests (83 input/format, 96 view; the `CalculatorSettings` checks were updated); docs updated.
 - In progress: none.
-- Not started: Simple Calculator UI (#83); opening a PR.
+- Not started: Android device testing; opening a PR.
 
 **Changed files**
 
-- Committed: `src/features/simpleCalculator/{expressionEngine,index}.ts`, `src/features/simpleCalculator/__tests__/expressionEngine.test.ts`, `PROJECT_STATUS.md`, this file.
+- Committed: `src/features/simpleCalculator/{calculatorInput,formatResult,index}.ts` and `__tests__/calculatorInput.test.ts`; `src/screens/Calculator/BasicCalculator/{BasicCalculatorView.tsx,CalculatorKeypad.tsx,keypadLayout.ts}` and `__tests__/BasicCalculatorView.test.tsx`; `src/i18n/resources/{en,np}.ts`; `__tests__/CalculatorSettings.test.tsx`; `docs/PROJECT_STRUCTURE.md`; `PROJECT_STATUS.md`; this file.
 - Uncommitted: none.
 - Untracked: none.
 
 **Validation**
 
-- Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__`, `npx jest --runInBand`.
-- Results: all passed (58 suites / 1667 tests).
-- Not run: Android build (pure TypeScript).
+- Commands run: `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src __tests__` (and the edited docs), `npx jest --runInBand`.
+- Results: all passed (60 suites / 1846 tests). `prettier --check docs` also reports the generated `docs/notion/README.md` and `V1_RELEASE_SCOPE.md`; they are generated, must not be edited by hand, and were not touched.
+- Not run: Android build / on-device.
 
 **Known problems and decisions**
 
 - Errors/blockers: none.
-- Decision: `mod` is the remainder (sign of the left operand); `%` is only the postfix percent sign (fraction for × ÷ mod, percent of the running total after + / -); `5%3` is invalid; incomplete input returns no value. See `PROJECT_STATUS.md` for the full rules.
-- Constraints that must not be changed: no `eval` / `Function`, no UI imports in the engine, no new dependencies, `docs/notion/` untouched.
+- Decisions: the calculator id stays `basic` ("Basic Calculator"); visible keys are `C` and a backspace icon (per the issue's UI note), spoken as "Clear all" / "Delete"; results are displayed to 10 decimal places and continued from the displayed value; DEL after `=` returns to editing; a lone number shows no preview. The placeholder string `calculator.basic.description` was removed.
+- Constraints that must not be changed: no expression parsing or arithmetic in components, the engine as the only evaluator, no new dependencies, `docs/notion/` untouched, Terai / Hill-Mountain untouched.
 
 **Next action**
 
-- Exact next step: owner review; then Issue #83 (UI) when requested.
+- Exact next step: Android device testing (below), then owner review / PR when requested.
 
 **Handoff notes**
 
-- No device checks apply to the engine alone; the UI issue (#83) will need Android checks.
+- Android manual checks: keypad fits small screens and large font sizes (screen scrolls if needed); keys are comfortable to tap; Light and Dark contrast of digit, operator and `=` keys and of the error text; Nepali digits and key names; TalkBack reads each key and the result; the device keyboard never appears; long expressions (up to 100 characters) shrink or wrap in the display; switching calculator tabs and back resets the calculator (local state only).
 
 ## Handoff quality checklist
 
